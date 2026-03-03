@@ -53,6 +53,19 @@ api.interceptors.response.use(
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const authService = {
+  register: async (
+    username: string,
+    email: string,
+    password: string
+  ): Promise<TokenResponse> => {
+    const { data } = await api.post<TokenResponse>("/auth/register", {
+      username,
+      email,
+      password,
+    });
+    return data;
+  },
+
   login: async (username: string, password: string): Promise<TokenResponse> => {
     const { data } = await api.post<TokenResponse>("/auth/login", {
       username,

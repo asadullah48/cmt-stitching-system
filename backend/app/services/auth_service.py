@@ -8,6 +8,8 @@ from app.models.users import User
 
 
 class AuthService:
+    UserModel = User  # Expose model for use in endpoints
+    
     @staticmethod
     def authenticate(db: Session, username: str, password: str) -> Optional[User]:
         user = (
