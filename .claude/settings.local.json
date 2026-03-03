@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run:*)",
+      "Bash(where python:*)",
+      "Bash(uv python:*)",
+      "Bash(uv venv:*)",
+      "Bash(uv sync:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Skill(commit-commands:commit-push-pr)",
+      "Bash(gh:*)",
+      "Bash(git:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(export:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "mcp__claude_ai_Vercel__list_teams",
+      "mcp__claude_ai_Vercel__list_projects",
+      "Bash(npx vercel:*)",
+      "mcp__claude_ai_Vercel__deploy_to_vercel",
+      "Bash(npm show:*)"
+    ]
+  }
+}

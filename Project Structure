@@ -1,0 +1,40 @@
+cmt-stitching-system/
+├── frontend/                     # Next.js Frontend
+│   ├── components/
+│   │   ├── common/              # Reusable UI components
+│   │   ├── orders/              # Order management components
+│   │   ├── production/          # Production tracking components
+│   │   ├── inventory/           # Inventory management components
+│   │   ├── financial/           # Financial & accounting components
+│   │   └── dashboard/           # Dashboard components
+│   ├── pages/
+│   │   ├── api/                 # Next.js API routes (if needed)
+│   │   ├── orders/              # Order pages
+│   │   ├── production/          # Production pages
+│   │   ├── inventory/           # Inventory pages
+│   │   ├── financial/           # Financial pages
+│   │   └── dashboard/           # Dashboard pages
+│   ├── hooks/                   # Custom React hooks
+│   ├── services/                # API service layer
+│   ├── store/                   # Redux store configuration
+│   ├── utils/                   # Utility functions
+│   └── types/                   # TypeScript type definitions
+├── backend/                     # FastAPI Backend
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── v1/              # API version 1
+│   │   │   │   ├── endpoints/   # Route handlers
+│   │   │   │   └── deps.py      # Dependencies
+│   │   │   └── auth/            # Authentication
+│   │   ├── core/                # Core configurations
+│   │   ├── models/              # SQLAlchemy/ODM models
+│   │   ├── schemas/             # Pydantic schemas
+│   │   ├── services/            # Business logic
+│   │   ├── utils/               # Utility functions
+│   │   └── main.py              # FastAPI app entry point
+│   ├── migrations/              # Database migrations
+│   └── tests/                   # Backend tests
+├── shared/                      # Shared types and utilities
+├── docs/                        # Documentation
+├── docker-compose.yml           # Development environment
+└── README.md

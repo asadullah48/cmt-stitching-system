@@ -1,0 +1,45 @@
+# Python / Backend
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+*.env
+*.env.*
+!*.env.example
+
+# Alembic
+backend/alembic/versions/__pycache__/
+
+# uv
+.uv/
+
+# Node / Frontend
+node_modules/
+.next/
+.turbo/
+out/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/.vercel/
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log
+*.pid
+*.seed
+*.pid.lock
+.idea/
+.vscode/
+*.swp
+*.swo
