@@ -12,7 +12,6 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,8 +20,8 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username.trim() || !email.trim() || !password.trim()) {
-      setError("All fields are required.");
+    if (!username.trim() || !password.trim()) {
+      setError("Username and password are required.");
       return;
     }
     
@@ -40,9 +39,11 @@ export default function RegisterPage() {
     setLoading(true);
     
     try {
+      // Generate email from username for simplicity
+      const email = `${username.trim()}@example.com`;
       const { user, access_token } = await authService.register(
         username.trim(),
-        email.trim(),
+        email,
         password
       );
       login(user, access_token);
@@ -83,19 +84,6 @@ export default function RegisterPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 autoFocus
                 autoComplete="username"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email
-              </label>
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
               />
             </div>
             
