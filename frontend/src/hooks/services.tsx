@@ -61,6 +61,19 @@ export const authService = {
     return data;
   },
 
+  register: async (
+    username: string,
+    email: string,
+    password: string
+  ): Promise<TokenResponse> => {
+    const { data } = await api.post<TokenResponse>("/auth/register", {
+      username,
+      email,
+      password,
+    });
+    return data;
+  },
+
   me: async (): Promise<TokenResponse["user"]> => {
     const { data } = await api.get("/auth/me");
     return data;
