@@ -207,6 +207,8 @@ export interface OrderFilters {
 
 export interface TransactionFilters {
   party_id?: string;
+  order_id?: string;
+  transaction_type?: TransactionType;
   date_from?: string;
   date_to?: string;
   page?: number;

@@ -49,11 +49,9 @@ export default function OrderDetailPage() {
   }, [id]);
 
   const loadTransactions = useCallback(async () => {
-    // Filter transactions by order — pass order_id when API supports it
-    // For now fetch all and filter client-side
     try {
-      const res = await transactionsService.getTransactions({ size: 200 });
-      setTransactions(res.data.filter((t) => t.order_id === id));
+      const res = await transactionsService.getTransactions({ order_id: id, size: 100 });
+      setTransactions(res.data);
     } catch { /* ignore */ }
   }, [id]);
 
