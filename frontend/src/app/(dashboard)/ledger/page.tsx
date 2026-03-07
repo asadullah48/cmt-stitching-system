@@ -8,7 +8,7 @@ import {
 } from "@/components/common";
 import { TransactionForm } from "@/components/financial";
 import type {
-  FinancialTransaction, Party, TransactionFilters, PaginatedResponse,
+  FinancialTransaction, Party, TransactionFilters, TransactionType, PaginatedResponse,
 } from "@/hooks/types";
 import type { Column } from "@/components/common";
 
@@ -132,13 +132,13 @@ export default function LedgerPage() {
       {result.data.length > 0 && (
         <div className="flex gap-4">
           <div className="bg-green-50 rounded-lg px-4 py-2.5">
-            <p className="text-xs text-green-600 font-medium">Income (page)</p>
+            <p className="text-xs text-green-600 font-medium">Income (this page)</p>
             <p className="text-base font-bold text-green-700 tabular-nums">
               PKR {formatCurrency(totalIncome)}
             </p>
           </div>
           <div className="bg-orange-50 rounded-lg px-4 py-2.5">
-            <p className="text-xs text-orange-600 font-medium">Payments (page)</p>
+            <p className="text-xs text-orange-600 font-medium">Payments (this page)</p>
             <p className="text-base font-bold text-orange-700 tabular-nums">
               PKR {formatCurrency(totalPayments)}
             </p>
@@ -161,6 +161,20 @@ export default function LedgerPage() {
           ))}
         </Select>
 
+        <Select
+          className="w-40"
+          value={filters.transaction_type ?? ""}
+          onChange={(e) =>
+            handleFilter({ transaction_type: (e.target.value as TransactionType) || undefined })
+          }
+        >
+          <option value="">All types</option>
+          <option value="income">Income</option>
+          <option value="payment">Payment</option>
+          <option value="expense">Expense</option>
+          <option value="adjustment">Adjustment</option>
+        </Select>
+
         <Input
           type="date"
           className="w-40"
@@ -174,7 +188,7 @@ export default function LedgerPage() {
           onChange={(e) => handleFilter({ date_to: e.target.value || undefined })}
         />
 
-        {(filters.party_id || filters.date_from || filters.date_to) && (
+        {(filters.party_id || filters.date_from || filters.date_to || filters.transaction_type) && (
           <Button
             variant="ghost"
             size="sm"
