@@ -48,8 +48,9 @@ export default function RegisterPage() {
       );
       login(user, access_token);
       router.replace("/dashboard");
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed. Please try again.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(msg || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
