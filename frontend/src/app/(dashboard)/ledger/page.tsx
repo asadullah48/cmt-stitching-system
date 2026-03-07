@@ -56,8 +56,8 @@ export default function LedgerPage() {
   const { totalDebit, totalCredit, rows } = useMemo(() => {
     let debit = 0, credit = 0, running = 0;
     const rows = result.data.map((tx) => {
-      if (isCredit(tx)) { credit += tx.amount; running += tx.amount; }
-      else               { debit  += tx.amount; running -= tx.amount; }
+      if (isCredit(tx)) { credit += Number(tx.amount); running += Number(tx.amount); }
+      else               { debit  += Number(tx.amount); running -= Number(tx.amount); }
       return { ...tx, running };
     });
     return { totalDebit: debit, totalCredit: credit, rows };

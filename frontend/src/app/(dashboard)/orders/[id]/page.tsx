@@ -64,7 +64,7 @@ export default function OrderDetailPage() {
     Promise.all([loadOrder(), loadSessions(), loadTransactions()]).finally(() =>
       setLoading(false)
     );
-    partiesService.getParties(1, 200).then((r) => setParties(r.data));
+    partiesService.getParties(1, 100).then((r) => setParties(r.data));
   }, [loadOrder, loadSessions, loadTransactions]);
 
   const handleDelete = async () => {

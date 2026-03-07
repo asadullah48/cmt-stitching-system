@@ -53,7 +53,7 @@ export function TransactionForm({
 
   useEffect(() => {
     if (!initialPartyId) {
-      partiesService.getParties(1, 200).then((r) => setParties(r.data));
+      partiesService.getParties(1, 100).then((r) => setParties(r.data));
     }
   }, [initialPartyId]);
 
@@ -329,8 +329,8 @@ export function LedgerTable({ transactions }: LedgerTableProps) {
   const rows = [...transactions]
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date))
     .map((tx) => {
-      if (tx.transaction_type === "income") running += tx.amount;
-      else if (tx.transaction_type === "payment") running -= tx.amount;
+      if (tx.transaction_type === "income") running += Number(tx.amount);
+      else if (tx.transaction_type === "payment") running -= Number(tx.amount);
       return { ...tx, running };
     });
 

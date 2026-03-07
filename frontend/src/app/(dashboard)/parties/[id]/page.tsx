@@ -74,7 +74,7 @@ export default function PartyLedgerPage() {
       if (dateFrom) {
         for (const tx of sorted) {
           if (tx.transaction_date < dateFrom) {
-            opening += isCredit(tx) ? tx.amount : -tx.amount;
+            opening += isCredit(tx) ? Number(tx.amount) : -Number(tx.amount);
           }
         }
       }
@@ -93,11 +93,11 @@ export default function PartyLedgerPage() {
 
       const rows = inRange.map((tx) => {
         if (isCredit(tx)) {
-          credit += tx.amount;
-          running += tx.amount;
+          credit += Number(tx.amount);
+          running += Number(tx.amount);
         } else {
-          debit += tx.amount;
-          running -= tx.amount;
+          debit += Number(tx.amount);
+          running -= Number(tx.amount);
         }
         return { ...tx, running };
       });

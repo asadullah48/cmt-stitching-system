@@ -35,7 +35,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     load(filters);
-    partiesService.getParties(1, 200).then((r) => setParties(r.data));
+    partiesService.getParties(1, 100).then((r) => setParties(r.data));
   }, [load, filters]);
 
   const handleFilterChange = (patch: Partial<OrderFilters>) => {
