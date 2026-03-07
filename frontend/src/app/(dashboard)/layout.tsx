@@ -128,7 +128,7 @@ function Sidebar() {
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard"
-                : pathname.startsWith(item.href);
+                : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <li key={item.href}>
                 <Link
@@ -140,13 +140,7 @@ function Sidebar() {
                       : "text-blue-200 hover:bg-white/10 hover:text-white"
                   )}
                 >
-                  <span
-                    className={cn(
-                      isActive ? "text-white" : "text-blue-300"
-                    )}
-                  >
-                    {item.icon}
-                  </span>
+                  {item.icon}
                   {item.label}
                 </Link>
               </li>
@@ -174,6 +168,7 @@ function Sidebar() {
           <button
             onClick={handleLogout}
             title="Sign out"
+            aria-label="Sign out"
             className="p-1 rounded text-blue-300 hover:text-white transition-colors flex-shrink-0"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
