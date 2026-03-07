@@ -37,8 +37,9 @@ def list_transactions(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     transaction_type: Optional[str] = Query(None),
+    order_id: Optional[UUID] = Query(None),
 ):
-    txns, total = FinancialService.get_all(db, page, size, party_id, date_from, date_to, transaction_type)
+    txns, total = FinancialService.get_all(db, page, size, party_id, date_from, date_to, transaction_type, order_id)
     return TransactionListResponse(data=[_to_out(t) for t in txns], total=total, page=page, size=size)
 
 

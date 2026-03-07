@@ -57,6 +57,7 @@ class FinancialService:
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
         transaction_type: Optional[str] = None,
+        order_id: Optional[UUID] = None,
     ) -> tuple[list[FinancialTransaction], int]:
         q = (
             db.query(FinancialTransaction)
@@ -65,6 +66,8 @@ class FinancialService:
         )
         if party_id:
             q = q.filter(FinancialTransaction.party_id == party_id)
+        if order_id:
+            q = q.filter(FinancialTransaction.order_id == order_id)
         if date_from:
             q = q.filter(FinancialTransaction.transaction_date >= date_from)
         if date_to:
