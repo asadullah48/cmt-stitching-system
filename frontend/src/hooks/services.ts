@@ -17,6 +17,10 @@ import type {
   TransactionCreate,
   TransactionFilters,
   DashboardSummary,
+  QualityReport,
+  QualityCheckpoint,
+  DefectLog,
+  DispatchOrder,
 } from "./types";
 
 // ─── Axios instance ──────────────────────────────────────────────────────────
@@ -207,6 +211,42 @@ export const transactionsService = {
 export const dashboardService = {
   getSummary: async (): Promise<DashboardSummary> => {
     const { data } = await api.get<DashboardSummary>("/dashboard/summary");
+    return data;
+  },
+};
+
+// ─── Quality ─────────────────────────────────────────────────────────────────
+
+export const qualityService = {
+  getReport: async (orderId: string): Promise<QualityReport> => {
+    const { data } = await api.get<QualityReport>(`/quality/${orderId}`);
+    return data;
+  },
+  updateCheckpoint: async (checkpointId: string, passed: boolean, notes?: string): Promise<QualityCheckpoint> => {
+    const { data } = await api.patch<QualityCheckpoint>(`/quality/checkpoints/${checkpointId}`, { passed, notes });
+    return data;
+  },
+  logDefect: async (orderId: string, defectType: string, quantity: number, notes?: string): Promise<DefectLog> => {
+    const { data } = await api.post<DefectLog>(`/quality/defects`, {
+      order_id: orderId, defect_type: defectType, quantity, notes,
+    });
+    return data;
+  },
+};
+
+// ─── Dispatch ────────────────────────────────────────────────────────────────
+
+export const dispatchService = {
+  getCarriers: async (): Promise<string[]> => {
+    const { data } = await api.get<string[]>("/dispatch/carriers");
+    return data;
+  },
+  getReadyOrders: async (): Promise<DispatchOrder[]> => {
+    const { data } = await api.get<DispatchOrder[]>("/dispatch/ready");
+    return data;
+  },
+  updateDispatch: async (orderId: string, payload: Partial<DispatchOrder>): Promise<DispatchOrder> => {
+    const { data } = await api.patch<DispatchOrder>(`/dispatch/${orderId}`, payload);
     return data;
   },
 };

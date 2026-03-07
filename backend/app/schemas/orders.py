@@ -69,6 +69,11 @@ class OrderUpdate(BaseModel):
     delivery_date: Optional[date] = None
     estimated_completion: Optional[date] = None
     actual_completion: Optional[date] = None
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    dispatch_date: Optional[date] = None
+    carton_count: Optional[int] = None
+    total_weight: Optional[Decimal] = None
 
 
 class OrderStatusUpdate(BaseModel):
@@ -93,6 +98,11 @@ class OrderOut(BaseModel):
     delivery_date: Optional[date] = None
     estimated_completion: Optional[date] = None
     actual_completion: Optional[date] = None
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    dispatch_date: Optional[date] = None
+    carton_count: Optional[int] = None
+    total_weight: Optional[Decimal] = None
     items: list[OrderItemOut] = []
 
     model_config = {"from_attributes": True}

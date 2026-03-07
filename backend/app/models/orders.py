@@ -24,6 +24,11 @@ class Order(BaseModel):
     delivery_date = Column(Date)
     estimated_completion = Column(Date)
     actual_completion = Column(Date)
+    carrier = Column(String(50), nullable=True)
+    tracking_number = Column(String(100), nullable=True)
+    dispatch_date = Column(Date, nullable=True)
+    carton_count = Column(Integer, nullable=True)
+    total_weight = Column(Numeric(8, 2), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
 
     # Relationships
@@ -33,6 +38,8 @@ class Order(BaseModel):
     production_sessions = relationship("ProductionSession", back_populates="order")
     expenses = relationship("Expense", back_populates="order")
     transactions = relationship("FinancialTransaction", back_populates="order")
+    quality_checkpoints = relationship("QualityCheckpoint", back_populates="order", cascade="all, delete-orphan")
+    defect_logs = relationship("DefectLog", back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderItem(BaseModel):

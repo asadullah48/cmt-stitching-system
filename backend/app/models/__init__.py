@@ -8,6 +8,7 @@ from .expenses import Expense, ExpenseCategory
 from .inventory import InventoryCategory, InventoryItem, InventoryTransaction
 from .audit import AuditLog
 from .config import Config
+from .quality import QualityCheckpoint, DefectLog
 
 __all__ = [
     "Base",
@@ -25,4 +26,6 @@ __all__ = [
     "InventoryTransaction",
     "AuditLog",
     "Config",
+    "QualityCheckpoint",
+    "DefectLog",
 ]

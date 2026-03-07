@@ -219,3 +219,47 @@ export interface TransactionFilters {
   page?: number;
   size?: number;
 }
+
+// ─── Quality ─────────────────────────────────────────────────────────────────
+
+export interface QualityCheckpoint {
+  id: string;
+  order_id: string;
+  checkpoint_name: string;
+  passed: boolean;
+  checked_at: string | null;
+  notes: string | null;
+}
+
+export interface DefectLog {
+  id: string;
+  order_id: string;
+  defect_type: string;
+  quantity: number;
+  notes: string | null;
+  logged_at: string;
+}
+
+export interface QualityReport {
+  order_id: string;
+  order_number: string;
+  checkpoints: QualityCheckpoint[];
+  defects: DefectLog[];
+  all_passed: boolean;
+}
+
+// ─── Dispatch ────────────────────────────────────────────────────────────────
+
+export interface DispatchOrder {
+  id: string;
+  order_number: string;
+  status: string;
+  carrier: string | null;
+  tracking_number: string | null;
+  dispatch_date: string | null;
+  carton_count: number | null;
+  total_weight: number | null;
+  party_name: string | null;
+  goods_description: string;
+  total_quantity: number;
+}
