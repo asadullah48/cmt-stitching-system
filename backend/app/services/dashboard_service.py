@@ -4,7 +4,7 @@ from decimal import Decimal
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.orders import Order
+from app.models.orders import Order, OrderItem
 from app.models.financial import FinancialTransaction
 from app.schemas.dashboard import DashboardSummary
 from app.schemas.orders import OrderOut
@@ -35,6 +35,60 @@ class DashboardService:
             .scalar()
         ) or Decimal("0.00")
 
+        # completed_today: orders dispatched today
+        completed_today = (
+            db.query(func.count(Order.id))
+            .filter(
+                Order.status == "dispatched",
+                Order.is_deleted.is_(False),
+                func.date(Order.updated_at) == today,
+            )
+            .scalar()
+        ) or 0
+
+        # active_orders: in stitching or packing
+        active_orders = (
+            counts.get("stitching_in_progress", 0) +
+            counts.get("packing_in_progress", 0)
+        )
+
+        # on_hold_orders: pending
+        on_hold_orders = counts.get("pending", 0)
+
+        # stitching progress %
+        stitch_q = (
+            db.query(
+                func.coalesce(func.sum(OrderItem.completed_quantity), 0),
+                func.coalesce(func.sum(OrderItem.quantity), 1),
+            )
+            .join(Order, OrderItem.order_id == Order.id)
+            .filter(
+                Order.status.in_(["stitching_in_progress", "stitching_complete"]),
+                Order.is_deleted.is_(False),
+            )
+            .first()
+        )
+        stitching_progress_pct = round(
+            float(stitch_q[0]) / float(stitch_q[1]) * 100, 1
+        ) if stitch_q and float(stitch_q[1]) > 0 else 0.0
+
+        # packing progress %
+        pack_q = (
+            db.query(
+                func.coalesce(func.sum(OrderItem.packed_quantity), 0),
+                func.coalesce(func.sum(OrderItem.quantity), 1),
+            )
+            .join(Order, OrderItem.order_id == Order.id)
+            .filter(
+                Order.status.in_(["packing_in_progress", "packing_complete"]),
+                Order.is_deleted.is_(False),
+            )
+            .first()
+        )
+        packing_progress_pct = round(
+            float(pack_q[0]) / float(pack_q[1]) * 100, 1
+        ) if pack_q and float(pack_q[1]) > 0 else 0.0
+
         # Recent orders (last 10)
         recent_orders_raw = (
             db.query(Order)
@@ -56,6 +110,11 @@ class DashboardService:
             dispatched=counts.get("dispatched", 0),
             total_revenue_month=Decimal(str(monthly_revenue)),
             recent_orders=recent_orders,
+            completed_today=completed_today,
+            active_orders=active_orders,
+            on_hold_orders=on_hold_orders,
+            stitching_progress_pct=stitching_progress_pct,
+            packing_progress_pct=packing_progress_pct,
         )
 
 

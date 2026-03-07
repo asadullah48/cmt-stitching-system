@@ -17,3 +17,8 @@ class DashboardSummary(BaseModel):
     dispatched: int
     total_revenue_month: Decimal
     recent_orders: list
+    completed_today: int = 0
+    active_orders: int = 0
+    on_hold_orders: int = 0
+    stitching_progress_pct: float = 0.0
+    packing_progress_pct: float = 0.0

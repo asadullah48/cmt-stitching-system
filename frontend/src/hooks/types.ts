@@ -183,6 +183,11 @@ export interface DashboardSummary {
   dispatched: number;
   total_revenue_month: number;
   recent_orders: Order[];
+  completed_today: number;
+  active_orders: number;
+  on_hold_orders: number;
+  stitching_progress_pct: number;
+  packing_progress_pct: number;
 }
 
 // ─── Pagination ──────────────────────────────────────────────────────────────
