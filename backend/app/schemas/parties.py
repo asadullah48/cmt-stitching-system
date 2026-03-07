@@ -11,7 +11,7 @@ class PartyCreate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
-    payment_terms: int = 30
+    payment_terms: Optional[str] = None
 
 
 class PartyUpdate(BaseModel):
@@ -20,7 +20,7 @@ class PartyUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
-    payment_terms: Optional[int] = None
+    payment_terms: Optional[str] = None
 
 
 class PartyOut(BaseModel):
@@ -30,7 +30,7 @@ class PartyOut(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
-    payment_terms: int
+    payment_terms: Optional[str] = None
     balance: Decimal
 
     model_config = {"from_attributes": True}

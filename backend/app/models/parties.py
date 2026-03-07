@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, Numeric
+from sqlalchemy import Column, String, Text, Numeric
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -10,7 +10,7 @@ class Party(BaseModel):
     phone = Column(String(20))
     email = Column(String(100))
     address = Column(Text)
-    payment_terms = Column(Integer, default=30)
+    payment_terms = Column(String(100))
     balance = Column(Numeric(10, 2), nullable=False, default=0)
 
     # Relationships
