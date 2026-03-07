@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { transactionsService, partiesService } from "@/hooks/services";
 import { todayInputDate, formatCurrency, formatDate } from "@/hooks/utils";
+import { useToast } from "@/hooks/toast";
 import { Button, FormField, Input, Select, Textarea } from "@/components/common";
 import type {
   TransactionCreate, TransactionType, PaymentMethod,
@@ -38,6 +39,7 @@ export function TransactionForm({
   onSuccess,
   onCancel,
 }: TransactionFormProps) {
+  const { showToast } = useToast();
   const [partyId, setPartyId] = useState(initialPartyId ?? "");
   const [parties, setParties] = useState<Party[]>([]);
   const [txType, setTxType] = useState<TransactionType>("income");
@@ -84,8 +86,10 @@ export function TransactionForm({
 
     try {
       const tx = await transactionsService.createTransaction(payload);
+      showToast("Transaction recorded");
       onSuccess(tx);
     } catch {
+      showToast("Failed to save. Please try again.", "error");
       setErrors({ form: "Failed to record transaction. Please try again." });
     } finally {
       setLoading(false);
@@ -200,6 +204,7 @@ interface PartyFormProps {
 }
 
 export function PartyForm({ initialData, onSuccess, onCancel }: PartyFormProps) {
+  const { showToast } = useToast();
   const [name, setName] = useState(initialData?.name ?? "");
   const [contactPerson, setContactPerson] = useState(initialData?.contact_person ?? "");
   const [phone, setPhone] = useState(initialData?.phone ?? "");
@@ -229,8 +234,10 @@ export function PartyForm({ initialData, onSuccess, onCancel }: PartyFormProps) 
 
     try {
       const party = await partiesService.createParty(payload);
+      showToast("Party created");
       onSuccess(party);
     } catch {
+      showToast("Failed to save. Please try again.", "error");
       setErrors({ form: "Failed to save party." });
     } finally {
       setLoading(false);

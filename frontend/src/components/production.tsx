@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { productionService } from "@/hooks/services";
 import { todayInputDate } from "@/hooks/utils";
+import { useToast } from "@/hooks/toast";
 import { Button, FormField, Input, Textarea } from "@/components/common";
 import type { Department, ProductionSessionCreate, ProductionSession } from "@/hooks/types";
 
@@ -16,6 +17,7 @@ interface SessionFormProps {
 }
 
 export function SessionForm({ orderId, department, onSuccess, onCancel }: SessionFormProps) {
+  const { showToast } = useToast();
   const [sessionDate, setSessionDate] = useState(todayInputDate());
   const [machines, setMachines] = useState("1");
   const [startTime, setStartTime] = useState("");
@@ -52,8 +54,10 @@ export function SessionForm({ orderId, department, onSuccess, onCancel }: Sessio
 
     try {
       const session = await productionService.logSession(payload);
+      showToast("Session logged successfully");
       onSuccess(session);
     } catch {
+      showToast("Failed to save. Please try again.", "error");
       setErrors({ form: "Failed to log session. Please try again." });
     } finally {
       setLoading(false);

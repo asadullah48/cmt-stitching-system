@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import { ordersService } from "@/hooks/services";
 import { ALL_STATUSES, getStatusConfig, todayInputDate } from "@/hooks/utils";
+import { useToast } from "@/hooks/toast";
 import {
   Button, FormField, Input, Select, Textarea, StatusBadge,
 } from "@/components/common";
 import type {
-  Order, OrderCreate, OrderItemCreate, Party, OrderStatus,
+  Order, OrderCreate, OrderUpdate, OrderItemCreate, Party, OrderStatus,
 } from "@/hooks/types";
 
 // ─── OrderForm ────────────────────────────────────────────────────────────────
@@ -15,11 +16,13 @@ import type {
 interface OrderFormProps {
   parties: Party[];
   initialData?: Partial<Order>;
+  orderId?: string;
   onSuccess: (order: Order) => void;
   onCancel: () => void;
 }
 
-export function OrderForm({ parties, initialData, onSuccess, onCancel }: OrderFormProps) {
+export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }: OrderFormProps) {
+  const { showToast } = useToast();
   const [partyId, setPartyId] = useState(initialData?.party_id ?? "");
   const [partyRef, setPartyRef] = useState(initialData?.party_reference ?? "");
   const [goods, setGoods] = useState(initialData?.goods_description ?? "");
@@ -73,11 +76,13 @@ export function OrderForm({ parties, initialData, onSuccess, onCancel }: OrderFo
     if (!stitchRateLabor || isNaN(Number(stitchRateLabor)))
       e.stitchRateLabor = "Valid stitch labor rate required.";
     if (!entryDate) e.entryDate = "Entry date is required.";
-    if (items.length === 0) e.items = "At least one size item is required.";
-    items.forEach((item, i) => {
-      if (!item.size.trim()) e[`item_${i}_size`] = "Size required.";
-      if (!item.quantity || item.quantity <= 0) e[`item_${i}_qty`] = "Qty > 0 required.";
-    });
+    if (!orderId) {
+      if (items.length === 0) e.items = "At least one size item is required.";
+      items.forEach((item, i) => {
+        if (!item.size.trim()) e[`item_${i}_size`] = "Size required.";
+        if (!item.quantity || item.quantity <= 0) e[`item_${i}_qty`] = "Qty > 0 required.";
+      });
+    }
     return e;
   };
 
@@ -88,26 +93,45 @@ export function OrderForm({ parties, initialData, onSuccess, onCancel }: OrderFo
     setErrors({});
     setLoading(true);
 
-    const payload: OrderCreate = {
-      party_id: partyId || undefined,
-      party_reference: partyRef || undefined,
-      goods_description: goods,
-      total_quantity: items.reduce((s, i) => s + i.quantity, 0),
-      stitch_rate_party: parseFloat(stitchRateParty),
-      stitch_rate_labor: parseFloat(stitchRateLabor),
-      pack_rate_party: packRateParty ? parseFloat(packRateParty) : undefined,
-      pack_rate_labor: packRateLabor ? parseFloat(packRateLabor) : undefined,
-      entry_date: entryDate,
-      arrival_date: arrivalDate || undefined,
-      delivery_date: deliveryDate || undefined,
-      items,
-    };
-
     try {
-      const order = await ordersService.createOrder(payload);
-      onSuccess(order);
+      if (orderId) {
+        const updatePayload: OrderUpdate = {
+          party_id: partyId || undefined,
+          party_reference: partyRef || undefined,
+          goods_description: goods,
+          stitch_rate_party: parseFloat(stitchRateParty),
+          stitch_rate_labor: parseFloat(stitchRateLabor),
+          pack_rate_party: packRateParty ? parseFloat(packRateParty) : undefined,
+          pack_rate_labor: packRateLabor ? parseFloat(packRateLabor) : undefined,
+          entry_date: entryDate,
+          arrival_date: arrivalDate || undefined,
+          delivery_date: deliveryDate || undefined,
+        };
+        const order = await ordersService.updateOrder(orderId, updatePayload);
+        showToast("Order updated");
+        onSuccess(order);
+      } else {
+        const payload: OrderCreate = {
+          party_id: partyId || undefined,
+          party_reference: partyRef || undefined,
+          goods_description: goods,
+          total_quantity: items.reduce((s, i) => s + i.quantity, 0),
+          stitch_rate_party: parseFloat(stitchRateParty),
+          stitch_rate_labor: parseFloat(stitchRateLabor),
+          pack_rate_party: packRateParty ? parseFloat(packRateParty) : undefined,
+          pack_rate_labor: packRateLabor ? parseFloat(packRateLabor) : undefined,
+          entry_date: entryDate,
+          arrival_date: arrivalDate || undefined,
+          delivery_date: deliveryDate || undefined,
+          items,
+        };
+        const order = await ordersService.createOrder(payload);
+        showToast("Order created successfully");
+        onSuccess(order);
+      }
     } catch {
-      setErrors({ form: "Failed to create order. Please try again." });
+      showToast("Failed to save order. Please try again.", "error");
+      setErrors({ form: "Failed to save order. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -237,69 +261,71 @@ export function OrderForm({ parties, initialData, onSuccess, onCancel }: OrderFo
         </div>
       </div>
 
-      {/* Size items */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Size Breakdown
-          </p>
-          <button
-            type="button"
-            onClick={addItem}
-            className="text-xs text-blue-600 hover:underline font-medium"
-          >
-            + Add Size
-          </button>
-        </div>
-        {errors.items && <p className="text-xs text-red-600 mb-2">{errors.items}</p>}
-        <div className="space-y-2">
-          {items.map((item, i) => (
-            <div key={i} className="flex gap-2 items-start">
-              <div className="flex-1">
-                <Input
-                  placeholder="Size (e.g. S, M, L, XL)"
-                  value={item.size}
-                  onChange={(e) => updateItem(i, "size", e.target.value)}
-                  error={!!errors[`item_${i}_size`]}
-                />
-                {errors[`item_${i}_size`] && (
-                  <p className="text-xs text-red-600 mt-0.5">{errors[`item_${i}_size`]}</p>
+      {/* Size items — hidden in edit mode (items are immutable after creation) */}
+      {!orderId && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Size Breakdown
+            </p>
+            <button
+              type="button"
+              onClick={addItem}
+              className="text-xs text-blue-600 hover:underline font-medium"
+            >
+              + Add Size
+            </button>
+          </div>
+          {errors.items && <p className="text-xs text-red-600 mb-2">{errors.items}</p>}
+          <div className="space-y-2">
+            {items.map((item, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Size (e.g. S, M, L, XL)"
+                    value={item.size}
+                    onChange={(e) => updateItem(i, "size", e.target.value)}
+                    error={!!errors[`item_${i}_size`]}
+                  />
+                  {errors[`item_${i}_size`] && (
+                    <p className="text-xs text-red-600 mt-0.5">{errors[`item_${i}_size`]}</p>
+                  )}
+                </div>
+                <div className="w-28">
+                  <Input
+                    type="number"
+                    placeholder="Qty"
+                    min="1"
+                    value={item.quantity || ""}
+                    onChange={(e) => updateItem(i, "quantity", e.target.value)}
+                    error={!!errors[`item_${i}_qty`]}
+                  />
+                </div>
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(i)}
+                    className="mt-1 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 )}
               </div>
-              <div className="w-28">
-                <Input
-                  type="number"
-                  placeholder="Qty"
-                  min="1"
-                  value={item.quantity || ""}
-                  onChange={(e) => updateItem(i, "quantity", e.target.value)}
-                  error={!!errors[`item_${i}_qty`]}
-                />
-              </div>
-              {items.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeItem(i)}
-                  className="mt-1 text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Total: {items.reduce((s, i) => s + (i.quantity || 0), 0).toLocaleString()} pieces
+          </p>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Total: {items.reduce((s, i) => s + (i.quantity || 0), 0).toLocaleString()} pieces
-        </p>
-      </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-3 pt-2 border-t border-gray-100">
         <Button type="submit" loading={loading} className="flex-1 justify-center">
-          Create Order
+          {orderId ? "Save Changes" : "Create Order"}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
