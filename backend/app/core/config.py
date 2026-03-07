@@ -14,6 +14,9 @@ class Settings(BaseSettings):
         "https://cmt-stitching-asadullah-shafiques-projects.vercel.app,"
         "https://cmt-stitching-asadullah48-asadullah-shafiques-projects.vercel.app"
     )
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_EMAIL: str = "admin@cmt.local"
+    ADMIN_PASSWORD: str = "admin"
 
     @property
     def allowed_origins_list(self) -> List[str]:
