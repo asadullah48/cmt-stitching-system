@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { transactionsService, partiesService } from "@/hooks/services";
-import { formatDate, formatCurrency, todayInputDate } from "@/hooks/utils";
+import { formatDate, formatCurrency } from "@/hooks/utils";
 import {
   PageHeader, Button, Sheet, Pagination, Select, Input, Spinner,
 } from "@/components/common";
@@ -74,26 +74,42 @@ export default function LedgerPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="General Ledger"
-        subtitle={`${result.total} transaction${result.total !== 1 ? "s" : ""}`}
-        action={
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => window.print()}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print
-            </Button>
-            <Button onClick={() => setSheetOpen(true)}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Transaction
-            </Button>
+      {/* ─── Statement Header ─────────────────────────────── */}
+      <div className="bg-[#1a2744] rounded-2xl px-6 py-4 flex items-center justify-between print:hidden">
+        <div>
+          <h1 className="text-lg font-bold text-white">General Ledger</h1>
+          <p className="text-xs text-blue-300 mt-0.5">
+            CMT Stitching System · {result.total} transaction{result.total !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => window.print()}
+            className="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print
+          </Button>
+          <Button onClick={() => setSheetOpen(true)}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Transaction
+          </Button>
+        </div>
+      </div>
+      {/* Print-only statement header */}
+      <div className="hidden print:block bg-white rounded-xl border border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">General Ledger Statement</h1>
+            <p className="text-sm text-gray-500">CMT Stitching System</p>
           </div>
-        }
-      />
+          <div className="text-right text-sm text-gray-500">
+            <p>Statement Date: <span className="font-medium text-gray-700">{today}</span></p>
+          </div>
+        </div>
+      </div>
 
       {/* ─── Filters (hidden on print) ─────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm print:hidden">
@@ -302,7 +318,7 @@ export default function LedgerPage() {
                     page net
                   </td>
                 </tr>
-                <tr className="bg-gray-800 text-white font-bold">
+                <tr className="bg-[#1a2744] text-white font-bold">
                   <td className="px-4 py-3" colSpan={6}>
                     Net Balance (this page)
                   </td>
@@ -315,6 +331,11 @@ export default function LedgerPage() {
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-lg">
                     PKR {formatCurrency(Math.abs(netBalance))}
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan={9} className="px-4 py-2 text-center text-xs text-gray-400 italic border-t border-gray-100">
+                    This is a computer-generated statement and does not require a signature.
                   </td>
                 </tr>
               </tfoot>

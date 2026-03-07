@@ -8,31 +8,58 @@ import { StatusBadge, DataTable } from "@/components/common";
 import type { DashboardSummary, Order } from "@/hooks/types";
 import type { Column } from "@/components/common";
 
-function StatCard({ label, value, color }: { label: string; value: number | string; color: string }) {
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function StatCard({ label, value, color, bg, icon }: {
+  label: string; value: number | string; color: string; bg: string; icon: React.ReactNode;
+}) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex flex-col gap-1">
-      <span className={`text-3xl font-bold ${color}`}>{value}</span>
-      <span className="text-sm text-gray-500">{label}</span>
+    <div className={`rounded-2xl p-5 flex items-center gap-4 ${bg}`}>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/20`}>
+        {icon}
+      </div>
+      <div>
+        <p className={`text-3xl font-extrabold ${color} leading-none`}>{value}</p>
+        <p className={`text-sm mt-1 ${color} opacity-80 font-medium`}>{label}</p>
+      </div>
     </div>
   );
 }
 
-function ProgressBar({ label, value, colorClass }: { label: string; value: number; colorClass: string }) {
+function ProgressBar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className={`text-sm font-bold ${colorClass}`}>{value}%</span>
+    <div>
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-sm font-semibold text-gray-700">{label}</span>
+        <span className={`text-sm font-bold ${color}`}>{value}%</span>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-3">
+      <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
         <div
-          className={`h-3 rounded-full transition-all duration-500 ${colorClass.replace("text-", "bg-")}`}
+          className={`h-3 rounded-full transition-all duration-700 ease-out ${color.replace("text-", "bg-")}`}
           style={{ width: `${Math.min(value, 100)}%` }}
         />
       </div>
     </div>
   );
 }
+
+function PipelineBar({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
+  const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+  return (
+    <div className="flex flex-col items-center gap-1.5 flex-1">
+      <span className="text-xs font-bold text-gray-700">{count}</span>
+      <div className="w-full flex flex-col justify-end" style={{ height: "80px" }}>
+        <div
+          className={`w-full rounded-t-md ${color} transition-all duration-700`}
+          style={{ height: `${Math.max(pct, 4)}%` }}
+        />
+      </div>
+      <span className="text-xs text-gray-500 text-center leading-tight">{label}</span>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -43,22 +70,30 @@ export default function DashboardPage() {
     dashboardService.getSummary().then(setSummary).finally(() => setLoading(false));
   }, []);
 
+  const pipelineMax = Math.max(
+    summary?.pending_orders ?? 0,
+    summary?.stitching_in_progress ?? 0,
+    summary?.packing_in_progress ?? 0,
+    summary?.dispatched ?? 0,
+    1
+  );
+
   const recentOrderColumns: Column<Order>[] = [
     {
       key: "order_number", header: "Order #",
-      render: (row) => <span className="font-medium text-blue-600">{row.order_number}</span>,
+      render: (row) => <span className="font-semibold text-blue-600">{row.order_number}</span>,
     },
     {
       key: "party_name", header: "Party",
-      render: (row) => row.party_name ?? row.party_reference ?? "—",
+      render: (row) => <span className="text-gray-700">{row.party_name ?? row.party_reference ?? "—"}</span>,
     },
     {
       key: "goods_description", header: "Goods",
-      render: (row) => <span className="truncate max-w-[180px] block">{row.goods_description}</span>,
+      render: (row) => <span className="truncate max-w-[180px] block text-gray-600">{row.goods_description}</span>,
     },
     {
       key: "total_quantity", header: "Qty",
-      render: (row) => row.total_quantity.toLocaleString(),
+      render: (row) => <span className="font-medium">{row.total_quantity.toLocaleString()}</span>,
       className: "text-right", headerClassName: "text-right",
     },
     { key: "status", header: "Status", render: (row) => <StatusBadge status={row.status} /> },
@@ -67,93 +102,120 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">CMT Stitching & Packing System Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Live operations overview</p>
-      </div>
-
-      {/* Top Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Active Orders" value={loading ? "…" : (summary?.active_orders ?? 0)} color="text-blue-600" />
-        <StatCard label="On Hold" value={loading ? "…" : (summary?.on_hold_orders ?? 0)} color="text-orange-500" />
-        <StatCard label="Completed Today" value={loading ? "…" : (summary?.completed_today ?? 0)} color="text-green-600" />
-      </div>
-
-      {/* Progress Bars */}
-      <div className="grid grid-cols-2 gap-4">
-        <ProgressBar label="Stitching Progress" value={loading ? 0 : (summary?.stitching_progress_pct ?? 0)} colorClass="text-blue-600" />
-        <ProgressBar label="Packing Progress" value={loading ? 0 : (summary?.packing_progress_pct ?? 0)} colorClass="text-indigo-600" />
-      </div>
-
-      {/* Pipeline + Revenue */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3">
-          <p className="text-xs text-gray-500 mb-1">Revenue (Month)</p>
-          <p className="text-lg font-bold text-gray-900">
+      {/* ─── Header ─────────────────────────────────────────── */}
+      <div className="bg-[#1a2744] rounded-2xl px-6 py-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white">CMT Stitching & Packing System Dashboard</h1>
+          <p className="text-sm text-blue-300 mt-0.5">Live operations overview</p>
+        </div>
+        <div className="text-right text-sm text-blue-200">
+          <p className="font-semibold text-white">
             PKR {loading ? "…" : formatCurrency(summary?.total_revenue_month ?? 0)}
           </p>
+          <p className="text-xs text-blue-300">Revenue this month</p>
         </div>
-        {(["pending", "stitching_in_progress", "packing_in_progress", "dispatched"] as const).map((s) => {
-          const cfg = getStatusConfig(s);
-          const countMap: Record<string, number> = {
-            pending: summary?.pending_orders ?? 0,
-            stitching_in_progress: summary?.stitching_in_progress ?? 0,
-            packing_in_progress: summary?.packing_in_progress ?? 0,
-            dispatched: summary?.dispatched ?? 0,
-          };
-          return (
-            <div key={s} className={`rounded-xl px-4 py-3 ${cfg.bg}`}>
-              <p className={`text-lg font-bold ${cfg.text}`}>{loading ? "…" : countMap[s]}</p>
-              <p className={`text-xs ${cfg.text} opacity-80`}>{cfg.label}</p>
-            </div>
-          );
-        })}
       </div>
 
-      {/* Quick Actions */}
-      <div className="flex gap-3 flex-wrap">
-        <button
-          onClick={() => router.push("/orders?new=1")}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Order
-        </button>
-        <button
-          onClick={() => router.push("/production")}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Start Batch
-        </button>
-        <button
-          onClick={() => router.push("/quality")}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          QC Check
-        </button>
-        <button
-          onClick={() => router.push("/dispatch")}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Export Report
-        </button>
+      {/* ─── Stat Cards ─────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard
+          label="Active Orders"
+          value={loading ? "…" : (summary?.active_orders ?? 0)}
+          color="text-white"
+          bg="bg-blue-600"
+          icon={
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="On Hold"
+          value={loading ? "…" : (summary?.on_hold_orders ?? 0)}
+          color="text-white"
+          bg="bg-orange-500"
+          icon={
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="Completed Today"
+          value={loading ? "…" : (summary?.completed_today ?? 0)}
+          color="text-white"
+          bg="bg-green-600"
+          icon={
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
       </div>
 
-      {/* Recent Orders */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Recent Orders</h2>
+      {/* ─── Progress + Pipeline ─────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Progress Bars */}
+        <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5 space-y-5">
+          <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Production Progress</h2>
+          <ProgressBar
+            label="Stitching Progress"
+            value={loading ? 0 : (summary?.stitching_progress_pct ?? 0)}
+            color="text-blue-600"
+          />
+          <ProgressBar
+            label="Packing Progress"
+            value={loading ? 0 : (summary?.packing_progress_pct ?? 0)}
+            color="text-indigo-600"
+          />
+        </div>
+
+        {/* Pipeline Chart */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-5 py-5">
+          <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">Pipeline</h2>
+          <div className="flex items-end gap-2 h-28">
+            <PipelineBar label="Pending" count={summary?.pending_orders ?? 0} max={pipelineMax} color="bg-gray-300" />
+            <PipelineBar label="Stitching" count={summary?.stitching_in_progress ?? 0} max={pipelineMax} color="bg-blue-500" />
+            <PipelineBar label="Packing" count={summary?.packing_in_progress ?? 0} max={pipelineMax} color="bg-indigo-500" />
+            <PipelineBar label="Dispatched" count={summary?.dispatched ?? 0} max={pipelineMax} color="bg-green-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Quick Actions ───────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-3">
+        {[
+          { label: "New Order", color: "bg-blue-600 hover:bg-blue-700", onClick: () => router.push("/orders?new=1"),
+            icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /> },
+          { label: "Start Batch", color: "bg-indigo-600 hover:bg-indigo-700", onClick: () => router.push("/production"),
+            icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></> },
+          { label: "QC Check", color: "bg-green-600 hover:bg-green-700", onClick: () => router.push("/quality"),
+            icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+          { label: "Export Report", color: "bg-[#1a2744] hover:bg-[#243260]", onClick: () => router.push("/reports"),
+            icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /> },
+        ].map(({ label, color, onClick, icon }) => (
+          <button
+            key={label}
+            onClick={onClick}
+            className={`flex items-center justify-center gap-2 px-4 py-3 ${color} text-white text-sm font-semibold rounded-xl transition-colors shadow-sm`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">{icon}</svg>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Recent Orders ──────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Recent Orders</h2>
+          <button
+            onClick={() => router.push("/orders")}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View all →
+          </button>
+        </div>
         <DataTable
           columns={recentOrderColumns}
           data={summary?.recent_orders ?? []}
