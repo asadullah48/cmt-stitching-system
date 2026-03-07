@@ -6,7 +6,7 @@ import { partiesService } from "@/hooks/services";
 import { formatDate, formatCurrency, balanceColor, todayInputDate } from "@/hooks/utils";
 import { Button, Sheet, Spinner, Input } from "@/components/common";
 import { TransactionForm } from "@/components/financial";
-import type { PartyLedgerResponse, FinancialTransaction } from "@/hooks/types";
+import type { Party, PartyLedgerResponse, FinancialTransaction } from "@/hooks/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,7 @@ export default function PartyLedgerPage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const [ledger, setLedger] = useState<PartyLedgerResponse | null>(null);
+  const [party, setParty] = useState<Party | null>(null);
   const [loading, setLoading] = useState(true);
   const [txSheet, setTxSheet] = useState(false);
 
@@ -42,7 +43,12 @@ export default function PartyLedgerPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setLedger(await partiesService.getPartyLedger(id));
+      const [ledgerData, partyData] = await Promise.all([
+        partiesService.getPartyLedger(id),
+        partiesService.getParty(id),
+      ]);
+      setLedger(ledgerData);
+      setParty(partyData);
     } catch {
       router.push("/parties");
     } finally {
@@ -121,8 +127,8 @@ export default function PartyLedgerPage() {
     );
   }
 
-  if (!ledger) return null;
-  const { party, balance } = ledger;
+  if (!ledger || !party) return null;
+  const { balance } = ledger;
 
   const today = new Date().toLocaleDateString("en-GB", {
     day: "2-digit",

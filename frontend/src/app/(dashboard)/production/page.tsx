@@ -20,7 +20,7 @@ export default function ProductionPage() {
   // Load orders for selection
   useEffect(() => {
     ordersService
-      .getOrders({ size: 200, status: department === "stitching" ? "stitching_in_progress" : "packing_in_progress" })
+      .getOrders({ size: 100, status: department === "stitching" ? "stitching_in_progress" : "packing_in_progress" })
       .then((r) => setOrders(r.data));
   }, [department]);
 

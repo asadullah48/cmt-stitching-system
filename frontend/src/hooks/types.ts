@@ -166,9 +166,10 @@ export interface TransactionCreate {
 }
 
 export interface PartyLedgerResponse {
-  party: Party;
-  transactions: FinancialTransaction[];
+  party_id: string;
+  party_name: string;
   balance: number;
+  transactions: FinancialTransaction[];
 }
 
 // ─── Dashboard ──────────────────────────────────────────────────────────────
