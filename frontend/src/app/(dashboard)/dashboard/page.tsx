@@ -137,7 +137,7 @@ export default function DashboardPage() {
           return (
             <div
               key={s}
-              className={`rounded-lg px-3 py-2.5 ${cfg.bg} border border-${cfg.dot.replace("bg-", "")}/20`}
+              className={`rounded-lg px-3 py-2.5 ${cfg.bg}`}
             >
               <p className={`text-lg font-semibold ${cfg.text}`}>{count}</p>
               <p className={`text-xs ${cfg.text} opacity-80`}>{cfg.label}</p>
