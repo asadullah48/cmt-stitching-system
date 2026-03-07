@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { dashboardService } from "@/hooks/services";
-import { formatCurrency, formatDate, getStatusConfig } from "@/hooks/utils";
+import { formatCurrency, formatDate } from "@/hooks/utils";
 import { StatusBadge, DataTable } from "@/components/common";
 import type { DashboardSummary, Order } from "@/hooks/types";
 import type { Column } from "@/components/common";
