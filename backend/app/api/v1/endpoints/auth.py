@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, HTTPException, status
 
 from app.core.deps import CurrentUser, DbDep
 from app.core.security import create_access_token
-from app.schemas.auth import TokenResponse, UserOut, UserCreate
+from app.schemas.auth import TokenResponse, UserOut, UserCreate, LoginRequest
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -41,8 +40,8 @@ def register(user_in: UserCreate, db: DbDep):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: DbDep = None):
-    user = AuthService.authenticate(db, form_data.username, form_data.password)
+def login(data: LoginRequest, db: DbDep):
+    user = AuthService.authenticate(db, data.username, data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
