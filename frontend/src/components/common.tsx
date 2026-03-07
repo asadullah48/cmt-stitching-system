@@ -214,13 +214,14 @@ export function Sheet({
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-200"
         onClick={onClose}
       />
       {/* Panel */}
       <div
         className={cn(
           "relative ml-auto h-full bg-white shadow-2xl flex flex-col",
+          "translate-x-0 transition-transform duration-300 ease-out",
           width
         )}
       >
@@ -374,23 +375,36 @@ export function Pagination({ total, page, size, onChange }: PaginationProps) {
         >
           ← Prev
         </button>
-        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-          const p = i + 1;
-          return (
-            <button
-              key={p}
-              onClick={() => onChange(p)}
-              className={cn(
-                "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
-                p === page
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              )}
-            >
-              {p}
-            </button>
+        {(() => {
+          const pages: (number | "...")[] = [];
+          if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+          } else {
+            pages.push(1);
+            if (page > 3) pages.push("...");
+            const start = Math.max(2, page - 1);
+            const end = Math.min(totalPages - 1, page + 1);
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (page < totalPages - 2) pages.push("...");
+            pages.push(totalPages);
+          }
+          return pages.map((p, i) =>
+            p === "..." ? (
+              <span key={`ellipsis-${i}`} className="px-2 py-1 text-xs text-gray-400">…</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onChange(p)}
+                className={cn(
+                  "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
+                  p === page ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
+                )}
+              >
+                {p}
+              </button>
+            )
           );
-        })}
+        })()}
         <button
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1)}

@@ -144,6 +144,19 @@ export default function ProductionPage() {
         </div>
       </div>
 
+      {/* Empty state when no order selected */}
+      {!selectedOrderId && (
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <p className="text-sm text-gray-500">Select an order above to view or log sessions</p>
+        </div>
+      )}
+
       {/* Sessions list */}
       {selectedOrderId && (
         <div className="space-y-3">
