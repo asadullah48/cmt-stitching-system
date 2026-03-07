@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ordersService, productionService, transactionsService } from "@/hooks/services";
+import { ordersService, productionService, transactionsService, partiesService } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
+import { useToast } from "@/hooks/toast";
 import {
   StatusBadge, Button, Sheet, ConfirmDialog, Spinner,
   DataTable, EmptyState,
 } from "@/components/common";
-import { OrderStatusSelect, OrderItemsTable } from "@/components/orders";
+import { OrderStatusSelect, OrderItemsTable, OrderForm } from "@/components/orders";
 import { SessionForm } from "@/components/production";
 import { TransactionForm } from "@/components/financial";
-import type { Order, ProductionSession, FinancialTransaction, Department } from "@/hooks/types";
+import type { Order, ProductionSession, FinancialTransaction, Department, Party } from "@/hooks/types";
 import type { Column } from "@/components/common";
 
 type Tab = "stitching" | "packing" | "transactions";
@@ -20,7 +21,9 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
+  const { showToast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
+  const [parties, setParties] = useState<Party[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("stitching");
   const [stitchSessions, setStitchSessions] = useState<ProductionSession[]>([]);
@@ -28,6 +31,7 @@ export default function OrderDetailPage() {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [sessionSheet, setSessionSheet] = useState<Department | null>(null);
   const [txSheet, setTxSheet] = useState(false);
+  const [editSheet, setEditSheet] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -60,6 +64,7 @@ export default function OrderDetailPage() {
     Promise.all([loadOrder(), loadSessions(), loadTransactions()]).finally(() =>
       setLoading(false)
     );
+    partiesService.getParties(1, 200).then((r) => setParties(r.data));
   }, [loadOrder, loadSessions, loadTransactions]);
 
   const handleDelete = async () => {
@@ -186,6 +191,9 @@ export default function OrderDetailPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" onClick={() => setEditSheet(true)}>
+              Edit
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -337,6 +345,16 @@ export default function OrderDetailPage() {
           partyId={order.party_id ?? undefined}
           onSuccess={() => { setTxSheet(false); loadTransactions(); }}
           onCancel={() => setTxSheet(false)}
+        />
+      </Sheet>
+
+      <Sheet open={editSheet} onClose={() => setEditSheet(false)} title="Edit Order" width="w-[580px]">
+        <OrderForm
+          parties={parties}
+          orderId={order.id}
+          initialData={order}
+          onSuccess={(updated) => { setEditSheet(false); setOrder(updated); showToast("Order updated"); }}
+          onCancel={() => setEditSheet(false)}
         />
       </Sheet>
 
