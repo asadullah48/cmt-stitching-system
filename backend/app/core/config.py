@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-super-secret-key"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     API_V1_STR: str = "/api/v1"
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,https://frontend-ten-delta-35.vercel.app"
 
     @property
     def allowed_origins_list(self) -> List[str]:
