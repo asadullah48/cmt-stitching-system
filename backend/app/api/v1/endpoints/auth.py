@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.core.deps import DbDep
+from app.core.deps import CurrentUser, DbDep
 from app.core.security import create_access_token
 from app.schemas.auth import TokenResponse, UserOut, UserCreate
 from app.services.auth_service import AuthService
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserCreate, db: DbDep = None):
+def register(user_in: UserCreate, db: DbDep):
     # Check if user already exists
     existing_user = (
         db.query(AuthService.UserModel)
@@ -32,7 +32,7 @@ def register(user_in: UserCreate, db: DbDep = None):
         username=user_in.username,
         email=user_in.email,
         password=user_in.password,
-        role=user_in.role or "user",
+        role=user_in.role if user_in.role in ("admin", "operator", "accountant") else "operator",
     )
     
     # Generate token
