@@ -236,6 +236,9 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
+      {/* Income Summary */}
+      <IncomeSummary order={order} />
+
       {/* Status update */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Update Status</h2>
@@ -367,6 +370,76 @@ export default function OrderDetailPage() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteDialog(false)}
       />
+    </div>
+  );
+}
+
+function IncomeSummary({ order }: { order: Order }) {
+  const qty = order.total_quantity;
+  const grossIncome =
+    order.stitch_rate_party * qty +
+    (order.pack_rate_party ?? 0) * qty;
+  const laborCost =
+    order.stitch_rate_labor * qty +
+    (order.pack_rate_labor ?? 0) * qty;
+  const transportExpense = Number(order.transport_expense ?? 0);
+  const loadingExpense = Number(order.loading_expense ?? 0);
+  const miscExpense = Number(order.miscellaneous_expense ?? 0);
+  const rent = Number(order.rent ?? 0);
+  const loadingCharges = Number(order.loading_charges ?? 0);
+  const totalExpenses = transportExpense + loadingExpense + miscExpense + rent + loadingCharges;
+  const netIncome = grossIncome - laborCost - totalExpenses;
+
+  const rows: { label: string; amount: number; type: "income" | "deduct" | "total" }[] = [
+    { label: "Gross Income (Party Rates × Qty)", amount: grossIncome, type: "income" },
+    { label: "Labor Cost (Labor Rates × Qty)", amount: laborCost, type: "deduct" },
+    { label: "Transport Expense", amount: transportExpense, type: "deduct" },
+    { label: "Loading Expense", amount: loadingExpense, type: "deduct" },
+    { label: "Miscellaneous Expense", amount: miscExpense, type: "deduct" },
+    { label: "Rent", amount: rent, type: "deduct" },
+    { label: "Loading Charges", amount: loadingCharges, type: "deduct" },
+    { label: "Net Income", amount: netIncome, type: "total" },
+  ];
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <h2 className="text-sm font-semibold text-gray-700 mb-3">Income Summary</h2>
+      <div className="divide-y divide-gray-50">
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className={`flex justify-between items-center py-2 ${
+              row.type === "total" ? "pt-3 mt-1 border-t border-gray-200" : ""
+            }`}
+          >
+            <span
+              className={`text-sm ${
+                row.type === "total"
+                  ? "font-semibold text-gray-900"
+                  : row.type === "deduct"
+                  ? "text-gray-500"
+                  : "text-gray-700"
+              }`}
+            >
+              {row.type === "deduct" && row.amount > 0 && "− "}
+              {row.label}
+            </span>
+            <span
+              className={`text-sm tabular-nums font-medium ${
+                row.type === "total"
+                  ? netIncome >= 0
+                    ? "text-green-600 font-semibold"
+                    : "text-red-600 font-semibold"
+                  : row.type === "deduct"
+                  ? "text-orange-600"
+                  : "text-green-600"
+              }`}
+            >
+              PKR {formatCurrency(row.amount)}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

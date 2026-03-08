@@ -21,6 +21,12 @@ import type {
   QualityCheckpoint,
   DefectLog,
   DispatchOrder,
+  InventoryCategory,
+  InventoryItem,
+  InventoryItemCreate,
+  InventoryItemUpdate,
+  StockAdjustment,
+  InventoryListResponse,
 } from "./types";
 
 // ─── Axios instance ──────────────────────────────────────────────────────────
@@ -230,6 +236,49 @@ export const qualityService = {
     const { data } = await api.post<DefectLog>(`/quality/defects`, {
       order_id: orderId, defect_type: defectType, quantity, notes,
     });
+    return data;
+  },
+};
+
+// ─── Inventory ───────────────────────────────────────────────────────────────
+
+export const inventoryService = {
+  getCategories: async (): Promise<InventoryCategory[]> => {
+    const { data } = await api.get<InventoryCategory[]>("/inventory/categories");
+    return data;
+  },
+
+  createCategory: async (name: string, category_type: string): Promise<InventoryCategory> => {
+    const { data } = await api.post<InventoryCategory>("/inventory/categories", { name, category_type });
+    return data;
+  },
+
+  getItems: async (params: {
+    page?: number;
+    size?: number;
+    category_type?: string;
+    search?: string;
+  } = {}): Promise<InventoryListResponse> => {
+    const { data } = await api.get<InventoryListResponse>("/inventory/items", { params });
+    return data;
+  },
+
+  createItem: async (payload: InventoryItemCreate): Promise<InventoryItem> => {
+    const { data } = await api.post<InventoryItem>("/inventory/items", payload);
+    return data;
+  },
+
+  updateItem: async (id: string, payload: InventoryItemUpdate): Promise<InventoryItem> => {
+    const { data } = await api.put<InventoryItem>(`/inventory/items/${id}`, payload);
+    return data;
+  },
+
+  deleteItem: async (id: string): Promise<void> => {
+    await api.delete(`/inventory/items/${id}`);
+  },
+
+  adjustStock: async (id: string, payload: StockAdjustment): Promise<InventoryItem> => {
+    const { data } = await api.patch<InventoryItem>(`/inventory/items/${id}/adjust`, payload);
     return data;
   },
 };

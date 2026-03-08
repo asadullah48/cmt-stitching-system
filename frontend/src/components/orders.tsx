@@ -38,6 +38,21 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
   const [packRateLabor, setPackRateLabor] = useState(
     initialData?.pack_rate_labor?.toString() ?? ""
   );
+  const [transportExpense, setTransportExpense] = useState(
+    initialData?.transport_expense?.toString() ?? ""
+  );
+  const [loadingExpense, setLoadingExpense] = useState(
+    initialData?.loading_expense?.toString() ?? ""
+  );
+  const [miscExpense, setMiscExpense] = useState(
+    initialData?.miscellaneous_expense?.toString() ?? ""
+  );
+  const [rent, setRent] = useState(
+    initialData?.rent?.toString() ?? ""
+  );
+  const [loadingCharges, setLoadingCharges] = useState(
+    initialData?.loading_charges?.toString() ?? ""
+  );
   const [entryDate, setEntryDate] = useState(
     initialData?.entry_date?.split("T")[0] ?? todayInputDate()
   );
@@ -106,6 +121,11 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
           entry_date: entryDate,
           arrival_date: arrivalDate || undefined,
           delivery_date: deliveryDate || undefined,
+          transport_expense: transportExpense ? parseFloat(transportExpense) : 0,
+          loading_expense: loadingExpense ? parseFloat(loadingExpense) : 0,
+          miscellaneous_expense: miscExpense ? parseFloat(miscExpense) : 0,
+          rent: rent ? parseFloat(rent) : 0,
+          loading_charges: loadingCharges ? parseFloat(loadingCharges) : 0,
         };
         const order = await ordersService.updateOrder(orderId, updatePayload);
         showToast("Order updated");
@@ -123,6 +143,11 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
           entry_date: entryDate,
           arrival_date: arrivalDate || undefined,
           delivery_date: deliveryDate || undefined,
+          transport_expense: transportExpense ? parseFloat(transportExpense) : 0,
+          loading_expense: loadingExpense ? parseFloat(loadingExpense) : 0,
+          miscellaneous_expense: miscExpense ? parseFloat(miscExpense) : 0,
+          rent: rent ? parseFloat(rent) : 0,
+          loading_charges: loadingCharges ? parseFloat(loadingCharges) : 0,
           items,
         };
         const order = await ordersService.createOrder(payload);
@@ -256,6 +281,65 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
               placeholder="0.00"
               value={packRateLabor}
               onChange={(e) => setPackRateLabor(e.target.value)}
+            />
+          </FormField>
+        </div>
+      </div>
+
+      {/* Per-order expenses */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          Expenses (deducted from income)
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="Transport Expense (PKR)">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={transportExpense}
+              onChange={(e) => setTransportExpense(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Loading Expense (PKR)">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={loadingExpense}
+              onChange={(e) => setLoadingExpense(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Miscellaneous Expense (PKR)">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={miscExpense}
+              onChange={(e) => setMiscExpense(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Rent (PKR)">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={rent}
+              onChange={(e) => setRent(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Loading Charges (PKR)">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={loadingCharges}
+              onChange={(e) => setLoadingCharges(e.target.value)}
             />
           </FormField>
         </div>

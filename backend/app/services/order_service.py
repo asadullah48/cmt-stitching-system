@@ -40,6 +40,11 @@ class OrderService:
             arrival_date=data.arrival_date,
             delivery_date=data.delivery_date,
             estimated_completion=data.estimated_completion,
+            transport_expense=data.transport_expense,
+            loading_expense=data.loading_expense,
+            miscellaneous_expense=data.miscellaneous_expense,
+            rent=data.rent,
+            loading_charges=data.loading_charges,
             created_by=user_id,
         )
         db.add(order)
@@ -62,7 +67,10 @@ class OrderService:
         party_id: Optional[UUID] = None,
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
+        search: Optional[str] = None,
     ) -> tuple[list[Order], int]:
+        from sqlalchemy import or_
+        from app.models.parties import Party
         q = (
             db.query(Order)
             .options(joinedload(Order.items), joinedload(Order.party))
@@ -76,6 +84,16 @@ class OrderService:
             q = q.filter(Order.entry_date >= date_from)
         if date_to:
             q = q.filter(Order.entry_date <= date_to)
+        if search:
+            term = f"%{search}%"
+            q = q.outerjoin(Party, Order.party_id == Party.id).filter(
+                or_(
+                    Order.order_number.ilike(term),
+                    Order.goods_description.ilike(term),
+                    Order.party_reference.ilike(term),
+                    Party.name.ilike(term),
+                )
+            )
 
         total = q.count()
         orders = q.order_by(Order.created_at.desc()).offset((page - 1) * size).limit(size).all()

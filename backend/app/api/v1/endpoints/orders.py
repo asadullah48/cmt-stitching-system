@@ -33,6 +33,16 @@ def _to_out(order) -> OrderOut:
         delivery_date=order.delivery_date,
         estimated_completion=order.estimated_completion,
         actual_completion=order.actual_completion,
+        carrier=order.carrier,
+        tracking_number=order.tracking_number,
+        dispatch_date=order.dispatch_date,
+        carton_count=order.carton_count,
+        total_weight=order.total_weight,
+        transport_expense=order.transport_expense,
+        loading_expense=order.loading_expense,
+        miscellaneous_expense=order.miscellaneous_expense,
+        rent=order.rent,
+        loading_charges=order.loading_charges,
         items=order.items,
     )
 
@@ -47,8 +57,9 @@ def list_orders(
     party_id: Optional[UUID] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
+    search: Optional[str] = Query(None),
 ):
-    orders, total = OrderService.get_all(db, page, size, status, party_id, date_from, date_to)
+    orders, total = OrderService.get_all(db, page, size, status, party_id, date_from, date_to, search)
     return OrderListResponse(data=[_to_out(o) for o in orders], total=total, page=page, size=size)
 
 

@@ -101,6 +101,8 @@ interface DataTableProps<T> {
   keyExtractor: (row: T) => string;
 }
 
+const SKELETON_WIDTHS = ["72%", "48%", "88%", "56%", "76%", "64%", "80%"];
+
 export function DataTable<T>({
   columns,
   data,
@@ -109,16 +111,6 @@ export function DataTable<T>({
   onRowClick,
   keyExtractor,
 }: DataTableProps<T>) {
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-center py-16">
-          <Spinner />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -139,7 +131,20 @@ export function DataTable<T>({
             </tr>
           </thead>
           <tbody>
-            {data.length === 0 ? (
+            {loading ? (
+              [...Array(6)].map((_, ri) => (
+                <tr key={ri} className="border-b border-gray-50 last:border-0">
+                  {columns.map((col, ci) => (
+                    <td key={col.key} className="px-4 py-3">
+                      <div
+                        className="h-4 bg-gray-100 rounded animate-pulse"
+                        style={{ width: SKELETON_WIDTHS[(ri * columns.length + ci) % SKELETON_WIDTHS.length] }}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : data.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -155,7 +160,7 @@ export function DataTable<T>({
                   onClick={() => onRowClick?.(row)}
                   className={cn(
                     "border-b border-gray-50 last:border-0",
-                    onRowClick && "cursor-pointer hover:bg-gray-50 transition-colors"
+                    onRowClick && "cursor-pointer hover:bg-blue-50/40 transition-colors"
                   )}
                 >
                   {columns.map((col) => (
@@ -198,39 +203,49 @@ export function Sheet({
   children,
   width = "w-[480px]",
 }: SheetProps) {
-  // Close on Escape
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) setMounted(true);
+  }, [open]);
+
   React.useEffect(() => {
     if (!open) return;
-    const handle = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const handle = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handle);
     return () => document.removeEventListener("keydown", handle);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!mounted && !open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex transition-opacity duration-200",
+        open ? "opacity-100" : "opacity-0 pointer-events-none"
+      )}
+      onTransitionEnd={() => { if (!open) setMounted(false); }}
+    >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-200"
+        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
         onClick={onClose}
       />
       {/* Panel */}
       <div
         className={cn(
           "relative ml-auto h-full bg-white shadow-2xl flex flex-col",
-          "translate-x-0 transition-transform duration-300 ease-out",
+          "transition-transform duration-300 ease-out",
+          open ? "translate-x-0" : "translate-x-full",
           width
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
           <h2 className="text-base font-semibold text-gray-900">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -240,6 +255,49 @@ export function Sheet({
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
       </div>
+    </div>
+  );
+}
+
+// ─── SearchInput ──────────────────────────────────────────────────────────────
+
+interface SearchInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+}
+
+export function SearchInput({ value, onChange, placeholder = "Search…", className }: SearchInputProps) {
+  return (
+    <div className={cn("relative", className)}>
+      <svg
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={cn(
+          value ? "w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-400" : "w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-400",
+          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+        )}
+      />
+      {value && (
+        <button
+          onClick={() => onChange("")}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -316,7 +374,7 @@ export function Spinner({ className }: { className?: string }) {
       <path
         className="opacity-75"
         fill="currentColor"
-        d="M4 12a8 8 0 018-8v8H4z"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       />
     </svg>
   );

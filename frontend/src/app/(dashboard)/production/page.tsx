@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { productionService, ordersService } from "@/hooks/services";
 import { formatDate } from "@/hooks/utils";
-import { PageHeader, Button, Sheet, DataTable, Select, Input } from "@/components/common";
+import { PageHeader, Button, Sheet, DataTable, Select, SearchInput } from "@/components/common";
 import { SessionForm } from "@/components/production";
-import type { ProductionSession, Order, Department } from "@/hooks/types";
+import type { ProductionSession, Order, Department, OrderStatus } from "@/hooks/types";
 import type { Column } from "@/components/common";
 
 export default function ProductionPage() {
@@ -17,11 +17,18 @@ export default function ProductionPage() {
   const [loading, setLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Load orders for selection
+  // Load active orders for selection (in-progress + complete for logging sessions retroactively)
   useEffect(() => {
-    ordersService
-      .getOrders({ size: 100, status: department === "stitching" ? "stitching_in_progress" : "packing_in_progress" })
-      .then((r) => setOrders(r.data));
+    const statusMap = {
+      stitching: ["stitching_in_progress", "stitching_complete"],
+      packing:   ["packing_in_progress",   "packing_complete"],
+    };
+    Promise.all(
+      statusMap[department].map((s) => ordersService.getOrders({ size: 100, status: s as OrderStatus }))
+    ).then((results) => {
+      const all = results.flatMap((r) => r.data);
+      setOrders(all);
+    });
   }, [department]);
 
   const loadSessions = useCallback(async () => {
@@ -115,10 +122,10 @@ export default function ProductionPage() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-700">Select Order</h2>
         <div className="flex gap-3">
-          <Input
-            placeholder="Search by order # or party…"
+          <SearchInput
             value={orderSearch}
-            onChange={(e) => setOrderSearch(e.target.value)}
+            onChange={setOrderSearch}
+            placeholder="Search by order # or party…"
             className="w-64"
           />
           <Select

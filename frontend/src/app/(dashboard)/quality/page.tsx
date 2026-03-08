@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ordersService, qualityService } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
-import { Select, Button, Input, Textarea, FormField, Spinner } from "@/components/common";
+import { Select, Button, Input, Textarea, FormField, Spinner, SearchInput } from "@/components/common";
 import { StatusBadge } from "@/components/common";
 import type { Order, QualityReport, DefectLog } from "@/hooks/types";
 
@@ -20,6 +20,7 @@ export default function QualityPage() {
   const [loadingReport, setLoadingReport] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  const [orderSearch, setOrderSearch] = useState("");
   const [defectType, setDefectType] = useState(DEFECT_TYPES[0]);
   const [defectQty, setDefectQty] = useState("1");
   const [defectNotes, setDefectNotes] = useState("");
@@ -100,9 +101,16 @@ export default function QualityPage() {
 
         {/* ── Left: Order List ── */}
         <div className="col-span-3 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Orders</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{orders.length} total</p>
+          <div className="px-3 py-3 border-b border-gray-100 bg-gray-50 space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Orders</h2>
+              <span className="text-xs text-gray-400">{orders.length}</span>
+            </div>
+            <SearchInput
+              value={orderSearch}
+              onChange={setOrderSearch}
+              placeholder="Filter orders…"
+            />
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
             {orders.length === 0 ? (
@@ -110,7 +118,9 @@ export default function QualityPage() {
                 <p className="text-xs text-gray-400">No orders found</p>
               </div>
             ) : (
-              orders.map((o) => (
+              orders
+              .filter((o) => !orderSearch || o.order_number.toLowerCase().includes(orderSearch.toLowerCase()) || o.goods_description.toLowerCase().includes(orderSearch.toLowerCase()) || (o.party_name ?? "").toLowerCase().includes(orderSearch.toLowerCase()))
+              .map((o) => (
                 <button
                   key={o.id}
                   onClick={() => setSelectedOrder(o)}

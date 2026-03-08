@@ -26,16 +26,18 @@ function StatCard({ label, value, color, bg, icon }: {
   );
 }
 
-function ProgressBar({ label, value, color }: { label: string; value: number; color: string }) {
+function ProgressBar({ label, value, barColor, textColor }: {
+  label: string; value: number; barColor: string; textColor: string;
+}) {
   return (
     <div>
-      <div className="flex justify-between items-center mb-1.5">
-        <span className="text-sm font-semibold text-gray-700">{label}</span>
-        <span className={`text-sm font-bold ${color}`}>{value}%</span>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className={`text-sm font-bold tabular-nums ${textColor}`}>{value}%</span>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
         <div
-          className={`h-3 rounded-full transition-all duration-700 ease-out ${color.replace("text-", "bg-")}`}
+          className={`h-2.5 rounded-full transition-all duration-700 ease-out ${barColor}`}
           style={{ width: `${Math.min(value, 100)}%` }}
         />
       </div>
@@ -117,7 +119,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ─── Stat Cards ─────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         <StatCard
           label="Active Orders"
           value={loading ? "…" : (summary?.active_orders ?? 0)}
@@ -130,13 +132,24 @@ export default function DashboardPage() {
           }
         />
         <StatCard
-          label="On Hold"
+          label="Pending"
           value={loading ? "…" : (summary?.on_hold_orders ?? 0)}
           color="text-white"
-          bg="bg-orange-500"
+          bg="bg-amber-500"
           icon={
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="Dispatched"
+          value={loading ? "…" : (summary?.dispatched ?? 0)}
+          color="text-white"
+          bg="bg-indigo-600"
+          icon={
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17H5a2 2 0 01-2-2V5a2 2 0 012-2h11a2 2 0 012 2v3m0 0h3l2 3v4h-5m0-7v7m0 0H9m3 0a2 2 0 11-4 0 2 2 0 014 0zm8 0a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           }
         />
@@ -161,12 +174,14 @@ export default function DashboardPage() {
           <ProgressBar
             label="Stitching Progress"
             value={loading ? 0 : (summary?.stitching_progress_pct ?? 0)}
-            color="text-blue-600"
+            barColor="bg-blue-500"
+            textColor="text-blue-600"
           />
           <ProgressBar
             label="Packing Progress"
             value={loading ? 0 : (summary?.packing_progress_pct ?? 0)}
-            color="text-indigo-600"
+            barColor="bg-indigo-500"
+            textColor="text-indigo-600"
           />
         </div>
 

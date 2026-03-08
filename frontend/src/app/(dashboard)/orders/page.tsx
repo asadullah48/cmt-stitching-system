@@ -6,7 +6,7 @@ import { ordersService, partiesService } from "@/hooks/services";
 import { formatDate, ALL_STATUSES, getStatusConfig } from "@/hooks/utils";
 import {
   PageHeader, Button, DataTable, StatusBadge,
-  Sheet, Pagination, Select, Input,
+  Sheet, Pagination, Select, Input, SearchInput,
 } from "@/components/common";
 import { OrderForm } from "@/components/orders";
 import type { Order, Party, OrderFilters, OrderStatus, PaginatedResponse } from "@/hooks/types";
@@ -116,9 +116,16 @@ export default function OrdersPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
+        <SearchInput
+          value={filters.search ?? ""}
+          onChange={(v) => handleFilterChange({ search: v || undefined })}
+          placeholder="Order #, goods, party…"
+          className="w-56"
+        />
+
         <Select
-          className="w-48"
+          className="w-44"
           value={filters.status ?? ""}
           onChange={(e) =>
             handleFilterChange({ status: (e.target.value as OrderStatus) || undefined })
@@ -133,7 +140,7 @@ export default function OrdersPage() {
         </Select>
 
         <Select
-          className="w-48"
+          className="w-44"
           value={filters.party_id ?? ""}
           onChange={(e) =>
             handleFilterChange({ party_id: e.target.value || undefined })
@@ -147,29 +154,29 @@ export default function OrdersPage() {
           ))}
         </Select>
 
-        <Input
-          type="date"
-          className="w-40"
-          value={filters.date_from ?? ""}
-          onChange={(e) => handleFilterChange({ date_from: e.target.value || undefined })}
-          placeholder="From"
-        />
-        <Input
-          type="date"
-          className="w-40"
-          value={filters.date_to ?? ""}
-          onChange={(e) => handleFilterChange({ date_to: e.target.value || undefined })}
-          placeholder="To"
-        />
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            className="w-36"
+            value={filters.date_from ?? ""}
+            onChange={(e) => handleFilterChange({ date_from: e.target.value || undefined })}
+          />
+          <span className="text-gray-400 text-sm">–</span>
+          <Input
+            type="date"
+            className="w-36"
+            value={filters.date_to ?? ""}
+            onChange={(e) => handleFilterChange({ date_to: e.target.value || undefined })}
+          />
+        </div>
 
-        {(filters.status || filters.party_id || filters.date_from || filters.date_to) && (
-          <Button
-            variant="ghost"
-            size="sm"
+        {(filters.status || filters.party_id || filters.date_from || filters.date_to || filters.search) && (
+          <button
             onClick={() => setFilters({ page: 1, size: 20 })}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium ml-auto"
           >
-            Clear
-          </Button>
+            Clear all
+          </button>
         )}
       </div>
 

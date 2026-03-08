@@ -80,6 +80,11 @@ export interface Order {
   entry_date: string;
   arrival_date: string | null;
   delivery_date: string | null;
+  transport_expense: number | null;
+  loading_expense: number | null;
+  miscellaneous_expense: number | null;
+  rent: number | null;
+  loading_charges: number | null;
   items: OrderItem[];
   created_at: string;
   updated_at: string;
@@ -97,6 +102,11 @@ export interface OrderCreate {
   entry_date: string;
   arrival_date?: string;
   delivery_date?: string;
+  transport_expense?: number;
+  loading_expense?: number;
+  miscellaneous_expense?: number;
+  rent?: number;
+  loading_charges?: number;
   items: OrderItemCreate[];
 }
 
@@ -207,6 +217,7 @@ export interface OrderFilters {
   party_id?: string;
   date_from?: string;
   date_to?: string;
+  search?: string;
   page?: number;
   size?: number;
 }
@@ -247,6 +258,58 @@ export interface QualityReport {
   checkpoints: QualityCheckpoint[];
   defects: DefectLog[];
   all_passed: boolean;
+}
+
+// ─── Inventory ───────────────────────────────────────────────────────────────
+
+export type ItemCondition = "good" | "damaged" | "expired";
+export type CategoryType = "raw_material" | "finished_goods" | "accessories";
+
+export interface InventoryCategory {
+  id: string;
+  name: string;
+  category_type: CategoryType;
+}
+
+export interface InventoryItem {
+  id: string;
+  category_id: string | null;
+  category_name: string | null;
+  category_type: CategoryType | null;
+  name: string;
+  sku: string | null;
+  unit: string;
+  current_stock: number;
+  minimum_stock: number;
+  cost_per_unit: number | null;
+  location: string | null;
+  condition: ItemCondition;
+}
+
+export interface InventoryItemCreate {
+  category_id?: string;
+  name: string;
+  sku?: string;
+  unit: string;
+  current_stock?: number;
+  minimum_stock?: number;
+  cost_per_unit?: number;
+  location?: string;
+  condition?: ItemCondition;
+}
+
+export type InventoryItemUpdate = Partial<Omit<InventoryItemCreate, "current_stock">>;
+
+export interface StockAdjustment {
+  quantity: number;
+  notes?: string;
+}
+
+export interface InventoryListResponse {
+  data: InventoryItem[];
+  total: number;
+  page: number;
+  size: number;
 }
 
 // ─── Dispatch ────────────────────────────────────────────────────────────────

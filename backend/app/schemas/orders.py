@@ -44,6 +44,11 @@ class OrderCreate(BaseModel):
     arrival_date: Optional[date] = None
     delivery_date: Optional[date] = None
     estimated_completion: Optional[date] = None
+    transport_expense: Optional[Decimal] = Decimal("0")
+    loading_expense: Optional[Decimal] = Decimal("0")
+    miscellaneous_expense: Optional[Decimal] = Decimal("0")
+    rent: Optional[Decimal] = Decimal("0")
+    loading_charges: Optional[Decimal] = Decimal("0")
     items: list[OrderItemCreate]
 
     @model_validator(mode="after")
@@ -74,6 +79,11 @@ class OrderUpdate(BaseModel):
     dispatch_date: Optional[date] = None
     carton_count: Optional[int] = None
     total_weight: Optional[Decimal] = None
+    transport_expense: Optional[Decimal] = None
+    loading_expense: Optional[Decimal] = None
+    miscellaneous_expense: Optional[Decimal] = None
+    rent: Optional[Decimal] = None
+    loading_charges: Optional[Decimal] = None
 
 
 class OrderStatusUpdate(BaseModel):
@@ -103,6 +113,11 @@ class OrderOut(BaseModel):
     dispatch_date: Optional[date] = None
     carton_count: Optional[int] = None
     total_weight: Optional[Decimal] = None
+    transport_expense: Optional[Decimal] = Decimal("0")
+    loading_expense: Optional[Decimal] = Decimal("0")
+    miscellaneous_expense: Optional[Decimal] = Decimal("0")
+    rent: Optional[Decimal] = Decimal("0")
+    loading_charges: Optional[Decimal] = Decimal("0")
     items: list[OrderItemOut] = []
 
     model_config = {"from_attributes": True}

@@ -29,6 +29,12 @@ class Order(BaseModel):
     dispatch_date = Column(Date, nullable=True)
     carton_count = Column(Integer, nullable=True)
     total_weight = Column(Numeric(8, 2), nullable=True)
+    # Per-order expenses for net income calculation
+    transport_expense = Column(Numeric(10, 2), nullable=True, default=0)
+    loading_expense = Column(Numeric(10, 2), nullable=True, default=0)
+    miscellaneous_expense = Column(Numeric(10, 2), nullable=True, default=0)
+    rent = Column(Numeric(10, 2), nullable=True, default=0)
+    loading_charges = Column(Numeric(10, 2), nullable=True, default=0)
     created_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
 
     # Relationships

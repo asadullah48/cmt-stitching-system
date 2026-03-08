@@ -20,11 +20,13 @@ class InventoryItem(BaseModel):
 
     category_id = Column(UUID(as_uuid=True), ForeignKey("cmt_inventory_categories.id"), nullable=True)
     name = Column(String(100), nullable=False)
-    sku = Column(String(50), unique=True)
+    sku = Column(String(50), unique=True, nullable=True)
     unit = Column(String(20), nullable=False)
     current_stock = Column(Numeric(10, 2), default=0)
     minimum_stock = Column(Numeric(10, 2), default=0)
-    cost_per_unit = Column(Numeric(10, 2))
+    cost_per_unit = Column(Numeric(10, 2), nullable=True)
+    location = Column(String(100), nullable=True)   # e.g. "Rack A", "Warehouse 1"
+    condition = Column(String(20), nullable=True, default="good")  # good | damaged | expired
 
     # Relationships
     category = relationship("InventoryCategory", back_populates="items")

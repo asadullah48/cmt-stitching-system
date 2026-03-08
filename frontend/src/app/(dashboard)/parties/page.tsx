@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { partiesService } from "@/hooks/services";
 import { formatCurrency, balanceColor } from "@/hooks/utils";
 import {
-  PageHeader, Button, DataTable, Sheet, Pagination,
+  PageHeader, Button, DataTable, Sheet, Pagination, SearchInput,
 } from "@/components/common";
 import { PartyForm } from "@/components/financial";
 import type { Party, PaginatedResponse } from "@/hooks/types";
@@ -19,6 +19,7 @@ export default function PartiesPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async (p: number) => {
     setLoading(true);
@@ -94,9 +95,23 @@ export default function PartiesPage() {
         }
       />
 
+      <div className="mb-4">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search parties by name, contact, phone…"
+          className="w-72"
+        />
+      </div>
+
       <DataTable
         columns={columns}
-        data={result.data}
+        data={result.data.filter((p) =>
+          !search ||
+          p.name.toLowerCase().includes(search.toLowerCase()) ||
+          (p.contact_person ?? "").toLowerCase().includes(search.toLowerCase()) ||
+          (p.phone ?? "").includes(search)
+        )}
         loading={loading}
         keyExtractor={(row) => row.id}
         onRowClick={(row) => router.push(`/parties/${row.id}`)}
