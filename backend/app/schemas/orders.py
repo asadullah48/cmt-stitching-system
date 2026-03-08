@@ -49,6 +49,7 @@ class OrderCreate(BaseModel):
     miscellaneous_expense: Optional[Decimal] = Decimal("0")
     rent: Optional[Decimal] = Decimal("0")
     loading_charges: Optional[Decimal] = Decimal("0")
+    product_id: Optional[UUID] = None
     items: list[OrderItemCreate]
 
     @model_validator(mode="after")
@@ -84,6 +85,7 @@ class OrderUpdate(BaseModel):
     miscellaneous_expense: Optional[Decimal] = None
     rent: Optional[Decimal] = None
     loading_charges: Optional[Decimal] = None
+    product_id: Optional[UUID] = None
 
 
 class OrderStatusUpdate(BaseModel):
@@ -118,6 +120,8 @@ class OrderOut(BaseModel):
     miscellaneous_expense: Optional[Decimal] = Decimal("0")
     rent: Optional[Decimal] = Decimal("0")
     loading_charges: Optional[Decimal] = Decimal("0")
+    product_id: Optional[UUID] = None
+    product_name: Optional[str] = None
     items: list[OrderItemOut] = []
 
     model_config = {"from_attributes": True}

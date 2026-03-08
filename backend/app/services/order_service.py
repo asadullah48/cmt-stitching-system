@@ -10,6 +10,53 @@ from app.schemas.orders import OrderCreate, OrderUpdate
 from app.services.audit_service import AuditService
 
 
+def _consume_bom(db: Session, order: Order, department: str) -> None:
+    """Deduct BOM materials from inventory when an order starts a production phase.
+
+    Creates an InventoryTransaction record for each consumed BOM item so that
+    the consumption can be detected later (prevents double-counting in the UI).
+    Stock floors at zero — it will not go negative.
+    """
+    from app.models.products import ProductBOMItem
+    from app.models.inventory import InventoryItem, InventoryTransaction
+    from decimal import Decimal
+    from datetime import date
+
+    if not order.product_id:
+        return
+
+    bom_items = db.query(ProductBOMItem).filter(
+        ProductBOMItem.product_id == order.product_id,
+        ProductBOMItem.department == department,
+        ProductBOMItem.is_deleted.is_(False),
+    ).all()
+
+    qty = Decimal(str(order.total_quantity))
+    for b in bom_items:
+        inv = db.query(InventoryItem).filter(
+            InventoryItem.id == b.inventory_item_id
+        ).first()
+        if not inv:
+            continue
+
+        consumed = (qty / Decimal(str(b.covers_quantity))) * Decimal(str(b.material_quantity))
+        inv.current_stock = max(
+            Decimal("0"),
+            Decimal(str(inv.current_stock)) - consumed,
+        )
+
+        tx = InventoryTransaction(
+            item_id=b.inventory_item_id,
+            transaction_type="consumption",
+            quantity=-consumed,
+            transaction_date=date.today(),
+            reference_id=order.id,
+            reference_type="order_bom",
+            notes=f"{department} BOM consumption for order {order.order_number}",
+        )
+        db.add(tx)
+
+
 class OrderService:
     @staticmethod
     def _generate_order_number(db: Session) -> str:
@@ -73,7 +120,7 @@ class OrderService:
         from app.models.parties import Party
         q = (
             db.query(Order)
-            .options(joinedload(Order.items), joinedload(Order.party))
+            .options(joinedload(Order.items), joinedload(Order.party), joinedload(Order.product))
             .filter(Order.is_deleted.is_(False))
         )
         if status_filter:
@@ -103,7 +150,7 @@ class OrderService:
     def get_by_id(db: Session, order_id: UUID) -> Order:
         order = (
             db.query(Order)
-            .options(joinedload(Order.items), joinedload(Order.party))
+            .options(joinedload(Order.items), joinedload(Order.party), joinedload(Order.product))
             .filter(Order.id == order_id, Order.is_deleted.is_(False))
             .first()
         )
@@ -128,6 +175,11 @@ class OrderService:
         old_status = order.status
         order.status = new_status
         AuditService.log_update(db, "cmt_orders", order.id, {"status": old_status}, {"status": new_status}, user_id)
+        # Auto-consume BOM materials when production begins for each department
+        if new_status == "stitching_in_progress":
+            _consume_bom(db, order, "stitching")
+        elif new_status == "packing_in_progress":
+            _consume_bom(db, order, "packing")
         db.commit()
         db.refresh(order)
         return order

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
-import { ordersService } from "@/hooks/services";
+import React, { useState, useEffect } from "react";
+import { ordersService, productService } from "@/hooks/services";
 import { ALL_STATUSES, getStatusConfig, todayInputDate } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
 import {
   Button, FormField, Input, Select, Textarea, StatusBadge,
 } from "@/components/common";
 import type {
-  Order, OrderCreate, OrderUpdate, OrderItemCreate, Party, OrderStatus,
+  Order, OrderCreate, OrderUpdate, OrderItemCreate, Party, OrderStatus, Product,
 } from "@/hooks/types";
 
 // ─── OrderForm ────────────────────────────────────────────────────────────────
@@ -23,8 +23,14 @@ interface OrderFormProps {
 
 export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }: OrderFormProps) {
   const { showToast } = useToast();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productId, setProductId] = useState(initialData?.product_id ?? "");
   const [partyId, setPartyId] = useState(initialData?.party_id ?? "");
   const [partyRef, setPartyRef] = useState(initialData?.party_reference ?? "");
+
+  useEffect(() => {
+    productService.getProducts().then(setProducts).catch(() => {});
+  }, []);
   const [goods, setGoods] = useState(initialData?.goods_description ?? "");
   const [stitchRateParty, setStitchRateParty] = useState(
     initialData?.stitch_rate_party?.toString() ?? ""
@@ -111,6 +117,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
     try {
       if (orderId) {
         const updatePayload: OrderUpdate = {
+          product_id: productId || undefined,
           party_id: partyId || undefined,
           party_reference: partyRef || undefined,
           goods_description: goods,
@@ -132,6 +139,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
         onSuccess(order);
       } else {
         const payload: OrderCreate = {
+          product_id: productId || undefined,
           party_id: partyId || undefined,
           party_reference: partyRef || undefined,
           goods_description: goods,
@@ -168,6 +176,18 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
         <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2">
           <p className="text-sm text-red-700">{errors.form}</p>
         </div>
+      )}
+
+      {/* Product Template */}
+      {products.length > 0 && (
+        <FormField label="Product Template (optional)">
+          <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
+            <option value="">— No template —</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </Select>
+        </FormField>
       )}
 
       {/* Party */}

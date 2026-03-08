@@ -69,6 +69,8 @@ export interface Order {
   order_number: string;
   party_id: string | null;
   party_name: string | null;
+  product_id?: string | null;
+  product_name?: string | null;
   party_reference: string | null;
   goods_description: string;
   total_quantity: number;
@@ -93,6 +95,7 @@ export interface Order {
 export interface OrderCreate {
   party_id?: string;
   party_reference?: string;
+  product_id?: string | null;
   goods_description: string;
   total_quantity: number;
   stitch_rate_party: number;
@@ -310,6 +313,49 @@ export interface InventoryListResponse {
   total: number;
   page: number;
   size: number;
+}
+
+// ─── Product / BOM ────────────────────────────────────────────────────────────
+
+export interface ProductBOMItem {
+  id: string;
+  inventory_item_id: string;
+  inventory_item_name: string;
+  inventory_item_unit: string;
+  material_quantity: number;
+  covers_quantity: number;
+  department: "stitching" | "packing";
+  notes?: string | null;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description?: string | null;
+  bom_items: ProductBOMItem[];
+}
+
+export interface MaterialRequirement {
+  inventory_item_id: string;
+  inventory_item_name: string;
+  unit: string;
+  material_quantity: number;
+  covers_quantity: number;
+  required: number;
+  in_stock: number;
+  shortfall: number;
+  sufficient: boolean;
+  department: string;
+  notes?: string | null;
+}
+
+export interface OrderMaterials {
+  product_name: string | null;
+  order_quantity: number;
+  stitching: MaterialRequirement[];
+  packing: MaterialRequirement[];
+  stitching_consumed: boolean;
+  packing_consumed: boolean;
 }
 
 // ─── Dispatch ────────────────────────────────────────────────────────────────

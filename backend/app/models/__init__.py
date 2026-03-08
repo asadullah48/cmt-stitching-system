@@ -9,6 +9,7 @@ from .inventory import InventoryCategory, InventoryItem, InventoryTransaction
 from .audit import AuditLog
 from .config import Config
 from .quality import QualityCheckpoint, DefectLog
+from .products import Product, ProductBOMItem
 
 __all__ = [
     "Base",
@@ -28,4 +29,6 @@ __all__ = [
     "Config",
     "QualityCheckpoint",
     "DefectLog",
+    "Product",
+    "ProductBOMItem",
 ]

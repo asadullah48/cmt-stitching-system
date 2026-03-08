@@ -35,6 +35,8 @@ class Order(BaseModel):
     miscellaneous_expense = Column(Numeric(10, 2), nullable=True, default=0)
     rent = Column(Numeric(10, 2), nullable=True, default=0)
     loading_charges = Column(Numeric(10, 2), nullable=True, default=0)
+    # Optional link to a product; used to drive BOM-based inventory deductions
+    product_id = Column(UUID(as_uuid=True), ForeignKey("cmt_products.id"), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
 
     # Relationships
@@ -46,6 +48,7 @@ class Order(BaseModel):
     transactions = relationship("FinancialTransaction", back_populates="order")
     quality_checkpoints = relationship("QualityCheckpoint", back_populates="order", cascade="all, delete-orphan")
     defect_logs = relationship("DefectLog", back_populates="order", cascade="all, delete-orphan")
+    product = relationship("Product", back_populates="orders")
 
 
 class OrderItem(BaseModel):

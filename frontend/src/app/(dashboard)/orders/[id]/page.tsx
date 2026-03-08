@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ordersService, productionService, transactionsService, partiesService } from "@/hooks/services";
+import { ordersService, productionService, transactionsService, partiesService, productService } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
 import {
@@ -12,10 +12,123 @@ import {
 import { OrderStatusSelect, OrderItemsTable, OrderForm } from "@/components/orders";
 import { SessionForm } from "@/components/production";
 import { TransactionForm } from "@/components/financial";
-import type { Order, ProductionSession, FinancialTransaction, Department, Party } from "@/hooks/types";
+import type { Order, ProductionSession, FinancialTransaction, Department, Party, OrderMaterials, MaterialRequirement } from "@/hooks/types";
 import type { Column } from "@/components/common";
 
 type Tab = "stitching" | "packing" | "transactions";
+
+// ─── Material Requirements Panel ─────────────────────────────────────────────
+
+function MaterialRow({ req }: { req: MaterialRequirement }) {
+  return (
+    <tr className="border-b border-gray-50 last:border-0">
+      <td className="py-2 pr-4 text-sm text-gray-800">{req.inventory_item_name}</td>
+      <td className="py-2 pr-4 text-sm text-right tabular-nums text-gray-700">
+        {Number(req.required).toFixed(2)} {req.unit}
+      </td>
+      <td className="py-2 pr-4 text-sm text-right tabular-nums text-gray-700">
+        {Number(req.in_stock).toFixed(2)} {req.unit}
+      </td>
+      <td className="py-2 text-right">
+        {req.sufficient ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+            OK
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v4m0 4h.01" />
+            </svg>
+            Short {Number(req.shortfall).toFixed(2)}
+          </span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function MaterialRequirementsPanel({ materials }: { materials: OrderMaterials | null }) {
+  const [matTab, setMatTab] = useState<"stitching" | "packing">("stitching");
+
+  if (!materials) return null;
+
+  if (!materials.product_name) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-2">Material Requirements</h2>
+        <p className="text-xs text-gray-400">No product assigned. Edit the order to assign a product template.</p>
+      </div>
+    );
+  }
+
+  const rows = matTab === "stitching" ? materials.stitching : materials.packing;
+  const consumed = matTab === "stitching" ? materials.stitching_consumed : materials.packing_consumed;
+  const allOk = rows.every((r) => r.sufficient);
+  const shortCount = rows.filter((r) => !r.sufficient).length;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-700">Material Requirements</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{materials.product_name} · {materials.order_quantity} pcs</p>
+        </div>
+        {consumed && (
+          <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">
+            Auto-consumed
+          </span>
+        )}
+      </div>
+
+      {/* Summary banner */}
+      {rows.length > 0 && (
+        <div className={`mb-3 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${
+          allOk ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700"
+        }`}>
+          {allOk
+            ? "✓ All materials sufficient"
+            : `⚠ ${shortCount} item${shortCount > 1 ? "s" : ""} short — check inventory`}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-3">
+        {(["stitching", "packing"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setMatTab(t)}
+            className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors capitalize ${
+              matTab === t ? "bg-[#1a2744] text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            {t} ({(t === "stitching" ? materials.stitching : materials.packing).length})
+          </button>
+        ))}
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-xs text-gray-400 py-2">No BOM items defined for {matTab}.</p>
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className="pb-2 text-left text-xs font-medium text-gray-500">Material</th>
+              <th className="pb-2 text-right text-xs font-medium text-gray-500">Required</th>
+              <th className="pb-2 text-right text-xs font-medium text-gray-500">In Stock</th>
+              <th className="pb-2 text-right text-xs font-medium text-gray-500">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((req) => <MaterialRow key={req.inventory_item_id} req={req} />)}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +147,7 @@ export default function OrderDetailPage() {
   const [editSheet, setEditSheet] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [materials, setMaterials] = useState<OrderMaterials | null>(null);
 
   const loadOrder = useCallback(async () => {
     try {
@@ -65,7 +179,8 @@ export default function OrderDetailPage() {
       setLoading(false)
     );
     partiesService.getParties(1, 100).then((r) => setParties(r.data));
-  }, [loadOrder, loadSessions, loadTransactions]);
+    productService.getOrderMaterials(id).then(setMaterials).catch(() => setMaterials(null));
+  }, [loadOrder, loadSessions, loadTransactions, id]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -235,6 +350,9 @@ export default function OrderDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Material Requirements */}
+      <MaterialRequirementsPanel materials={materials} />
 
       {/* Income Summary */}
       <IncomeSummary order={order} />

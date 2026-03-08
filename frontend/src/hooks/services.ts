@@ -27,6 +27,9 @@ import type {
   InventoryItemUpdate,
   StockAdjustment,
   InventoryListResponse,
+  Product,
+  ProductBOMItem,
+  OrderMaterials,
 } from "./types";
 
 // ─── Axios instance ──────────────────────────────────────────────────────────
@@ -298,4 +301,34 @@ export const dispatchService = {
     const { data } = await api.patch<DispatchOrder>(`/dispatch/${orderId}`, payload);
     return data;
   },
+};
+
+// ─── Products / BOM ───────────────────────────────────────────────────────────
+
+export const productService = {
+  getProducts: () =>
+    api.get<Product[]>("/products").then((r) => r.data),
+
+  createProduct: (data: { name: string; description?: string }) =>
+    api.post<Product>("/products", data).then((r) => r.data),
+
+  updateProduct: (id: string, data: { name?: string; description?: string }) =>
+    api.put<Product>(`/products/${id}`, data).then((r) => r.data),
+
+  deleteProduct: (id: string) =>
+    api.delete(`/products/${id}`),
+
+  addBOMItem: (productId: string, data: {
+    inventory_item_id: string;
+    material_quantity: number;
+    covers_quantity: number;
+    department: string;
+    notes?: string;
+  }) => api.post<ProductBOMItem>(`/products/${productId}/bom`, data).then((r) => r.data),
+
+  deleteBOMItem: (bomItemId: string) =>
+    api.delete(`/products/bom/${bomItemId}`),
+
+  getOrderMaterials: (orderId: string) =>
+    api.get<OrderMaterials>(`/orders/${orderId}/materials`).then((r) => r.data),
 };

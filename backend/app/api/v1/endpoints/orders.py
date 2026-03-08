@@ -1,14 +1,20 @@
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
+import uuid
 
-from fastapi import APIRouter, Query, status as http_status
+from fastapi import APIRouter, HTTPException, Query, status as http_status
 
 from app.core.deps import CurrentUser, DbDep
+from app.models.inventory import InventoryItem, InventoryTransaction
+from app.models.orders import Order
+from app.models.products import Product, ProductBOMItem
 from app.schemas.orders import (
     OrderCreate, OrderUpdate, OrderStatusUpdate,
     OrderOut, OrderListResponse,
 )
+from app.schemas.products import OrderMaterialsOut, MaterialRequirement
 from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -43,6 +49,8 @@ def _to_out(order) -> OrderOut:
         miscellaneous_expense=order.miscellaneous_expense,
         rent=order.rent,
         loading_charges=order.loading_charges,
+        product_id=order.product_id,
+        product_name=order.product.name if order.product else None,
         items=order.items,
     )
 
@@ -67,6 +75,95 @@ def list_orders(
 def create_order(data: OrderCreate, db: DbDep, current_user: CurrentUser):
     order = OrderService.create(db, data, current_user.id)
     return _to_out(order)
+
+
+@router.get("/{order_id}/materials", response_model=OrderMaterialsOut)
+def get_order_materials(order_id: uuid.UUID, db: DbDep):
+    """Return per-department BOM material requirements for an order.
+
+    Computes required vs in-stock quantities for each BOM line item linked
+    to the order's product. Also flags whether consumption has already been
+    recorded (prevents double-counting in the UI).
+    """
+    order = db.query(Order).filter(
+        Order.id == order_id, Order.is_deleted.is_(False)
+    ).first()
+    if not order:
+        raise HTTPException(404, "Order not found")
+
+    # Orders without a product template have no BOM requirements
+    if not order.product_id:
+        return OrderMaterialsOut(
+            product_name=None,
+            order_quantity=order.total_quantity,
+            stitching=[],
+            packing=[],
+            stitching_consumed=False,
+            packing_consumed=False,
+        )
+
+    product = db.query(Product).filter(
+        Product.id == order.product_id, Product.is_deleted.is_(False)
+    ).first()
+
+    bom_items = db.query(ProductBOMItem).filter(
+        ProductBOMItem.product_id == order.product_id,
+        ProductBOMItem.is_deleted.is_(False),
+    ).all()
+
+    qty = Decimal(str(order.total_quantity))
+    stitching_reqs: list[MaterialRequirement] = []
+    packing_reqs: list[MaterialRequirement] = []
+
+    for b in bom_items:
+        inv = db.query(InventoryItem).filter(
+            InventoryItem.id == b.inventory_item_id,
+            InventoryItem.is_deleted.is_(False),
+        ).first()
+        if not inv:
+            continue
+
+        # required = (order_qty / covers_quantity) * material_quantity
+        required = (qty / Decimal(str(b.covers_quantity))) * Decimal(str(b.material_quantity))
+        in_stock = Decimal(str(inv.current_stock))
+        shortfall = max(Decimal("0"), required - in_stock)
+
+        req = MaterialRequirement(
+            inventory_item_id=b.inventory_item_id,
+            inventory_item_name=inv.name,
+            unit=inv.unit,
+            material_quantity=Decimal(str(b.material_quantity)),
+            covers_quantity=Decimal(str(b.covers_quantity)),
+            required=required.quantize(Decimal("0.0001")),
+            in_stock=in_stock,
+            shortfall=shortfall.quantize(Decimal("0.0001")),
+            sufficient=shortfall == 0,
+            department=b.department,
+            notes=b.notes,
+        )
+
+        if b.department == "stitching":
+            stitching_reqs.append(req)
+        else:
+            packing_reqs.append(req)
+
+    # Detect whether BOM has already been auto-consumed for this order
+    consumed_records = db.query(InventoryTransaction).filter(
+        InventoryTransaction.reference_id == order_id,
+        InventoryTransaction.reference_type == "order_bom",
+    ).all()
+    consumed_notes = [r.notes or "" for r in consumed_records]
+    stitching_consumed = any("stitching" in n for n in consumed_notes)
+    packing_consumed = any("packing" in n for n in consumed_notes)
+
+    return OrderMaterialsOut(
+        product_name=product.name if product else None,
+        order_quantity=order.total_quantity,
+        stitching=stitching_reqs,
+        packing=packing_reqs,
+        stitching_consumed=stitching_consumed,
+        packing_consumed=packing_consumed,
+    )
 
 
 @router.get("/{order_id}", response_model=OrderOut)
