@@ -75,6 +75,7 @@ class OrderService:
         order_number = OrderService._generate_order_number(db)
         order = Order(
             order_number=order_number,
+            product_id=data.product_id,
             party_id=data.party_id,
             party_reference=data.party_reference,
             goods_description=data.goods_description,

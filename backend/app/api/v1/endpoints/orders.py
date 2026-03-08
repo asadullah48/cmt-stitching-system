@@ -78,7 +78,7 @@ def create_order(data: OrderCreate, db: DbDep, current_user: CurrentUser):
 
 
 @router.get("/{order_id}/materials", response_model=OrderMaterialsOut)
-def get_order_materials(order_id: uuid.UUID, db: DbDep):
+def get_order_materials(order_id: uuid.UUID, db: DbDep, _: CurrentUser):
     """Return per-department BOM material requirements for an order.
 
     Computes required vs in-stock quantities for each BOM line item linked
