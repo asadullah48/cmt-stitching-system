@@ -1,8 +1,9 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.core.deps import CurrentUser, DbDep
+from app.models.parties import Party
 from app.schemas.parties import PartyCreate, PartyUpdate, PartyOut, PartyListResponse
 from app.schemas.financial import PartyLedgerResponse, TransactionOut
 from app.services.party_service import PartyService
@@ -34,6 +35,15 @@ def get_party(party_id: UUID, db: DbDep, _: CurrentUser):
 @router.put("/{party_id}", response_model=PartyOut)
 def update_party(party_id: UUID, data: PartyUpdate, db: DbDep, _: CurrentUser):
     return PartyService.update(db, party_id, data)
+
+
+@router.delete("/{party_id}", status_code=204)
+def delete_party(party_id: UUID, db: DbDep, _: CurrentUser):
+    party = db.query(Party).filter(Party.id == party_id, Party.is_deleted.is_(False)).first()
+    if not party:
+        raise HTTPException(status_code=404, detail="Party not found")
+    party.is_deleted = True
+    db.commit()
 
 
 @router.get("/{party_id}/ledger", response_model=PartyLedgerResponse)
