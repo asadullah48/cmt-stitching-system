@@ -369,7 +369,7 @@ export default function OrderDetailPage() {
 
       {/* Items table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Size Breakdown</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">Colour Breakdown</h2>
         <OrderItemsTable items={order.items} />
       </div>
 
@@ -511,9 +511,9 @@ function IncomeSummary({ order }: { order: Order }) {
   const rows: { label: string; amount: number; type: "income" | "deduct" | "total" }[] = [
     { label: "Gross Income (Party Rates × Qty)", amount: grossIncome, type: "income" },
     { label: "Labor Cost (Labor Rates × Qty)", amount: laborCost, type: "deduct" },
-    { label: "Transport Expense", amount: transportExpense, type: "deduct" },
-    { label: "Loading Expense", amount: loadingExpense, type: "deduct" },
-    { label: "Miscellaneous Expense", amount: miscExpense, type: "deduct" },
+    { label: "Transport Charges", amount: transportExpense, type: "deduct" },
+    { label: "Unloading Charges", amount: loadingExpense, type: "deduct" },
+    { label: "Miscellaneous Expenses", amount: miscExpense, type: "deduct" },
     { label: "Rent", amount: rent, type: "deduct" },
     { label: "Loading Charges", amount: loadingCharges, type: "deduct" },
     { label: "Net Income", amount: netIncome, type: "total" },

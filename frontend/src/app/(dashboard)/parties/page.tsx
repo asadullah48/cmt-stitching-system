@@ -19,6 +19,7 @@ export default function PartiesPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editParty, setEditParty] = useState<Party | null>(null);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async (p: number) => {
@@ -70,12 +71,20 @@ export default function PartiesPage() {
       key: "actions",
       header: "",
       render: (row) => (
-        <button
-          onClick={(e) => { e.stopPropagation(); router.push(`/parties/${row.id}`); }}
-          className="text-xs text-blue-600 hover:underline font-medium"
-        >
-          Ledger
-        </button>
+        <div className="flex items-center gap-3 justify-end">
+          <button
+            onClick={(e) => { e.stopPropagation(); setEditParty(row); }}
+            className="text-xs text-gray-500 hover:text-gray-800 font-medium"
+          >
+            Edit
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); router.push(`/parties/${row.id}`); }}
+            className="text-xs text-blue-600 hover:underline font-medium"
+          >
+            Ledger
+          </button>
+        </div>
       ),
     },
   ];
@@ -130,6 +139,17 @@ export default function PartiesPage() {
           onSuccess={() => { setSheetOpen(false); load(page); }}
           onCancel={() => setSheetOpen(false)}
         />
+      </Sheet>
+
+      <Sheet open={!!editParty} onClose={() => setEditParty(null)} title="Edit Party">
+        {editParty && (
+          <PartyForm
+            initialData={editParty}
+            partyId={editParty.id}
+            onSuccess={() => { setEditParty(null); load(page); }}
+            onCancel={() => setEditParty(null)}
+          />
+        )}
       </Sheet>
     </div>
   );

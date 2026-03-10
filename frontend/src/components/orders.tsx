@@ -312,7 +312,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
           Expenses (deducted from income)
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label="Transport Expense (PKR)">
+          <FormField label="Transport Charges (PKR)">
             <Input
               type="number"
               step="0.01"
@@ -322,7 +322,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
               onChange={(e) => setTransportExpense(e.target.value)}
             />
           </FormField>
-          <FormField label="Loading Expense (PKR)">
+          <FormField label="Unloading Charges (PKR)">
             <Input
               type="number"
               step="0.01"
@@ -332,7 +332,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
               onChange={(e) => setLoadingExpense(e.target.value)}
             />
           </FormField>
-          <FormField label="Miscellaneous Expense (PKR)">
+          <FormField label="Miscellaneous Expenses (PKR)">
             <Input
               type="number"
               step="0.01"
@@ -370,14 +370,14 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Size Breakdown
+              Colour Breakdown
             </p>
             <button
               type="button"
               onClick={addItem}
               className="text-xs text-blue-600 hover:underline font-medium"
             >
-              + Add Size
+              + Add Colour
             </button>
           </div>
           {errors.items && <p className="text-xs text-red-600 mb-2">{errors.items}</p>}
@@ -386,7 +386,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
               <div key={i} className="flex gap-2 items-start">
                 <div className="flex-1">
                   <Input
-                    placeholder="Size (e.g. S, M, L, XL)"
+                    placeholder="Colour (e.g. Grey, Navy, Black)"
                     value={item.size}
                     onChange={(e) => updateItem(i, "size", e.target.value)}
                     error={!!errors[`item_${i}_size`]}
@@ -514,7 +514,7 @@ export function OrderItemsTable({ items }: OrderItemsTableProps) {
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Size
+                Colour
               </th>
               <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Ordered

@@ -161,6 +161,10 @@ export const partiesService = {
     return data;
   },
 
+  deleteParty: async (id: string): Promise<void> => {
+    await api.delete(`/parties/${id}`);
+  },
+
   getPartyLedger: async (id: string): Promise<PartyLedgerResponse> => {
     const { data } = await api.get<PartyLedgerResponse>(
       `/parties/${id}/ledger`

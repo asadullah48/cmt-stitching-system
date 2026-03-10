@@ -199,11 +199,12 @@ export function TransactionForm({
 
 interface PartyFormProps {
   initialData?: Partial<Party>;
+  partyId?: string;
   onSuccess: (party: Party) => void;
   onCancel: () => void;
 }
 
-export function PartyForm({ initialData, onSuccess, onCancel }: PartyFormProps) {
+export function PartyForm({ initialData, partyId, onSuccess, onCancel }: PartyFormProps) {
   const { showToast } = useToast();
   const [name, setName] = useState(initialData?.name ?? "");
   const [contactPerson, setContactPerson] = useState(initialData?.contact_person ?? "");
@@ -233,8 +234,10 @@ export function PartyForm({ initialData, onSuccess, onCancel }: PartyFormProps) 
     };
 
     try {
-      const party = await partiesService.createParty(payload);
-      showToast("Party created");
+      const party = partyId
+        ? await partiesService.updateParty(partyId, payload)
+        : await partiesService.createParty(payload);
+      showToast(partyId ? "Party updated" : "Party created");
       onSuccess(party);
     } catch {
       showToast("Failed to save. Please try again.", "error");
@@ -307,7 +310,7 @@ export function PartyForm({ initialData, onSuccess, onCancel }: PartyFormProps) 
 
       <div className="flex gap-3 pt-2 border-t border-gray-100">
         <Button type="submit" loading={loading} className="flex-1 justify-center">
-          Save Party
+          {partyId ? "Update Party" : "Save Party"}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel

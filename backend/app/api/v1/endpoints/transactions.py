@@ -50,6 +50,21 @@ def create_transaction(data: TransactionCreate, db: DbDep, current_user: Current
     return _to_out(txn)
 
 
+@router.patch("/{transaction_id}/reference", response_model=TransactionOut)
+def update_reference(transaction_id: UUID, reference_number: str, db: DbDep, _: CurrentUser):
+    """Update the reference number of a transaction."""
+    txn = db.query(FinancialTransaction).filter(
+        FinancialTransaction.id == transaction_id,
+        FinancialTransaction.is_deleted.is_(False),
+    ).first()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    txn.reference_number = reference_number
+    db.commit()
+    db.refresh(txn)
+    return _to_out(txn)
+
+
 @router.patch("/{transaction_id}/party", response_model=TransactionOut)
 def reassign_party(transaction_id: UUID, party_id: UUID, db: DbDep, _: CurrentUser):
     """Reassign a transaction to a different party (used for party merges)."""
