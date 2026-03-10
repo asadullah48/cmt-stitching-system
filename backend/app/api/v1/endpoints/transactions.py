@@ -2,9 +2,10 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.core.deps import CurrentUser, DbDep
+from app.models.financial import FinancialTransaction
 from app.schemas.financial import TransactionCreate, TransactionOut, TransactionListResponse
 from app.services.financial_service import FinancialService
 
@@ -47,3 +48,15 @@ def list_transactions(
 def create_transaction(data: TransactionCreate, db: DbDep, current_user: CurrentUser):
     txn = FinancialService.create_transaction(db, data, current_user.id)
     return _to_out(txn)
+
+
+@router.delete("/{transaction_id}", status_code=204)
+def delete_transaction(transaction_id: UUID, db: DbDep, _: CurrentUser):
+    txn = db.query(FinancialTransaction).filter(
+        FinancialTransaction.id == transaction_id,
+        FinancialTransaction.is_deleted.is_(False),
+    ).first()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    txn.is_deleted = True
+    db.commit()
