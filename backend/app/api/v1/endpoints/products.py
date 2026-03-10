@@ -48,6 +48,7 @@ def _product_to_out(p: Product) -> ProductOut:
         id=p.id,
         name=p.name,
         description=p.description,
+        image_url=p.image_url,
         bom_items=[_bom_to_out(b) for b in p.bom_items if not b.is_deleted],
     )
 
@@ -70,7 +71,7 @@ def list_products(db: DbDep, _: CurrentUser):
 @router.post("", response_model=ProductOut, status_code=201)
 def create_product(body: ProductCreate, db: DbDep, _: CurrentUser):
     """Create a new product (no BOM items yet)."""
-    p = Product(name=body.name, description=body.description)
+    p = Product(name=body.name, description=body.description, image_url=body.image_url)
     db.add(p)
     db.commit()
     db.refresh(p)
@@ -94,6 +95,8 @@ def update_product(
         p.name = body.name
     if body.description is not None:
         p.description = body.description
+    if body.image_url is not None:
+        p.image_url = body.image_url
     db.commit()
     db.refresh(p)
     return _product_to_out(p)

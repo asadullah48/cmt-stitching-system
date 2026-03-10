@@ -163,12 +163,27 @@ export default function ProductsPage() {
                   <button
                     key={p.id}
                     onClick={() => setSelected(p)}
-                    className={`w-full text-left px-4 py-3 transition-colors ${
+                    className={`w-full text-left px-4 py-3 transition-colors flex items-center gap-3 ${
                       selected?.id === p.id
                         ? "bg-blue-50 border-l-2 border-blue-600"
                         : "hover:bg-gray-50 border-l-2 border-transparent"
                     }`}
                   >
+                    {p.image_url ? (
+                      <img
+                        src={p.image_url}
+                        alt={p.name}
+                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-100"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="min-w-0">
                     <p className="text-sm font-semibold text-gray-900">{p.name}</p>
                     {p.description && (
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
@@ -182,6 +197,7 @@ export default function ProductsPage() {
                       <span className="text-xs text-purple-600 font-medium">
                         {packCount} packing
                       </span>
+                    </div>
                     </div>
                   </button>
                 );
@@ -427,6 +443,94 @@ export default function ProductsPage() {
   );
 }
 
+// ─── ImageDropZone ────────────────────────────────────────────────────────────
+
+function ImageDropZone({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (dataUrl: string) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const processFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      // Compress: draw onto canvas at max 400px width
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX = 400;
+        const scale = img.width > MAX ? MAX / img.width : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        onChange(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  };
+
+  return (
+    <div>
+      {value ? (
+        <div className="relative group">
+          <img
+            src={value}
+            alt="Product"
+            className="w-full h-40 object-contain rounded-lg border border-gray-200 bg-gray-50"
+          />
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => inputRef.current?.click()}
+          className={`w-full h-32 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors ${
+            dragging
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+          }`}
+        >
+          <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <p className="text-xs text-gray-500">Drag image here or <span className="text-blue-600 font-medium">click to browse</span></p>
+        </div>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }}
+      />
+    </div>
+  );
+}
+
 // ─── ProductForm — used inside the Sheet ─────────────────────────────────────
 
 function ProductForm({
@@ -439,6 +543,7 @@ function ProductForm({
   const { showToast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -449,6 +554,7 @@ function ProductForm({
       await productService.createProduct({
         name: name.trim(),
         description: description.trim() || undefined,
+        image_url: imageUrl || undefined,
       });
       showToast("Product created");
       onSuccess();
@@ -476,6 +582,10 @@ function ProductForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+      </FormField>
+
+      <FormField label="Product Image">
+        <ImageDropZone value={imageUrl} onChange={setImageUrl} />
       </FormField>
 
       <div className="flex gap-3 pt-2 border-t border-gray-100">

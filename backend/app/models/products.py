@@ -14,6 +14,7 @@ class Product(BaseModel):
 
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
+    image_url = Column(Text, nullable=True)
 
     # Relationships
     bom_items = relationship(

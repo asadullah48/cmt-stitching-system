@@ -313,10 +313,10 @@ export const productService = {
   getProducts: () =>
     api.get<Product[]>("/products").then((r) => r.data),
 
-  createProduct: (data: { name: string; description?: string }) =>
+  createProduct: (data: { name: string; description?: string; image_url?: string }) =>
     api.post<Product>("/products", data).then((r) => r.data),
 
-  updateProduct: (id: string, data: { name?: string; description?: string }) =>
+  updateProduct: (id: string, data: { name?: string; description?: string; image_url?: string }) =>
     api.put<Product>(`/products/${id}`, data).then((r) => r.data),
 
   deleteProduct: (id: string) =>
