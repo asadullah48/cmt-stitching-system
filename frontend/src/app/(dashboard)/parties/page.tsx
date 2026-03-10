@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { partiesService } from "@/hooks/services";
 import { formatCurrency, balanceColor } from "@/hooks/utils";
 import {
-  PageHeader, Button, DataTable, Sheet, Pagination, SearchInput,
+  PageHeader, Button, DataTable, Sheet, Pagination, SearchInput, ConfirmDialog,
 } from "@/components/common";
 import { PartyForm } from "@/components/financial";
 import type { Party, PaginatedResponse } from "@/hooks/types";
@@ -20,6 +20,8 @@ export default function PartiesPage() {
   const [page, setPage] = useState(1);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editParty, setEditParty] = useState<Party | null>(null);
+  const [deleteParty, setDeleteParty] = useState<Party | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async (p: number) => {
@@ -32,6 +34,18 @@ export default function PartiesPage() {
   }, []);
 
   useEffect(() => { load(page); }, [load, page]);
+
+  const handleDelete = async () => {
+    if (!deleteParty) return;
+    setDeleting(true);
+    try {
+      await partiesService.deleteParty(deleteParty.id);
+      setDeleteParty(null);
+      load(page);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const columns: Column<Party>[] = [
     {
@@ -83,6 +97,12 @@ export default function PartiesPage() {
             className="text-xs text-blue-600 hover:underline font-medium"
           >
             Ledger
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeleteParty(row); }}
+            className="text-xs text-red-500 hover:text-red-700 font-medium"
+          >
+            Delete
           </button>
         </div>
       ),
@@ -140,6 +160,16 @@ export default function PartiesPage() {
           onCancel={() => setSheetOpen(false)}
         />
       </Sheet>
+
+      <ConfirmDialog
+        open={!!deleteParty}
+        title="Delete Party"
+        message={`Delete "${deleteParty?.name}"? This cannot be undone.`}
+        confirmLabel={deleting ? "Deleting…" : "Delete"}
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteParty(null)}
+      />
 
       <Sheet open={!!editParty} onClose={() => setEditParty(null)} title="Edit Party">
         {editParty && (
