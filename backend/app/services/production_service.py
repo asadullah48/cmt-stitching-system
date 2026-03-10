@@ -30,6 +30,7 @@ class ProductionService:
             notes=data.notes,
         )
         db.add(session)
+        db.flush()
         AuditService.log_create(db, "cmt_production_sessions", session.id, {"department": data.department.value}, user_id)
         db.commit()
         db.refresh(session)
