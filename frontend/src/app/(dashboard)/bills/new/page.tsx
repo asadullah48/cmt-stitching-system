@@ -28,20 +28,22 @@ export default function NewBillPage() {
     discount: 0,
   });
 
-  // Load packing_complete and stitching_complete orders without bills
+  // Load all non-dispatched orders (backend enforces no-duplicate-bill, not status)
   useEffect(() => {
-    Promise.all([
-      ordersService.getOrders({ size: 200, status: "packing_complete" }),
-      ordersService.getOrders({ size: 200, status: "stitching_complete" }),
-    ]).then(([packRes, stitchRes]) => {
-      const all = [...packRes.data, ...stitchRes.data];
-      setOrders(all);
-      if (urlOrderId && !all.find((o) => o.id === urlOrderId)) {
-        ordersService.getOrder(urlOrderId).then((order) => {
-          setOrders((prev) => prev.find((o) => o.id === urlOrderId) ? prev : [...prev, order]);
-        }).catch(() => {});
-      }
-    }).catch(() => {});
+    ordersService
+      .getOrders({ size: 500 })
+      .then((res) => {
+        // Exclude already-dispatched orders (they already have a bill)
+        const eligible = res.data.filter((o) => o.status !== "dispatched");
+        setOrders(eligible);
+        // If URL has a specific order not in the list, load it separately
+        if (urlOrderId && !eligible.find((o) => o.id === urlOrderId)) {
+          ordersService.getOrder(urlOrderId).then((order) => {
+            setOrders((prev) => prev.find((o) => o.id === urlOrderId) ? prev : [...prev, order]);
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
   }, [urlOrderId]);
 
   // Fetch next number when series changes
@@ -128,7 +130,7 @@ export default function NewBillPage() {
           </select>
           {orders.length === 0 && (
             <p className="text-xs text-amber-600 mt-1">
-              No orders in &quot;packing_complete&quot; or &quot;stitching_complete&quot; status found.
+              No unbilled orders found. Already dispatched orders are excluded.
             </p>
           )}
         </div>
