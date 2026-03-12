@@ -43,6 +43,7 @@ class BillUpdate(BaseModel):
     total_weight: Optional[Decimal] = None
     discount: Optional[Decimal] = None
     amount_due: Optional[Decimal] = None
+    amount_paid: Optional[Decimal] = None
     notes: Optional[str] = None
 
 

@@ -139,6 +139,15 @@ def update_bill(bill_id: UUID, data: BillUpdate, db: DbDep, current_user: Curren
         bill.discount = data.discount
     if data.amount_due is not None:
         bill.amount_due = data.amount_due
+    if data.amount_paid is not None:
+        bill.amount_paid = data.amount_paid
+        # Recalculate payment_status
+        if data.amount_paid <= 0:
+            bill.payment_status = "unpaid"
+        elif data.amount_paid >= bill.amount_due:
+            bill.payment_status = "paid"
+        else:
+            bill.payment_status = "partial"
     if data.notes is not None:
         bill.notes = data.notes
     db.commit()
