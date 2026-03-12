@@ -2,11 +2,21 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { dashboardService } from "@/hooks/services";
+import { dashboardService, insightsService, settingsService } from "@/hooks/services";
+import type { Alert, AppSettings } from "@/hooks/types";
 import { formatCurrency, formatDate } from "@/hooks/utils";
 import { StatusBadge, DataTable } from "@/components/common";
 import type { DashboardSummary, Order } from "@/hooks/types";
 import type { Column } from "@/components/common";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getGreeting(ownerName?: string): string {
+  const hour = new Date().getHours();
+  const timeGreeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  return ownerName ? `${timeGreeting}, ${ownerName}!` : `${timeGreeting}!`;
+}
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -22,6 +32,17 @@ function StatCard({ label, value, color, bg, icon }: {
         <p className={`text-3xl font-extrabold ${color} leading-none`}>{value}</p>
         <p className={`text-sm mt-1 ${color} opacity-80 font-medium`}>{label}</p>
       </div>
+    </div>
+  );
+}
+
+function QuickStatPill({ label, value, valueClass }: {
+  label: string; value: string; valueClass?: string;
+}) {
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span className={`font-bold text-base leading-none ${valueClass ?? "text-white"}`}>{value}</span>
+      <span className="text-xs text-blue-300 leading-none">{label}</span>
     </div>
   );
 }
@@ -61,16 +82,103 @@ function PipelineBar({ label, count, max, color }: { label: string; count: numbe
   );
 }
 
+function AlertCard({ alert, onDismiss, onView }: {
+  alert: Alert;
+  onDismiss: () => void;
+  onView?: () => void;
+}) {
+  const isWarning = alert.level === "warning";
+  return (
+    <div
+      className={`flex items-start justify-between gap-3 rounded-xl px-4 py-3 border-l-4 border text-sm ${
+        isWarning
+          ? "bg-amber-50 border-l-amber-400 border-amber-200 text-amber-900"
+          : "bg-blue-50 border-l-blue-400 border-blue-200 text-blue-900"
+      }`}
+    >
+      <div className="flex items-start gap-2.5 flex-1 min-w-0">
+        <span className="mt-0.5 flex-shrink-0 text-base leading-none">
+          {isWarning ? "⚠️" : "ℹ️"}
+        </span>
+        <div className="min-w-0">
+          <span className="font-semibold">{alert.message}</span>
+          {alert.detail && (
+            <span className={`text-xs ml-2 ${isWarning ? "text-amber-700" : "text-blue-700"} opacity-80`}>
+              — {alert.detail}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+        {alert.link && onView && (
+          <button
+            onClick={onView}
+            className={`text-xs underline underline-offset-2 font-medium ${
+              isWarning ? "text-amber-700 hover:text-amber-900" : "text-blue-700 hover:text-blue-900"
+            }`}
+          >
+            View
+          </button>
+        )}
+        <button
+          onClick={onDismiss}
+          className={`text-lg leading-none font-light transition-opacity ${
+            isWarning ? "text-amber-500 hover:text-amber-700" : "text-blue-400 hover:text-blue-700"
+          }`}
+          title="Dismiss"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AlertSkeleton() {
+  return (
+    <div className="rounded-xl px-4 py-3 border border-gray-200 bg-gray-50 animate-pulse h-12" />
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(true);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [dismissedAlerts, setDismissedAlerts] = useState<string[]>(() => {
+    try {
+      const today = new Date().toDateString();
+      const stored = localStorage.getItem(`dismissed_alerts_${today}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const router = useRouter();
 
   useEffect(() => {
     dashboardService.getSummary().then(setSummary).finally(() => setLoading(false));
+    insightsService.getAlerts()
+      .then(setAlerts)
+      .catch(() => setAlerts([]))
+      .finally(() => setAlertsLoading(false));
+    settingsService.get().then(setSettings).catch(() => {});
   }, []);
+
+  const dismissAlert = (id: string) => {
+    const next = [...dismissedAlerts, id];
+    setDismissedAlerts(next);
+    try {
+      const today = new Date().toDateString();
+      localStorage.setItem(`dismissed_alerts_${today}`, JSON.stringify(next));
+    } catch { /* ignore */ }
+  };
+
+  const visibleAlerts = alerts.filter((a) => !dismissedAlerts.includes(a.id));
 
   const pipelineMax = Math.max(
     summary?.pending_orders ?? 0,
@@ -102,23 +210,87 @@ export default function DashboardPage() {
     { key: "delivery_date", header: "Delivery", render: (row) => formatDate(row.delivery_date) },
   ];
 
+  const businessName = settings?.business_name ?? "CMT Stitching & Packing";
+
   return (
     <div className="space-y-6">
-      {/* ─── Header ─────────────────────────────────────────── */}
-      <div className="bg-[#1a2744] rounded-2xl px-6 py-5 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white">CMT Stitching & Packing System Dashboard</h1>
-          <p className="text-sm text-blue-300 mt-0.5">Live operations overview</p>
-        </div>
-        <div className="text-right text-sm text-blue-200">
-          <p className="font-semibold text-white">
-            PKR {loading ? "…" : formatCurrency(summary?.total_revenue_month ?? 0)}
-          </p>
-          <p className="text-xs text-blue-300">Revenue this month</p>
+
+      {/* ─── Personal Dashboard Header ───────────────────────────────── */}
+      <div className="bg-[#1a2744] rounded-2xl px-6 py-5">
+        <div className="flex items-start justify-between gap-4">
+          {/* Left: Greeting + business name */}
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-white leading-tight">
+              {businessName}
+            </h1>
+            <p className="text-sm text-blue-300 mt-0.5">
+              {getGreeting(settings?.owner_name ?? undefined)}
+            </p>
+          </div>
+
+          {/* Right: Quick financial stats */}
+          <div className="flex items-start gap-6 flex-shrink-0 text-right">
+            <QuickStatPill
+              label="Orders this month"
+              value={loading ? "…" : String(summary?.orders_this_month ?? 0)}
+            />
+            <QuickStatPill
+              label="Billed this month"
+              value={loading ? "…" : `PKR ${formatCurrency(summary?.total_revenue_month ?? 0)}`}
+            />
+            <QuickStatPill
+              label="Collected"
+              value={loading ? "…" : `PKR ${formatCurrency(summary?.collected_month ?? 0)}`}
+              valueClass="text-green-300"
+            />
+            <QuickStatPill
+              label="Outstanding"
+              value={loading ? "…" : `PKR ${formatCurrency(summary?.outstanding_total ?? 0)}`}
+              valueClass="text-red-300"
+            />
+          </div>
         </div>
       </div>
 
-      {/* ─── Stat Cards ─────────────────────────────────────── */}
+      {/* ─── Smart Insights Panel ────────────────────────────────────── */}
+      {(alertsLoading || visibleAlerts.length > 0) && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Smart Insights</span>
+            {!alertsLoading && visibleAlerts.length > 0 && (
+              <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-1.5 py-0.5 rounded-full">
+                {visibleAlerts.length}
+              </span>
+            )}
+          </div>
+
+          {alertsLoading ? (
+            <>
+              <AlertSkeleton />
+              <AlertSkeleton />
+            </>
+          ) : (
+            visibleAlerts.map((alert) => (
+              <AlertCard
+                key={alert.id}
+                alert={alert}
+                onDismiss={() => dismissAlert(alert.id)}
+                onView={alert.link ? () => router.push(alert.link!) : undefined}
+              />
+            ))
+          )}
+        </div>
+      )}
+
+      {/* All-clear message when alerts loaded and none visible */}
+      {!alertsLoading && alerts.length > 0 && visibleAlerts.length === 0 && (
+        <div className="flex items-center gap-2.5 rounded-xl px-4 py-3 border-l-4 border-l-green-400 border border-green-200 bg-green-50 text-sm text-green-800">
+          <span className="text-base leading-none">✅</span>
+          <span className="font-medium">All clear — no alerts right now.</span>
+        </div>
+      )}
+
+      {/* ─── Stat Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-4">
         <StatCard
           label="Active Orders"
