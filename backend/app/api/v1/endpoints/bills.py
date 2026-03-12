@@ -84,12 +84,13 @@ def list_bills(
     size: int = Query(20, ge=1, le=100),
     series: Optional[str] = Query(None),
     party_id: Optional[UUID] = Query(None),
+    order_id: Optional[UUID] = Query(None),
     payment_status: Optional[str] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
 ):
-    """List all bills with optional filtering by series, party, payment status, and date range."""
-    bills, total = BillService.get_all(db, page, size, series, party_id, payment_status, date_from, date_to)
+    """List all bills with optional filtering by series, party, order, payment status, and date range."""
+    bills, total = BillService.get_all(db, page, size, series, party_id, payment_status, date_from, date_to, order_id)
     return BillListResponse(data=[_to_out(b) for b in bills], total=total, page=page, size=size)
 
 

@@ -8,6 +8,7 @@ from .endpoints.products import router as products_router
 from .endpoints.bills import router as bills_router
 from .endpoints.settings import router as settings_router
 from .endpoints.insights import router as insights_router
+from .endpoints.expenses import router as expenses_router
 
 api_router = APIRouter()
 
@@ -24,3 +25,4 @@ api_router.include_router(products_router)
 api_router.include_router(bills_router)
 api_router.include_router(settings_router)
 api_router.include_router(insights_router)
+api_router.include_router(expenses_router)

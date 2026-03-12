@@ -272,6 +272,7 @@ class BillService:
         payment_status: Optional[str] = None,
         date_from: Optional[date_type] = None,
         date_to: Optional[date_type] = None,
+        order_id: Optional[UUID] = None,
     ) -> tuple[list[Bill], int]:
         """Return a paginated list of Bills with optional filters.
 
@@ -288,6 +289,8 @@ class BillService:
             q = q.filter(Bill.bill_series == series.upper())
         if party_id:
             q = q.filter(Bill.party_id == party_id)
+        if order_id:
+            q = q.filter(Bill.order_id == order_id)
         if payment_status:
             q = q.filter(Bill.payment_status == payment_status)
         if date_from:
