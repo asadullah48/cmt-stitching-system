@@ -32,6 +32,7 @@ import type {
   OrderMaterials,
   Alert,
   AppSettings,
+  Expense,
 } from "./types";
 
 export type { Alert, AppSettings };
@@ -452,6 +453,20 @@ export const billService = {
       `/bills/next-number`,
       { params: { series } }
     );
+    return data;
+  },
+
+  getByOrder: async (orderId: string): Promise<Bill | null> => {
+    const res = await billService.list({ order_id: orderId, size: 1 });
+    return res.data[0] ?? null;
+  },
+};
+
+// ─── Expenses ────────────────────────────────────────────────────────────────
+
+export const expensesService = {
+  listByOrder: async (orderId: string): Promise<{ data: Expense[]; total: number }> => {
+    const { data } = await api.get('/expenses/', { params: { order_id: orderId, size: 100 } });
     return data;
   },
 };

@@ -383,6 +383,18 @@ export interface OrderMaterials {
   packing_consumed: boolean;
 }
 
+// ─── Expenses ────────────────────────────────────────────────────────────────
+
+export interface Expense {
+  id: string;
+  category_id?: string;
+  order_id?: string;
+  amount: number;
+  description?: string;
+  expense_date: string;
+  receipt_number?: string;
+}
+
 // ─── Dispatch ────────────────────────────────────────────────────────────────
 
 export interface DispatchOrder {
