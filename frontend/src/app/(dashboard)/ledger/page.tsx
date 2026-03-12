@@ -33,6 +33,8 @@ export default function LedgerPage() {
   const [filters, setFilters] = useState<TransactionFilters>({ page: 1, size: 30 });
   const [parties, setParties] = useState<Party[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editTx, setEditTx] = useState<FinancialTransaction | null>(null);
+  const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
 
   const load = useCallback(async (f: TransactionFilters) => {
     setLoading(true);
@@ -50,6 +52,19 @@ export default function LedgerPage() {
 
   const handleFilter = (patch: Partial<TransactionFilters>) => {
     setFilters((f) => ({ ...f, ...patch, page: 1 }));
+  };
+
+  const handleDeleteTx = async (txId: string) => {
+    if (!confirm("Delete this transaction? This cannot be undone.")) return;
+    setDeletingTxId(txId);
+    try {
+      await transactionsService.deleteTransaction(txId);
+      load(filters);
+    } catch {
+      alert("Failed to delete transaction.");
+    } finally {
+      setDeletingTxId(null);
+    }
   };
 
   // Page totals + running balance per row
@@ -236,6 +251,7 @@ export default function LedgerPage() {
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Debit</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Credit</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Balance</th>
+                <th className="px-4 py-2.5 print:hidden" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -255,7 +271,7 @@ export default function LedgerPage() {
                 rows.map((tx, i) => (
                   <tr
                     key={tx.id}
-                    className={`hover:bg-blue-50/40 transition-colors ${
+                    className={`group hover:bg-blue-50/40 transition-colors ${
                       i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                     }`}
                   >
@@ -297,6 +313,29 @@ export default function LedgerPage() {
                       tx.running >= 0 ? "text-gray-900" : "text-red-600"
                     }`}>
                       {formatCurrency(tx.running)}
+                    </td>
+                    <td className="px-2 py-2.5 print:hidden">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setEditTx(tx)}
+                          className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600"
+                          title="Edit"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTx(tx.id)}
+                          disabled={deletingTxId === tx.id}
+                          className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600"
+                          title="Delete"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -365,6 +404,16 @@ export default function LedgerPage() {
           onSuccess={() => { setSheetOpen(false); load(filters); }}
           onCancel={() => setSheetOpen(false)}
         />
+      </Sheet>
+
+      <Sheet open={!!editTx} onClose={() => setEditTx(null)} title="Edit Transaction">
+        {editTx && (
+          <TransactionForm
+            initialData={editTx}
+            onSuccess={() => { setEditTx(null); load(filters); }}
+            onCancel={() => setEditTx(null)}
+          />
+        )}
       </Sheet>
     </div>
   );

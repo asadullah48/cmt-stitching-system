@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { transactionsService, partiesService } from "@/hooks/services";
+import { transactionsService, partiesService, ordersService } from "@/hooks/services";
 import { todayInputDate, formatCurrency, formatDate } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
 import { Button, FormField, Input, Select, Textarea } from "@/components/common";
 import type {
   TransactionCreate, TransactionType, PaymentMethod,
-  FinancialTransaction, Party, PartyCreate,
+  FinancialTransaction, Party, PartyCreate, Order,
 } from "@/hooks/types";
 
 // ─── TransactionForm ──────────────────────────────────────────────────────────
@@ -15,6 +15,7 @@ import type {
 interface TransactionFormProps {
   partyId?: string;
   orderId?: string;
+  initialData?: FinancialTransaction;
   onSuccess: (tx: FinancialTransaction) => void;
   onCancel: () => void;
 }
@@ -35,19 +36,23 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
 
 export function TransactionForm({
   partyId: initialPartyId,
-  orderId,
+  orderId: initialOrderId,
+  initialData,
   onSuccess,
   onCancel,
 }: TransactionFormProps) {
   const { showToast } = useToast();
-  const [partyId, setPartyId] = useState(initialPartyId ?? "");
+  const isEdit = !!initialData;
+  const [partyId, setPartyId] = useState(initialData?.party_id ?? initialPartyId ?? "");
+  const [orderId, setOrderId] = useState(initialData?.order_id ?? initialOrderId ?? "");
   const [parties, setParties] = useState<Party[]>([]);
-  const [txType, setTxType] = useState<TransactionType>("income");
-  const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
-  const [refNumber, setRefNumber] = useState("");
-  const [description, setDescription] = useState("");
-  const [txDate, setTxDate] = useState(todayInputDate());
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [txType, setTxType] = useState<TransactionType>(initialData?.transaction_type ?? "income");
+  const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(initialData?.payment_method ?? "");
+  const [refNumber, setRefNumber] = useState(initialData?.reference_number ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [txDate, setTxDate] = useState(initialData?.transaction_date ?? todayInputDate());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -55,6 +60,7 @@ export function TransactionForm({
     if (!initialPartyId) {
       partiesService.getParties(1, 100).then((r) => setParties(r.data));
     }
+    ordersService.getOrders({ size: 100 }).then((r) => setOrders(r.data));
   }, [initialPartyId]);
 
   const validate = () => {
@@ -85,12 +91,14 @@ export function TransactionForm({
     };
 
     try {
-      const tx = await transactionsService.createTransaction(payload);
-      showToast("Transaction recorded");
+      const tx = isEdit
+        ? await transactionsService.updateTransaction(initialData!.id, payload)
+        : await transactionsService.createTransaction(payload);
+      showToast(isEdit ? "Transaction updated" : "Transaction recorded");
       onSuccess(tx);
     } catch {
       showToast("Failed to save. Please try again.", "error");
-      setErrors({ form: "Failed to record transaction. Please try again." });
+      setErrors({ form: "Failed to save transaction. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -109,13 +117,20 @@ export function TransactionForm({
           <Select value={partyId} onChange={(e) => setPartyId(e.target.value)}>
             <option value="">— Select party (optional) —</option>
             {parties.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </Select>
         </FormField>
       )}
+
+      <FormField label="Link to Order">
+        <Select value={orderId} onChange={(e) => setOrderId(e.target.value)}>
+          <option value="">— Select order (optional) —</option>
+          {orders.map((o) => (
+            <option key={o.id} value={o.id}>{o.order_number} — {o.goods_description}</option>
+          ))}
+        </Select>
+      </FormField>
 
       <FormField label="Transaction Type" required>
         <Select
@@ -185,7 +200,7 @@ export function TransactionForm({
 
       <div className="flex gap-3 pt-2 border-t border-gray-100">
         <Button type="submit" loading={loading} className="flex-1 justify-center">
-          Record Transaction
+          {isEdit ? "Update Transaction" : "Record Transaction"}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel

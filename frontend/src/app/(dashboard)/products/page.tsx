@@ -16,6 +16,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"stitching" | "packing">("stitching");
   const [addSheet, setAddSheet] = useState(false);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
 
   // Add BOM form state
   const [bomItemId, setBomItemId] = useState("");
@@ -160,46 +161,54 @@ export default function ProductsPage() {
                   (b) => b.department === "packing"
                 ).length;
                 return (
-                  <button
+                  <div
                     key={p.id}
-                    onClick={() => setSelected(p)}
-                    className={`w-full text-left px-4 py-3 transition-colors flex items-center gap-3 ${
+                    className={`relative group flex items-center gap-3 px-4 py-3 transition-colors border-l-2 ${
                       selected?.id === p.id
-                        ? "bg-blue-50 border-l-2 border-blue-600"
-                        : "hover:bg-gray-50 border-l-2 border-transparent"
+                        ? "bg-blue-50 border-blue-600"
+                        : "hover:bg-gray-50 border-transparent"
                     }`}
                   >
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-100"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                    <button
+                      onClick={() => setSelected(p)}
+                      className="flex items-center gap-3 flex-1 text-left min-w-0"
+                    >
+                      {p.image_url ? (
+                        <img
+                          src={p.image_url}
+                          alt={p.name}
+                          className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-gray-100"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">{p.name}</p>
+                        {p.description && (
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">{p.description}</p>
+                        )}
+                        <div className="flex gap-3 mt-1.5">
+                          <span className="text-xs text-blue-600 font-medium">{stitchCount} stitching</span>
+                          <span className="text-xs text-purple-600 font-medium">{packCount} packing</span>
+                        </div>
                       </div>
-                    )}
-                    <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{p.name}</p>
-                    {p.description && (
-                      <p className="text-xs text-gray-400 mt-0.5 truncate">
-                        {p.description}
-                      </p>
-                    )}
-                    <div className="flex gap-3 mt-1.5">
-                      <span className="text-xs text-blue-600 font-medium">
-                        {stitchCount} stitching
-                      </span>
-                      <span className="text-xs text-purple-600 font-medium">
-                        {packCount} packing
-                      </span>
-                    </div>
-                    </div>
-                  </button>
+                    </button>
+                    {/* Edit button — visible on hover */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditProduct(p); }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600 flex-shrink-0"
+                      title="Edit product"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -426,18 +435,22 @@ export default function ProductsPage() {
       </div>
 
       {/* New Product sheet */}
-      <Sheet
-        open={addSheet}
-        onClose={() => setAddSheet(false)}
-        title="New Product Template"
-      >
+      <Sheet open={addSheet} onClose={() => setAddSheet(false)} title="New Product Template">
         <ProductForm
-          onSuccess={() => {
-            setAddSheet(false);
-            loadProducts();
-          }}
+          onSuccess={() => { setAddSheet(false); loadProducts(); }}
           onCancel={() => setAddSheet(false)}
         />
+      </Sheet>
+
+      {/* Edit Product sheet */}
+      <Sheet open={!!editProduct} onClose={() => setEditProduct(null)} title="Edit Product">
+        {editProduct && (
+          <ProductForm
+            initialData={editProduct}
+            onSuccess={() => { setEditProduct(null); loadProducts(); }}
+            onCancel={() => setEditProduct(null)}
+          />
+        )}
       </Sheet>
     </div>
   );
@@ -534,32 +547,44 @@ function ImageDropZone({
 // ─── ProductForm — used inside the Sheet ─────────────────────────────────────
 
 function ProductForm({
+  initialData,
   onSuccess,
   onCancel,
 }: {
+  initialData?: Product;
   onSuccess: () => void;
   onCancel: () => void;
 }) {
   const { showToast } = useToast();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [imageUrl, setImageUrl] = useState(initialData?.image_url ?? "");
   const [submitting, setSubmitting] = useState(false);
+  const isEdit = !!initialData;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setSubmitting(true);
     try {
-      await productService.createProduct({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        image_url: imageUrl || undefined,
-      });
-      showToast("Product created");
+      if (isEdit) {
+        await productService.updateProduct(initialData.id, {
+          name: name.trim(),
+          description: description.trim() || undefined,
+          image_url: imageUrl || undefined,
+        });
+        showToast("Product updated");
+      } else {
+        await productService.createProduct({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          image_url: imageUrl || undefined,
+        });
+        showToast("Product created");
+      }
       onSuccess();
     } catch {
-      showToast("Failed to create product", "error");
+      showToast(isEdit ? "Failed to update product" : "Failed to create product", "error");
     } finally {
       setSubmitting(false);
     }
@@ -589,12 +614,8 @@ function ProductForm({
       </FormField>
 
       <div className="flex gap-3 pt-2 border-t border-gray-100">
-        <Button
-          type="submit"
-          loading={submitting}
-          className="flex-1 justify-center"
-        >
-          Create Product
+        <Button type="submit" loading={submitting} className="flex-1 justify-center">
+          {isEdit ? "Update Product" : "Create Product"}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel
