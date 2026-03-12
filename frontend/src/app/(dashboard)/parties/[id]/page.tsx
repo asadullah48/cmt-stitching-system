@@ -277,6 +277,170 @@ export default function PartyLedgerPage() {
     window.print();
   };
 
+  // ─── Download PDF handler ────────────────────────────────────────────────────
+
+  const handleDownloadPdf = () => {
+    const content = printRef.current?.innerHTML ?? "";
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html><html><head>
+      <title>Account Statement — ${party?.name ?? ""}</title>
+      <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:Arial,sans-serif;color:#111;background:#fff}
+        @media print{
+          @page{size:A4 landscape;margin:15mm}
+          body{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        }
+        /* hide action column and filter bar */
+        .print\\:hidden{display:none!important}
+        /* header */
+        .border-b{border-bottom:1px solid #e5e7eb}
+        .border-gray-200{border-color:#e5e7eb}
+        .p-6{padding:24px}
+        .pb-5{padding-bottom:20px}
+        .flex{display:flex}
+        .items-start{align-items:flex-start}
+        .items-end{align-items:flex-end}
+        .justify-between{justify-content:space-between}
+        .text-xl{font-size:20px}
+        .text-lg{font-size:18px}
+        .text-sm{font-size:13px}
+        .text-xs{font-size:11px}
+        .text-2xl{font-size:24px}
+        .font-bold{font-weight:700}
+        .font-semibold{font-weight:600}
+        .font-medium{font-weight:500}
+        .text-gray-900{color:#111827}
+        .text-gray-700{color:#374151}
+        .text-gray-600{color:#4b5563}
+        .text-gray-500{color:#6b7280}
+        .text-gray-400{color:#9ca3af}
+        .text-gray-300{color:#d1d5db}
+        .text-blue-600{color:#2563eb}
+        .text-green-600{color:#16a34a}
+        .text-green-300{color:#86efac}
+        .text-red-600{color:#dc2626}
+        .text-red-300{color:#fca5a5}
+        .mt-0\\.5{margin-top:2px}
+        .mt-1{margin-top:4px}
+        .mt-4{margin-top:16px}
+        .max-w-xs{max-width:280px}
+        /* uppercase/tracking */
+        .uppercase{text-transform:uppercase}
+        .tracking-wider{letter-spacing:.05em}
+        .tabular-nums{font-variant-numeric:tabular-nums}
+        .whitespace-nowrap{white-space:nowrap}
+        /* table */
+        table{width:100%;border-collapse:collapse}
+        thead tr.bg-gray-800{background:#1f2937!important}
+        thead tr.bg-gray-800 th{color:#fff!important;padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+        thead tr.bg-gray-800 th:last-child{display:none}
+        tbody td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f3f4f6}
+        tbody td:last-child{display:none}
+        tbody tr.bg-gray-50{background:#f9fafb!important}
+        tbody tr:nth-child(even){background:#fafafa}
+        tfoot tr.bg-gray-50 td{padding:10px 12px;font-size:12px;background:#f9fafb!important;border-top:2px solid #d1d5db}
+        tfoot tr.bg-gray-800{background:#1f2937!important}
+        tfoot tr.bg-gray-800 td{color:#fff!important;padding:10px 12px;font-size:13px;font-weight:700}
+        .text-right{text-align:right}
+        .text-left{text-align:left}
+        /* badge */
+        .inline-flex{display:inline-flex}
+        .items-center{align-items:center}
+        .px-2{padding-left:8px;padding-right:8px}
+        .py-0\\.5{padding-top:2px;padding-bottom:2px}
+        .rounded{border-radius:4px}
+        .bg-green-100{background:#dcfce7!important}
+        .text-green-700{color:#15803d}
+        .bg-red-100{background:#fee2e2!important}
+        .text-red-700{color:#b91c1c}
+        .bg-orange-100{background:#ffedd5!important}
+        .text-orange-700{color:#c2410c}
+        .bg-purple-100{background:#f3e8ff!important}
+        .text-purple-700{color:#7e22ce}
+        .bg-gray-100{background:#f3f4f6!important}
+        .text-gray-600{color:#4b5563}
+        /* footer */
+        .px-6{padding-left:24px;padding-right:24px}
+        .py-3{padding-top:12px;padding-bottom:12px}
+        .border-t{border-top:1px solid #e5e7eb}
+        .border-gray-100{border-color:#f3f4f6}
+        .overflow-x-auto{overflow-x:auto}
+        /* misc */
+        .rounded-xl{border-radius:12px}
+        .shadow-sm{box-shadow:0 1px 2px rgba(0,0,0,.05)}
+        .overflow-hidden{overflow:hidden}
+        .divide-y > *+*{border-top:1px solid #f3f4f6}
+        .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .block{display:block}
+        .capitalize{text-transform:capitalize}
+        .border-t-2{border-top:2px solid #d1d5db}
+        .max-w-\\[240px\\]{max-width:240px}
+        /* hide filter bar explicitly */
+        .bg-gray-50\\/60{background:rgba(249,250,251,.6)}
+      </style>
+    </head><body>${content}</body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 300);
+  };
+
+  // ─── WhatsApp Share handler ──────────────────────────────────────────────────
+
+  const handleWhatsAppShare = () => {
+    if (!party) return;
+    const MAX_TX = 20;
+    const total = filteredRows.length;
+    const rows = filteredRows.slice(-MAX_TX);
+
+    const periodFrom = dateFrom
+      ? new Date(dateFrom).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+      : "All time";
+    const periodTo = dateTo
+      ? new Date(dateTo).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+      : "Present";
+
+    const balanceLabel =
+      closingBalance > 0 ? "Receivable" : closingBalance < 0 ? "Payable" : "Settled";
+
+    const divider = "━━━━━━━━━━━━━━━━━━━";
+
+    const txLines = rows.map((tx) => {
+      const date = new Date(tx.transaction_date).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+      const type = tx.transaction_type.charAt(0).toUpperCase() + tx.transaction_type.slice(1);
+      const desc = tx.description ?? "—";
+      const amount = isDebit(tx)
+        ? `Dr PKR ${formatCurrency(tx.amount)}`
+        : `Cr PKR ${formatCurrency(tx.amount)}`;
+      return `${date} | ${type} | ${desc} | ${amount}`;
+    });
+
+    const truncationNote =
+      total > MAX_TX ? `_(Showing last ${MAX_TX} of ${total} transactions)_\n` : "";
+
+    const message =
+      `*CMT Stitching System — Account Statement*\n` +
+      `Party: ${party.name}\n` +
+      (party.phone ? `${party.phone}\n` : "") +
+      `Period: ${periodFrom} — ${periodTo}\n` +
+      `${divider}\n` +
+      truncationNote +
+      txLines.join("\n") +
+      `\n${divider}\n` +
+      `Total Debit: PKR ${formatCurrency(totalDebit)}\n` +
+      `Total Credit: PKR ${formatCurrency(totalCredit)}\n` +
+      `Closing Balance: PKR ${formatCurrency(Math.abs(closingBalance))} (${balanceLabel})\n` +
+      `${divider}\n` +
+      `_Generated by CMT Stitching System_`;
+
+    window.open("https://wa.me/?text=" + encodeURIComponent(message), "_blank");
+  };
+
   // ─── Loading / Error ────────────────────────────────────────────────────────
 
   if (loading) {
@@ -311,12 +475,32 @@ export default function PartyLedgerPage() {
         </button>
 
         <div className="flex items-center gap-2">
+          {/* PDF Download */}
+          <Button variant="secondary" size="sm" onClick={handleDownloadPdf}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6" />
+            </svg>
+            PDF
+          </Button>
+          {/* Print */}
           <Button variant="secondary" size="sm" onClick={handlePrint}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
             Print
           </Button>
+          {/* WhatsApp Share */}
+          <button
+            onClick={handleWhatsAppShare}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            WhatsApp
+          </button>
+          {/* Record Transaction */}
           <Button onClick={() => setTxSheet(true)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
