@@ -16,3 +16,4 @@ class Party(BaseModel):
     # Relationships
     orders = relationship("Order", back_populates="party")
     transactions = relationship("FinancialTransaction", back_populates="party")
+    bills = relationship("Bill", back_populates="party")

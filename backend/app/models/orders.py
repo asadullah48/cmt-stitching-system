@@ -49,6 +49,7 @@ class Order(BaseModel):
     quality_checkpoints = relationship("QualityCheckpoint", back_populates="order", cascade="all, delete-orphan")
     defect_logs = relationship("DefectLog", back_populates="order", cascade="all, delete-orphan")
     product = relationship("Product", back_populates="orders")
+    bill = relationship("Bill", back_populates="order", uselist=False)
 
 
 class OrderItem(BaseModel):
