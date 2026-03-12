@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { dispatchService } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
 import { Button, FormField, Input, Select, Spinner } from "@/components/common";
@@ -8,6 +9,7 @@ import type { DispatchOrder } from "@/hooks/types";
 
 export default function DispatchPage() {
   const { showToast } = useToast();
+  const router = useRouter();
   const [orders, setOrders] = useState<DispatchOrder[]>([]);
   const [carriers, setCarriers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -294,6 +296,13 @@ export default function DispatchPage() {
                   <Button type="submit" loading={saving} className="w-full justify-center bg-[#1a2744] hover:bg-[#243260]">
                     Save Dispatch Info
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/bills/new?order=${selected.id}`)}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 w-full"
+                  >
+                    Create Bill
+                  </button>
                   <Button type="button" variant="secondary" onClick={() => setSelected(null)} className="w-full justify-center">
                     Cancel
                   </Button>
