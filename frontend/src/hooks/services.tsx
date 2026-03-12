@@ -217,6 +217,21 @@ export const transactionsService = {
     );
     return data;
   },
+
+  updateTransaction: async (
+    id: string,
+    payload: TransactionCreate
+  ): Promise<FinancialTransaction> => {
+    const { data } = await api.put<FinancialTransaction>(
+      `/transactions/${id}`,
+      payload
+    );
+    return data;
+  },
+
+  deleteTransaction: async (id: string): Promise<void> => {
+    await api.delete(`/transactions/${id}`);
+  },
 };
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -303,6 +318,78 @@ export const dispatchService = {
   },
   updateDispatch: async (orderId: string, payload: Partial<DispatchOrder>): Promise<DispatchOrder> => {
     const { data } = await api.patch<DispatchOrder>(`/dispatch/${orderId}`, payload);
+    return data;
+  },
+};
+
+// ─── Bills ───────────────────────────────────────────────────────────────────
+
+export interface Bill {
+  id: string;
+  bill_number: string;
+  bill_series: string;
+  bill_sequence: number;
+  order_id: string;
+  order_number?: string;
+  party_id?: string;
+  party_name?: string;
+  bill_date: string;
+  carrier?: string;
+  tracking_number?: string;
+  carton_count?: number;
+  total_weight?: number;
+  payment_status: 'unpaid' | 'partial' | 'paid';
+  amount_due: number;
+  amount_paid: number;
+  amount_outstanding: number;
+  notes?: string;
+}
+
+export interface BillCreate {
+  order_id: string;
+  bill_number?: string;
+  bill_series?: string;
+  bill_date: string;
+  carrier?: string;
+  tracking_number?: string;
+  carton_count?: number;
+  total_weight?: number;
+  amount_due: number;
+  notes?: string;
+}
+
+export interface BillPaymentUpdate {
+  amount: number;
+  payment_method?: string;
+  notes?: string;
+}
+
+export const billService = {
+  list: async (params?: Record<string, string | number | undefined>): Promise<{ data: Bill[]; total: number; page: number; size: number }> => {
+    const { data } = await api.get<{ data: Bill[]; total: number; page: number; size: number }>('/bills/', { params });
+    return data;
+  },
+
+  getById: async (id: string): Promise<Bill> => {
+    const { data } = await api.get<Bill>(`/bills/${id}`);
+    return data;
+  },
+
+  create: async (payload: BillCreate): Promise<Bill> => {
+    const { data } = await api.post<Bill>('/bills/', payload);
+    return data;
+  },
+
+  recordPayment: async (id: string, payload: BillPaymentUpdate): Promise<Bill> => {
+    const { data } = await api.patch<Bill>(`/bills/${id}/payment`, payload);
+    return data;
+  },
+
+  nextNumber: async (series: string): Promise<{ series: string; next_number: string; next_sequence: number }> => {
+    const { data } = await api.get<{ series: string; next_number: string; next_sequence: number }>(
+      `/bills/next-number`,
+      { params: { series } }
+    );
     return data;
   },
 };
