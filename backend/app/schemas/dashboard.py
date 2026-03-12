@@ -22,3 +22,9 @@ class DashboardSummary(BaseModel):
     on_hold_orders: int = 0
     stitching_progress_pct: float = 0.0
     packing_progress_pct: float = 0.0
+    # Enhanced fields for personal header + smart insights
+    collected_month: Decimal = Decimal("0")
+    outstanding_total: Decimal = Decimal("0")
+    orders_this_month: int = 0
+    business_name: str = "CMT Stitching & Packing"
+    owner_name: str = ""

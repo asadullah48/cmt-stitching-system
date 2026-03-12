@@ -4,6 +4,8 @@ from decimal import Decimal
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.bill import Bill
+from app.models.config import Config
 from app.models.orders import Order, OrderItem
 from app.models.financial import FinancialTransaction
 from app.schemas.dashboard import DashboardSummary
@@ -89,6 +91,49 @@ class DashboardService:
             float(pack_q[0]) / float(pack_q[1]) * 100, 1
         ) if pack_q and float(pack_q[1]) > 0 else 0.0
 
+        # Monthly collected (payment transactions this calendar month)
+        collected_month = (
+            db.query(func.coalesce(func.sum(FinancialTransaction.amount), 0))
+            .filter(
+                FinancialTransaction.transaction_type == "payment",
+                FinancialTransaction.is_deleted.is_(False),
+                func.extract("year", FinancialTransaction.transaction_date) == today.year,
+                func.extract("month", FinancialTransaction.transaction_date) == today.month,
+            )
+            .scalar()
+        ) or Decimal("0.00")
+
+        # Total outstanding (all unpaid/partial bills)
+        outstanding_total = (
+            db.query(func.coalesce(
+                func.sum(Bill.amount_due - Bill.amount_paid), 0
+            ))
+            .filter(
+                Bill.is_deleted.is_(False),
+                Bill.payment_status.in_(["unpaid", "partial"]),
+            )
+            .scalar()
+        ) or Decimal("0.00")
+
+        # Orders created this month
+        orders_this_month = (
+            db.query(func.count(Order.id))
+            .filter(
+                Order.is_deleted.is_(False),
+                func.extract("year", Order.entry_date) == today.year,
+                func.extract("month", Order.entry_date) == today.month,
+            )
+            .scalar()
+        ) or 0
+
+        # Business config (business_name, owner_name)
+        def _cfg(key: str, default: str) -> str:
+            row = db.query(Config).filter(Config.key == key).first()
+            return row.value if row else default
+
+        business_name = _cfg("business_name", "CMT Stitching & Packing")
+        owner_name = _cfg("owner_name", "")
+
         # Recent orders (last 10)
         recent_orders_raw = (
             db.query(Order)
@@ -115,6 +160,11 @@ class DashboardService:
             on_hold_orders=on_hold_orders,
             stitching_progress_pct=stitching_progress_pct,
             packing_progress_pct=packing_progress_pct,
+            collected_month=Decimal(str(collected_month)),
+            outstanding_total=Decimal(str(outstanding_total)),
+            orders_this_month=orders_this_month,
+            business_name=business_name,
+            owner_name=owner_name,
         )
 
 
