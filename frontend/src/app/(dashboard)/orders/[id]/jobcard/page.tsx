@@ -251,9 +251,9 @@ export default function JobCardPage() {
           {(transport + loading_exp + misc + rent + loadCharges) > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold text-red-700 uppercase mb-1">Overheads</p>
-              {transport > 0    && <Row label="Transport"        value={`PKR ${formatCurrency(transport)}`} />}
-              {loading_exp > 0  && <Row label="Loading"          value={`PKR ${formatCurrency(loading_exp)}`} />}
-              {misc > 0         && <Row label="Miscellaneous"    value={`PKR ${formatCurrency(misc)}`} />}
+              {transport > 0    && <Row label="Electricity Consumed"        value={`PKR ${formatCurrency(transport)}`} />}
+              {loading_exp > 0  && <Row label="Thread Used/pcs"          value={`PKR ${formatCurrency(loading_exp)}`} />}
+              {misc > 0         && <Row label="Master Cutting Wage/pcs"  value={`PKR ${formatCurrency(misc)}`} />}
               {rent > 0         && <Row label="Rent"             value={`PKR ${formatCurrency(rent)}`} />}
               {loadCharges > 0  && <Row label="Loading Charges"  value={`PKR ${formatCurrency(loadCharges)}`} />}
             </div>

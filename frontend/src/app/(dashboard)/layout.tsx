@@ -257,9 +257,11 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="pl-60">
-        <div className="max-w-7xl mx-auto px-6 py-6">{children}</div>
+      <div className="print:hidden">
+        <Sidebar />
+      </div>
+      <main className="pl-60 print:pl-0">
+        <div className="max-w-7xl mx-auto px-6 py-6 print:p-0 print:max-w-full">{children}</div>
       </main>
     </div>
   );

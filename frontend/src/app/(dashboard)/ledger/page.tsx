@@ -11,11 +11,13 @@ import type {
   FinancialTransaction, Party, TransactionFilters, TransactionType, PaginatedResponse,
 } from "@/hooks/types";
 
+// Debit = invoices/bills raised (party owes us) + expenses we incurred
+// Credit = cash/bank payments received from party
 function isDebit(tx: FinancialTransaction) {
-  return tx.transaction_type === "payment" || tx.transaction_type === "expense";
+  return tx.transaction_type === "income" || tx.transaction_type === "expense";
 }
 function isCredit(tx: FinancialTransaction) {
-  return tx.transaction_type === "income";
+  return tx.transaction_type === "payment" || tx.transaction_type === "adjustment";
 }
 
 const TYPE_BADGE: Record<string, string> = {
@@ -68,17 +70,19 @@ export default function LedgerPage() {
   };
 
   // Page totals + running balance per row
+  // Debit (invoices raised) increases what party owes; Credit (payments received) reduces it
   const { totalDebit, totalCredit, rows } = useMemo(() => {
     let debit = 0, credit = 0, running = 0;
     const rows = result.data.map((tx) => {
-      if (isCredit(tx)) { credit += Number(tx.amount); running += Number(tx.amount); }
-      else               { debit  += Number(tx.amount); running -= Number(tx.amount); }
+      if (isDebit(tx))  { debit  += Number(tx.amount); running += Number(tx.amount); }
+      else              { credit += Number(tx.amount); running -= Number(tx.amount); }
       return { ...tx, running };
     });
     return { totalDebit: debit, totalCredit: credit, rows };
   }, [result.data]);
 
-  const netBalance = totalCredit - totalDebit;
+  // netBalance > 0 means outstanding receivable (debit > credit = party still owes us)
+  const netBalance = totalDebit - totalCredit;
   const hasFilters = !!(filters.party_id || filters.date_from || filters.date_to || filters.transaction_type);
 
   const today = new Date().toLocaleDateString("en-GB", {

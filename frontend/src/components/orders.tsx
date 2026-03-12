@@ -312,7 +312,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
           Expenses (deducted from income)
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label="Transport Charges (PKR)">
+          <FormField label="Electricity Consumed (PKR)">
             <Input
               type="number"
               step="0.01"
@@ -322,7 +322,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
               onChange={(e) => setTransportExpense(e.target.value)}
             />
           </FormField>
-          <FormField label="Unloading Charges (PKR)">
+          <FormField label="Thread Used/pcs (PKR)">
             <Input
               type="number"
               step="0.01"
@@ -332,7 +332,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
               onChange={(e) => setLoadingExpense(e.target.value)}
             />
           </FormField>
-          <FormField label="Miscellaneous Expenses (PKR)">
+          <FormField label="Master Cutting Wage/pcs (PKR)">
             <Input
               type="number"
               step="0.01"
