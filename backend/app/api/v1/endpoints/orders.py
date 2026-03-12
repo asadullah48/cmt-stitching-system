@@ -388,36 +388,38 @@ def renumber_orders(db: DbDep, current_user: CurrentUser):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
 
-    from collections import defaultdict
+    from sqlalchemy import text
 
-    # Fetch ALL orders (active + soft-deleted) to avoid unique constraint conflicts
-    all_orders = db.query(Order).order_by(Order.order_number).all()
-    active_orders = [o for o in all_orders if not o.is_deleted]
-
-    # Phase 1: set ALL orders to temp names first
-    for i, o in enumerate(all_orders):
-        o.order_number = f"__TEMP__{i:06d}"
+    # Phase 1: set ALL orders to temp names using UUID suffix (guaranteed unique)
+    db.execute(text("UPDATE cmt_orders SET order_number = '__X__' || id::text"))
     db.flush()
 
-    # Phase 2: assign deleted orders a DEL- prefix (keeps them unique, out of the way)
-    deleted = [o for o in all_orders if o.is_deleted]
-    for i, o in enumerate(deleted):
-        o.order_number = f"DEL-{i:06d}"
+    # Phase 2: give soft-deleted orders a DEL- prefix (keeps them out of the way)
+    db.execute(text("UPDATE cmt_orders SET order_number = 'DEL-' || id::text WHERE is_deleted = true"))
     db.flush()
 
-    # Phase 3: renumber active orders sequentially per month
-    by_month: dict = defaultdict(list)
-    for o in active_orders:
-        # Try to extract month from the temp name is impossible; use created_at
-        month_key = o.created_at.strftime("%Y%m") if o.created_at else "202601"
-        by_month[month_key].append(o)
-
-    results = []
-    for month_key in sorted(by_month.keys()):
-        for seq, o in enumerate(by_month[month_key], 1):
-            new_num = f"ORD-{month_key}-{seq:04d}"
-            results.append(new_num)
-            o.order_number = new_num
+    # Phase 3: renumber active orders sequentially per month via window function
+    db.execute(text("""
+        WITH ranked AS (
+            SELECT id,
+                   to_char(created_at AT TIME ZONE 'UTC', 'YYYYMM') AS month_key,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY to_char(created_at AT TIME ZONE 'UTC', 'YYYYMM')
+                       ORDER BY created_at
+                   ) AS seq
+            FROM cmt_orders
+            WHERE is_deleted = false
+        )
+        UPDATE cmt_orders
+        SET order_number = 'ORD-' || ranked.month_key || '-' || LPAD(ranked.seq::text, 4, '0')
+        FROM ranked
+        WHERE cmt_orders.id = ranked.id
+    """))
 
     db.commit()
-    return {"renumbered": len(results), "new_numbers": results}
+
+    rows = db.execute(text(
+        "SELECT order_number FROM cmt_orders WHERE is_deleted = false ORDER BY order_number"
+    )).fetchall()
+    nums = [r[0] for r in rows]
+    return {"renumbered": len(nums), "new_numbers": nums}
