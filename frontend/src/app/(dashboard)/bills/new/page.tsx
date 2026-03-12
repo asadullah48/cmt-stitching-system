@@ -15,22 +15,36 @@ export default function NewBillPage() {
   const [autoMode, setAutoMode] = useState(true);
   const [nextNumber, setNextNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [subtotal, setSubtotal] = useState(0);
 
-  const [form, setForm] = useState<BillCreate>({
-    order_id: params.get("order") || "",
+  const urlOrderId = params.get("order") || "";
+
+  const [form, setForm] = useState<BillCreate & { discount: number }>({
+    order_id: urlOrderId,
     bill_number: "",
     bill_series: "A",
     bill_date: new Date().toISOString().split("T")[0],
     amount_due: 0,
+    discount: 0,
   });
 
   // Load packing_complete orders without bills
   useEffect(() => {
     ordersService
       .getOrders({ size: 200, status: "packing_complete" })
-      .then((res) => setOrders(res.data))
+      .then((res) => {
+        setOrders(res.data);
+        // If URL has an order param not in packing_complete list, load it separately
+        if (urlOrderId && !res.data.find((o) => o.id === urlOrderId)) {
+          ordersService.getOrder(urlOrderId).then((order) => {
+            setOrders((prev) =>
+              prev.find((o) => o.id === urlOrderId) ? prev : [...prev, order]
+            );
+          }).catch(() => {});
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, [urlOrderId]);
 
   // Fetch next number when series changes
   useEffect(() => {
@@ -50,8 +64,15 @@ export default function NewBillPage() {
     const pack = order.pack_rate_party
       ? Number(order.pack_rate_party) * order.total_quantity
       : 0;
-    setForm((f) => ({ ...f, amount_due: stitch + pack }));
+    const computed = stitch + pack;
+    setSubtotal(computed);
+    setForm((f) => ({ ...f, amount_due: computed - (f.discount || 0) }));
   }, [form.order_id, orders]);
+
+  // Recalculate amount_due when discount changes
+  useEffect(() => {
+    setForm((f) => ({ ...f, amount_due: Math.max(0, subtotal - f.discount) }));
+  }, [form.discount, subtotal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +81,7 @@ export default function NewBillPage() {
       const payload: BillCreate = {
         ...form,
         bill_number: autoMode ? undefined : form.bill_number,
+        discount: form.discount || 0,
       };
       const bill = await billService.create(payload);
       showToast(`Bill ${bill.bill_number} created`, "success");
@@ -72,7 +94,7 @@ export default function NewBillPage() {
     }
   };
 
-  const set = (k: keyof BillCreate, v: unknown) =>
+  const set = (k: string, v: unknown) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   return (
@@ -102,10 +124,15 @@ export default function NewBillPage() {
             <option value="">Select an order...</option>
             {orders.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.order_number} — {o.party_name ?? "No party"}
+                {o.order_number} — {o.party_name ?? "No party"} ({o.status})
               </option>
             ))}
           </select>
+          {orders.length === 0 && (
+            <p className="text-xs text-amber-600 mt-1">
+              No orders in &quot;packing_complete&quot; status found. Only completed orders can be billed.
+            </p>
+          )}
         </div>
 
         {/* Bill Number */}
@@ -176,25 +203,62 @@ export default function NewBillPage() {
           />
         </div>
 
-        {/* Amount */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Amount Due (PKR) *
-          </label>
-          <input
-            type="number"
-            required
-            min="0"
-            step="0.01"
-            value={form.amount_due}
-            onChange={(e) =>
-              set("amount_due", parseFloat(e.target.value) || 0)
-            }
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Auto-calculated from order rates — adjust if needed
-          </p>
+        {/* Amount section */}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Discount (PKR)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.discount || ""}
+              onChange={(e) => set("discount", parseFloat(e.target.value) || 0)}
+              placeholder="0"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+
+          {/* Amount summary */}
+          {subtotal > 0 && (
+            <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm space-y-1">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal</span>
+                <span>PKR {subtotal.toLocaleString()}</span>
+              </div>
+              {(form.discount || 0) > 0 && (
+                <div className="flex justify-between text-amber-700">
+                  <span>Discount</span>
+                  <span>- PKR {(form.discount || 0).toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1 mt-1">
+                <span>Amount Due</span>
+                <span className="text-blue-600">PKR {form.amount_due.toLocaleString()}</span>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount Due (PKR) *
+            </label>
+            <input
+              type="number"
+              required
+              min="0"
+              step="0.01"
+              value={form.amount_due}
+              onChange={(e) =>
+                set("amount_due", parseFloat(e.target.value) || 0)
+              }
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Auto-calculated from order rates minus discount — adjust if needed
+            </p>
+          </div>
         </div>
 
         {/* Dispatch details */}

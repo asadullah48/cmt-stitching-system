@@ -369,6 +369,15 @@ export const dispatchService = {
 
 // ─── Bills ───────────────────────────────────────────────────────────────────
 
+export interface BillOrderItem {
+  size: string;
+  quantity: number;
+  stitch_rate: number;
+  pack_rate: number;
+  amount: number;
+  description: string;
+}
+
 export interface Bill {
   id: string;
   bill_number: string;
@@ -378,6 +387,9 @@ export interface Bill {
   order_number?: string;
   party_id?: string;
   party_name?: string;
+  party_contact_person?: string;
+  party_phone?: string;
+  party_address?: string;
   bill_date: string;
   carrier?: string;
   tracking_number?: string;
@@ -387,6 +399,10 @@ export interface Bill {
   amount_due: number;
   amount_paid: number;
   amount_outstanding: number;
+  discount: number;
+  previous_balance: number;
+  subtotal: number;
+  order_items: BillOrderItem[];
   notes?: string;
 }
 
@@ -400,6 +416,7 @@ export interface BillCreate {
   carton_count?: number;
   total_weight?: number;
   amount_due: number;
+  discount?: number;
   notes?: string;
 }
 

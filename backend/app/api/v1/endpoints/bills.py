@@ -12,6 +12,34 @@ router = APIRouter(prefix="/bills", tags=["bills"])
 
 
 def _to_out(bill) -> BillOut:
+    from decimal import Decimal
+
+    # Build order items list with computed amounts
+    order_items = []
+    subtotal = Decimal("0")
+    if bill.order and hasattr(bill.order, "items") and bill.order.items:
+        stitch_rate = Decimal(str(bill.order.stitch_rate_party or 0))
+        pack_rate = Decimal(str(bill.order.pack_rate_party or 0))
+        for item in bill.order.items:
+            qty = item.quantity or 0
+            amount = qty * (stitch_rate + pack_rate)
+            subtotal += amount
+            order_items.append({
+                "size": item.size,
+                "quantity": qty,
+                "stitch_rate": float(stitch_rate),
+                "pack_rate": float(pack_rate),
+                "amount": float(amount),
+                "description": bill.order.goods_description,
+            })
+    else:
+        # Fallback: subtotal from amount_due + discount
+        discount = Decimal(str(bill.discount)) if bill.discount else Decimal("0")
+        subtotal = Decimal(str(bill.amount_due)) + discount
+
+    discount = Decimal(str(bill.discount)) if hasattr(bill, "discount") and bill.discount is not None else Decimal("0")
+    previous_balance = Decimal(str(bill.previous_balance)) if hasattr(bill, "previous_balance") and bill.previous_balance is not None else Decimal("0")
+
     return BillOut(
         id=bill.id,
         bill_number=bill.bill_number,
@@ -21,6 +49,9 @@ def _to_out(bill) -> BillOut:
         order_number=bill.order.order_number if bill.order else None,
         party_id=bill.party_id,
         party_name=bill.party.name if bill.party else None,
+        party_contact_person=bill.party.contact_person if bill.party else None,
+        party_phone=bill.party.phone if bill.party else None,
+        party_address=bill.party.address if bill.party else None,
         bill_date=bill.bill_date,
         carrier=bill.carrier,
         tracking_number=bill.tracking_number,
@@ -30,6 +61,10 @@ def _to_out(bill) -> BillOut:
         amount_due=bill.amount_due,
         amount_paid=bill.amount_paid,
         amount_outstanding=bill.amount_due - bill.amount_paid,
+        discount=discount,
+        previous_balance=previous_balance,
+        subtotal=subtotal,
+        order_items=order_items,
         notes=bill.notes,
     )
 

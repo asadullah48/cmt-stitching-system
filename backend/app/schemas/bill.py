@@ -23,6 +23,7 @@ class BillCreate(BaseModel):
     carton_count: Optional[int] = None
     total_weight: Optional[Decimal] = None
     amount_due: Decimal
+    discount: Optional[Decimal] = Decimal("0")
     notes: Optional[str] = None
 
     @model_validator(mode="after")
@@ -49,6 +50,9 @@ class BillOut(BaseModel):
     order_number: Optional[str] = None
     party_id: Optional[UUID] = None
     party_name: Optional[str] = None
+    party_contact_person: Optional[str] = None
+    party_phone: Optional[str] = None
+    party_address: Optional[str] = None
     bill_date: date
     carrier: Optional[str] = None
     tracking_number: Optional[str] = None
@@ -58,6 +62,10 @@ class BillOut(BaseModel):
     amount_due: Decimal
     amount_paid: Decimal
     amount_outstanding: Decimal
+    discount: Decimal = Decimal("0")
+    previous_balance: Decimal = Decimal("0")
+    subtotal: Decimal = Decimal("0")
+    order_items: list[dict] = []
     notes: Optional[str] = None
 
     model_config = {"from_attributes": True}

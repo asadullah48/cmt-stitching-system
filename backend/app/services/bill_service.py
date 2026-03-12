@@ -122,6 +122,15 @@ class BillService:
             series = data.bill_series.upper()
 
         # 4. Create the Bill record; fall back to order fields for dispatch metadata
+        # Capture previous balance before modifying it
+        captured_previous_balance = Decimal("0")
+        if order.party_id:
+            pre_party = db.query(Party).filter(Party.id == order.party_id).first()
+            if pre_party:
+                captured_previous_balance = Decimal(str(pre_party.balance))
+
+        discount = data.discount if data.discount is not None else Decimal("0")
+
         bill = Bill(
             bill_number=bill_number,
             bill_series=series,
@@ -136,6 +145,8 @@ class BillService:
             payment_status="unpaid",
             amount_due=data.amount_due,
             amount_paid=Decimal("0"),
+            discount=discount,
+            previous_balance=captured_previous_balance,
             notes=data.notes,
             created_by=user_id,
         )

@@ -24,6 +24,8 @@ class Bill(BaseModel):
     payment_status = Column(String(20), default="unpaid", nullable=False)
     amount_due = Column(Numeric(10, 2), nullable=False)
     amount_paid = Column(Numeric(10, 2), default=0, nullable=False)
+    discount = Column(Numeric(10, 2), default=0, nullable=False, server_default="0")
+    previous_balance = Column(Numeric(10, 2), default=0, nullable=False, server_default="0")
 
     notes = Column(Text, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
