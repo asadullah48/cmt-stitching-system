@@ -68,6 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = `cmt_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
         dispatch({ type: "LOGIN", payload: { user, token } });
       } else {
+        // Clear stale cookie so middleware doesn't redirect back to /dashboard
+        document.cookie = "cmt_token=; path=/; max-age=0";
         dispatch({ type: "SET_LOADING", payload: false });
       }
     } catch {

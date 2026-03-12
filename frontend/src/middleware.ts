@@ -18,12 +18,7 @@ export function middleware(request: NextRequest) {
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  // Already authenticated → redirect away from login
-  if (token && isPublic) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Not authenticated → redirect to login
+  // Not authenticated → redirect to login (let client handle the logged-in→dashboard redirect)
   if (!token && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
