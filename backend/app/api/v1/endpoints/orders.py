@@ -390,27 +390,28 @@ def renumber_orders(db: DbDep, current_user: CurrentUser):
 
     from collections import defaultdict
 
-    # Fetch all active orders ordered by existing order_number (preserves relative order)
-    orders = (
-        db.query(Order)
-        .filter(Order.is_deleted.is_(False))
-        .order_by(Order.order_number)
-        .all()
-    )
+    # Fetch ALL orders (active + soft-deleted) to avoid unique constraint conflicts
+    all_orders = db.query(Order).order_by(Order.order_number).all()
+    active_orders = [o for o in all_orders if not o.is_deleted]
 
-    # Group by YYYYMM (second segment of ORD-YYYYMM-XXXX)
-    by_month: dict = defaultdict(list)
-    for o in orders:
-        parts = o.order_number.split("-")
-        month_key = parts[1] if len(parts) >= 3 else "000000"
-        by_month[month_key].append(o)
-
-    # Phase 1: set all to temp names to avoid unique constraint violations
-    for i, o in enumerate(orders):
+    # Phase 1: set ALL orders to temp names first
+    for i, o in enumerate(all_orders):
         o.order_number = f"__TEMP__{i:06d}"
     db.flush()
 
-    # Phase 2: assign final sequential numbers
+    # Phase 2: assign deleted orders a DEL- prefix (keeps them unique, out of the way)
+    deleted = [o for o in all_orders if o.is_deleted]
+    for i, o in enumerate(deleted):
+        o.order_number = f"DEL-{i:06d}"
+    db.flush()
+
+    # Phase 3: renumber active orders sequentially per month
+    by_month: dict = defaultdict(list)
+    for o in active_orders:
+        # Try to extract month from the temp name is impossible; use created_at
+        month_key = o.created_at.strftime("%Y%m") if o.created_at else "202601"
+        by_month[month_key].append(o)
+
     results = []
     for month_key in sorted(by_month.keys()):
         for seq, o in enumerate(by_month[month_key], 1):
