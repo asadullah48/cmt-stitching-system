@@ -28,22 +28,33 @@ export default function NewBillPage() {
     discount: 0,
   });
 
-  // Load all non-dispatched orders (backend enforces no-duplicate-bill, not status)
+  // Load all non-dispatched orders across pages (backend max size=100)
   useEffect(() => {
-    ordersService
-      .getOrders({ size: 500 })
-      .then((res) => {
-        // Exclude already-dispatched orders (they already have a bill)
-        const eligible = res.data.filter((o) => o.status !== "dispatched");
+    async function loadAllOrders() {
+      try {
+        const first = await ordersService.getOrders({ size: 100, page: 1 });
+        let all = first.data;
+        const totalPages = Math.ceil(first.total / 100);
+        if (totalPages > 1) {
+          const rest = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, i) =>
+              ordersService.getOrders({ size: 100, page: i + 2 })
+            )
+          );
+          all = [...all, ...rest.flatMap((r) => r.data)];
+        }
+        const eligible = all.filter((o) => o.status !== "dispatched");
         setOrders(eligible);
-        // If URL has a specific order not in the list, load it separately
         if (urlOrderId && !eligible.find((o) => o.id === urlOrderId)) {
           ordersService.getOrder(urlOrderId).then((order) => {
             setOrders((prev) => prev.find((o) => o.id === urlOrderId) ? prev : [...prev, order]);
           }).catch(() => {});
         }
-      })
-      .catch(() => {});
+      } catch {
+        // silently ignore
+      }
+    }
+    loadAllOrders();
   }, [urlOrderId]);
 
   // Fetch next number when series changes
