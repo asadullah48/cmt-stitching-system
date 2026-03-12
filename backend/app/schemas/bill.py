@@ -1,0 +1,76 @@
+from datetime import date
+from decimal import Decimal
+from enum import Enum
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, model_validator
+
+
+class PaymentStatus(str, Enum):
+    unpaid = "unpaid"
+    partial = "partial"
+    paid = "paid"
+
+
+class BillCreate(BaseModel):
+    order_id: UUID
+    bill_number: Optional[str] = None   # None = auto-generate
+    bill_series: str = "A"              # series to use for auto-gen
+    bill_date: date
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    carton_count: Optional[int] = None
+    total_weight: Optional[Decimal] = None
+    amount_due: Decimal
+    notes: Optional[str] = None
+
+    @model_validator(mode="after")
+    def bill_number_or_series(self):
+        if self.bill_number is not None:
+            self.bill_number = self.bill_number.strip().upper()
+            if not self.bill_number:
+                raise ValueError("bill_number cannot be blank")
+        return self
+
+
+class BillPaymentUpdate(BaseModel):
+    amount: Decimal
+    payment_method: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class BillOut(BaseModel):
+    id: UUID
+    bill_number: str
+    bill_series: str
+    bill_sequence: int
+    order_id: UUID
+    order_number: Optional[str] = None
+    party_id: Optional[UUID] = None
+    party_name: Optional[str] = None
+    bill_date: date
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    carton_count: Optional[int] = None
+    total_weight: Optional[Decimal] = None
+    payment_status: str
+    amount_due: Decimal
+    amount_paid: Decimal
+    amount_outstanding: Decimal
+    notes: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class BillListResponse(BaseModel):
+    data: list[BillOut]
+    total: int
+    page: int
+    size: int
+
+
+class NextBillNumber(BaseModel):
+    series: str
+    next_number: str
+    next_sequence: int
