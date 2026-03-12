@@ -14,7 +14,7 @@ class Config(Base):
     value = Column(Text, nullable=False)
     description = Column(Text)
     updated_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     updater = relationship("User")

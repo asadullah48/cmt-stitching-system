@@ -1,5 +1,5 @@
-from fastapi import APIRouter
-from app.core.deps import CurrentUser, DbDep
+from fastapi import APIRouter, Depends
+from app.core.deps import CurrentUser, DbDep, require_role
 from app.models.config import Config
 from app.schemas.settings import SettingsOut, SettingsUpdate
 
@@ -41,7 +41,7 @@ def get_settings(db: DbDep, _: CurrentUser):
     )
 
 
-@router.put("/", response_model=SettingsOut)
+@router.put("/", response_model=SettingsOut, dependencies=[require_role("admin")])
 def update_settings(data: SettingsUpdate, db: DbDep, current_user: CurrentUser):
     mapping = {
         "business_name": data.business_name,
