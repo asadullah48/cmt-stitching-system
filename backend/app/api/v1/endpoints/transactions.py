@@ -1,15 +1,23 @@
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from app.core.deps import CurrentUser, DbDep
 from app.models.financial import FinancialTransaction
+from app.models.bill import Bill
 from app.schemas.financial import TransactionCreate, TransactionOut, TransactionListResponse
 from app.services.financial_service import FinancialService
+from app.services.bill_service import BillService
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
+
+
+class LinkBillRequest(BaseModel):
+    bill_id: Optional[UUID] = None  # pass None to unlink
 
 
 def _to_out(txn) -> TransactionOut:
@@ -19,6 +27,7 @@ def _to_out(txn) -> TransactionOut:
         party_name=txn.party.name if txn.party else None,
         order_id=txn.order_id,
         order_number=txn.order.order_number if txn.order else None,
+        bill_id=txn.bill_id,
         transaction_type=txn.transaction_type,
         amount=txn.amount,
         payment_method=txn.payment_method,
@@ -47,6 +56,13 @@ def list_transactions(
 @router.post("/", response_model=TransactionOut, status_code=201)
 def create_transaction(data: TransactionCreate, db: DbDep, current_user: CurrentUser):
     txn = FinancialService.create_transaction(db, data, current_user.id)
+    # If a bill_id was provided on the transaction, recompute bill amounts
+    if data.bill_id:
+        bill = db.query(Bill).filter(Bill.id == data.bill_id, Bill.is_deleted.is_(False)).first()
+        if bill:
+            BillService._recompute_amount_paid(db, bill)
+            db.commit()
+            db.refresh(txn)
     return _to_out(txn)
 
 
@@ -110,5 +126,59 @@ def delete_transaction(transaction_id: UUID, db: DbDep, _: CurrentUser):
     ).first()
     if not txn:
         raise HTTPException(status_code=404, detail="Transaction not found")
+    old_bill_id = txn.bill_id
     txn.is_deleted = True
+    db.flush()
+    # Recompute bill if this transaction was linked to one
+    if old_bill_id:
+        bill = db.query(Bill).filter(Bill.id == old_bill_id, Bill.is_deleted.is_(False)).first()
+        if bill:
+            BillService._recompute_amount_paid(db, bill)
     db.commit()
+
+
+@router.patch("/{transaction_id}/link-bill", response_model=TransactionOut)
+def link_transaction_to_bill(
+    transaction_id: UUID,
+    body: LinkBillRequest,
+    db: DbDep,
+    _: CurrentUser,
+):
+    """Link (or unlink) a payment transaction to a specific bill.
+
+    Pass ``{"bill_id": "<uuid>"}`` to link, or ``{"bill_id": null}`` to unlink.
+    After updating, bill.amount_paid and payment_status are recomputed from all
+    linked transactions so the bill always reflects the true collected amount.
+    """
+    txn = db.query(FinancialTransaction).filter(
+        FinancialTransaction.id == transaction_id,
+        FinancialTransaction.is_deleted.is_(False),
+    ).first()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    old_bill_id = txn.bill_id
+
+    # Validate new bill if provided
+    new_bill = None
+    if body.bill_id is not None:
+        new_bill = db.query(Bill).filter(Bill.id == body.bill_id, Bill.is_deleted.is_(False)).first()
+        if not new_bill:
+            raise HTTPException(status_code=404, detail="Bill not found")
+
+    txn.bill_id = body.bill_id
+    db.flush()
+
+    # Recompute old bill (if unlinking or changing bills)
+    if old_bill_id and old_bill_id != body.bill_id:
+        old_bill = db.query(Bill).filter(Bill.id == old_bill_id, Bill.is_deleted.is_(False)).first()
+        if old_bill:
+            BillService._recompute_amount_paid(db, old_bill)
+
+    # Recompute new bill
+    if new_bill:
+        BillService._recompute_amount_paid(db, new_bill)
+
+    db.commit()
+    db.refresh(txn)
+    return _to_out(txn)

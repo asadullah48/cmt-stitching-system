@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.bill import Bill
@@ -68,6 +69,30 @@ class BillService:
         except ValueError:
             raise ValueError(f"Invalid bill number format: {bill_number!r}. Numeric suffix could not be parsed.")
         return series, seq
+
+    @staticmethod
+    def _recompute_amount_paid(db: Session, bill: Bill) -> Decimal:
+        """Recompute amount_paid as SUM of non-deleted payment transactions linked to this bill.
+
+        Also updates bill.amount_paid and bill.payment_status in place (does NOT commit).
+        Returns the recomputed amount_paid.
+        """
+        computed = (
+            db.query(func.sum(FinancialTransaction.amount))
+            .filter(
+                FinancialTransaction.bill_id == bill.id,
+                FinancialTransaction.is_deleted.is_(False),
+            )
+            .scalar()
+        ) or Decimal("0")
+        bill.amount_paid = computed
+        if computed <= Decimal("0"):
+            bill.payment_status = "unpaid"
+        elif computed >= bill.amount_due:
+            bill.payment_status = "paid"
+        else:
+            bill.payment_status = "partial"
+        return computed
 
     # ------------------------------------------------------------------
     # Core operations
@@ -217,14 +242,18 @@ class BillService:
         if bill.payment_status == "paid":
             raise ValueError("Bill is already fully paid")
 
+        # Recompute amount_paid from linked transactions before capping
+        BillService._recompute_amount_paid(db, bill)
+
         # Cap payment at the remaining outstanding amount
         outstanding = bill.amount_due - bill.amount_paid
         amount = min(data.amount, outstanding)
 
-        # Post payment transaction to the ledger
+        # Post payment transaction to the ledger, linked to this bill
         txn = FinancialTransaction(
             party_id=bill.party_id,
             order_id=bill.order_id,
+            bill_id=bill.id,
             transaction_type="payment",
             amount=amount,
             payment_method=data.payment_method,
@@ -247,12 +276,8 @@ class BillService:
             if party:
                 party.balance -= amount
 
-        # Update bill totals and status
-        bill.amount_paid += amount
-        if bill.amount_paid >= bill.amount_due:
-            bill.payment_status = "paid"
-        else:
-            bill.payment_status = "partial"
+        # Recompute bill totals and status from all linked transactions
+        BillService._recompute_amount_paid(db, bill)
 
         db.commit()
         db.refresh(bill)

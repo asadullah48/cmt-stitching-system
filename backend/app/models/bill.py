@@ -34,3 +34,9 @@ class Bill(BaseModel):
     order = relationship("Order", back_populates="bill", uselist=False)
     party = relationship("Party", back_populates="bills")
     creator = relationship("User")
+    transactions = relationship(
+        "FinancialTransaction",
+        back_populates="bill",
+        foreign_keys="FinancialTransaction.bill_id",
+        primaryjoin="Bill.id == FinancialTransaction.bill_id",
+    )

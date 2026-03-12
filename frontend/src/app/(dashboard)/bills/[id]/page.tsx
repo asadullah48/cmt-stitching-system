@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { billService, Bill, BillPaymentUpdate, BillCreate } from "@/hooks/services";
+import { billService, Bill, BillPaymentUpdate, BillCreate, transactionsService } from "@/hooks/services";
+import type { FinancialTransaction } from "@/hooks/types";
 import { useToast } from "@/hooks/toast";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -25,6 +26,7 @@ interface EditForm {
   bill_date: string;
   discount: number;
   amount_due: number;
+  amount_paid: number;
   carrier: string;
   tracking_number: string;
   carton_count: string;
@@ -42,12 +44,18 @@ export default function BillDetailPage() {
   const [payment, setPayment] = useState<BillPaymentUpdate>({ amount: 0 });
   const [submitting, setSubmitting] = useState(false);
 
+  // Unlinked party payments
+  const [unlinkedPayments, setUnlinkedPayments] = useState<FinancialTransaction[]>([]);
+  const [loadingUnlinked, setLoadingUnlinked] = useState(false);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+
   // Edit mode
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
     bill_date: "",
     discount: 0,
     amount_due: 0,
+    amount_paid: 0,
     carrier: "",
     tracking_number: "",
     carton_count: "",
@@ -56,13 +64,51 @@ export default function BillDetailPage() {
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const fetchUnlinkedPayments = useCallback(async (partyId: string) => {
+    setLoadingUnlinked(true);
+    try {
+      const res = await transactionsService.getTransactions({
+        party_id: partyId,
+        transaction_type: "payment",
+        size: 100,
+      });
+      // Only show transactions that are not linked to any bill
+      setUnlinkedPayments(res.data.filter((t) => !t.bill_id));
+    } catch {
+      // silently ignore
+    } finally {
+      setLoadingUnlinked(false);
+    }
+  }, []);
+
   useEffect(() => {
     billService
       .getById(id)
-      .then(setBill)
+      .then((b) => {
+        setBill(b);
+        if (b.party_id) fetchUnlinkedPayments(b.party_id);
+      })
       .catch(() => showToast("Bill not found", "error"))
       .finally(() => setLoading(false));
-  }, [id, showToast]);
+  }, [id, showToast, fetchUnlinkedPayments]);
+
+  const handleLinkPayment = async (txId: string) => {
+    if (!bill) return;
+    setLinkingId(txId);
+    try {
+      await transactionsService.linkToBill(txId, bill.id);
+      // Refresh bill to get updated amount_paid
+      const updated = await billService.getById(bill.id);
+      setBill(updated);
+      // Remove from unlinked list
+      setUnlinkedPayments((prev) => prev.filter((t) => t.id !== txId));
+      showToast("Payment linked to bill", "success");
+    } catch {
+      showToast("Failed to link payment", "error");
+    } finally {
+      setLinkingId(null);
+    }
+  };
 
   const openEdit = () => {
     if (!bill) return;
@@ -70,6 +116,7 @@ export default function BillDetailPage() {
       bill_date: bill.bill_date,
       discount: Number(bill.discount ?? 0),
       amount_due: Number(bill.amount_due),
+      amount_paid: Number(bill.amount_paid ?? 0),
       carrier: bill.carrier ?? "",
       tracking_number: bill.tracking_number ?? "",
       carton_count: bill.carton_count != null ? String(bill.carton_count) : "",
@@ -87,10 +134,11 @@ export default function BillDetailPage() {
     if (!bill) return;
     setSavingEdit(true);
     try {
-      const payload: Partial<BillCreate> = {
+      const payload = {
         bill_date: editForm.bill_date,
         discount: editForm.discount,
         amount_due: editForm.amount_due,
+        amount_paid: editForm.amount_paid,
         carrier: editForm.carrier || undefined,
         tracking_number: editForm.tracking_number || undefined,
         carton_count: editForm.carton_count ? parseInt(editForm.carton_count) : undefined,
@@ -224,6 +272,18 @@ export default function BillDetailPage() {
                   onChange={(e) => setEdit("amount_due", parseFloat(e.target.value) || 0)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editForm.amount_paid}
+                  onChange={(e) => setEdit("amount_paid", parseFloat(e.target.value) || 0)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+                <p className="text-xs text-gray-400 mt-1">Set to manually reconcile collected payments</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Carrier</label>
@@ -466,6 +526,73 @@ export default function BillDetailPage() {
           Thank you for your business. Generated by CMT Stitching System.
         </div>
       </div>
+
+      {/* Unlinked Party Payments */}
+      {bill.payment_status !== "paid" && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 print:hidden">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Unlinked Party Payments</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Payment transactions for {bill.party_name ?? "this party"} not yet linked to any bill
+              </p>
+            </div>
+            {bill.party_id && (
+              <button
+                onClick={() => fetchUnlinkedPayments(bill.party_id!)}
+                disabled={loadingUnlinked}
+                className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+              >
+                {loadingUnlinked ? "Loading…" : "Refresh"}
+              </button>
+            )}
+          </div>
+          {loadingUnlinked ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full" />
+            </div>
+          ) : unlinkedPayments.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              No unlinked payment transactions found for this party.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Date</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Description</th>
+                    <th className="text-left px-3 py-2 font-semibold text-gray-600">Method</th>
+                    <th className="text-right px-3 py-2 font-semibold text-gray-600">Amount</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {unlinkedPayments.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 text-gray-700">{tx.transaction_date}</td>
+                      <td className="px-3 py-2 text-gray-700">{tx.description ?? "—"}</td>
+                      <td className="px-3 py-2 text-gray-500 capitalize">{tx.payment_method ?? "—"}</td>
+                      <td className="px-3 py-2 text-right font-medium text-green-700">
+                        PKR {fmt(tx.amount)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          onClick={() => handleLinkPayment(tx.id)}
+                          disabled={linkingId === tx.id}
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          {linkingId === tx.id ? "Linking…" : "Link to this Bill"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Payment Modal */}
       {showPayment && (

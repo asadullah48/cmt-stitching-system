@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Numeric, Date, ForeignKey, Text
+from sqlalchemy import Column, String, Numeric, Date, ForeignKey, Text, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .base import BaseModel
@@ -9,6 +9,12 @@ class FinancialTransaction(BaseModel):
 
     party_id = Column(UUID(as_uuid=True), ForeignKey("cmt_parties.id"), nullable=True)
     order_id = Column(UUID(as_uuid=True), ForeignKey("cmt_orders.id"), nullable=True)
+    bill_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("cmt_bills.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     transaction_type = Column(String(20), nullable=False)  # income, payment, adjustment
     amount = Column(Numeric(10, 2), nullable=False)
     payment_method = Column(String(20))
@@ -20,4 +26,5 @@ class FinancialTransaction(BaseModel):
     # Relationships
     party = relationship("Party", back_populates="transactions")
     order = relationship("Order", back_populates="transactions")
+    bill = relationship("Bill", back_populates="transactions", foreign_keys=[bill_id])
     creator = relationship("User")

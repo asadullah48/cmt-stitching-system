@@ -278,6 +278,14 @@ export const transactionsService = {
   deleteTransaction: async (id: string): Promise<void> => {
     await api.delete(`/transactions/${id}`);
   },
+
+  linkToBill: async (txId: string, billId: string | null): Promise<FinancialTransaction> => {
+    const { data } = await api.patch<FinancialTransaction>(
+      `/transactions/${txId}/link-bill`,
+      { bill_id: billId }
+    );
+    return data;
+  },
 };
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────

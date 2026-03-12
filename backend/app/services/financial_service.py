@@ -18,6 +18,7 @@ class FinancialService:
         txn = FinancialTransaction(
             party_id=data.party_id,
             order_id=data.order_id,
+            bill_id=data.bill_id if hasattr(data, "bill_id") else None,
             transaction_type=data.transaction_type,
             amount=data.amount,
             payment_method=data.payment_method,

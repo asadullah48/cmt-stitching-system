@@ -9,6 +9,7 @@ from pydantic import BaseModel
 class TransactionCreate(BaseModel):
     party_id: Optional[UUID] = None
     order_id: Optional[UUID] = None
+    bill_id: Optional[UUID] = None
     transaction_type: str          # income | payment | adjustment
     amount: Decimal
     payment_method: Optional[str] = None
@@ -23,6 +24,7 @@ class TransactionOut(BaseModel):
     party_name: Optional[str] = None
     order_id: Optional[UUID] = None
     order_number: Optional[str] = None
+    bill_id: Optional[UUID] = None
     transaction_type: str
     amount: Decimal
     payment_method: Optional[str] = None

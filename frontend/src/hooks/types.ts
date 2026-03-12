@@ -158,6 +158,7 @@ export interface FinancialTransaction {
   party_id: string | null;
   party_name: string | null;
   order_id: string | null;
+  bill_id: string | null;
   transaction_type: TransactionType;
   amount: number;
   payment_method: PaymentMethod | null;
@@ -170,6 +171,7 @@ export interface FinancialTransaction {
 export interface TransactionCreate {
   party_id?: string;
   order_id?: string;
+  bill_id?: string;
   transaction_type: TransactionType;
   amount: number;
   payment_method?: PaymentMethod;
