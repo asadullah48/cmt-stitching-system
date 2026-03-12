@@ -12,6 +12,7 @@ export default function NewBillPage() {
   const { showToast } = useToast();
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
   const [autoMode, setAutoMode] = useState(true);
   const [nextNumber, setNextNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -52,6 +53,8 @@ export default function NewBillPage() {
         }
       } catch {
         // silently ignore
+      } finally {
+        setLoadingOrders(false);
       }
     }
     loadAllOrders();
@@ -126,23 +129,31 @@ export default function NewBillPage() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Order *
           </label>
-          <select
-            required
-            value={form.order_id}
-            onChange={(e) => set("order_id", e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="">Select an order...</option>
-            {orders.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.order_number} — {o.party_name ?? "No party"} ({o.status})
-              </option>
-            ))}
-          </select>
-          {orders.length === 0 && (
-            <p className="text-xs text-amber-600 mt-1">
-              No unbilled orders found. Already dispatched orders are excluded.
-            </p>
+          {loadingOrders ? (
+            <div className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500">
+              <svg className="animate-spin w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              Loading orders… (first load may take up to 30 seconds)
+            </div>
+          ) : (
+            <>
+              <select required value={form.order_id} onChange={(e) => set("order_id", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <option value="">Select an order...</option>
+                {orders.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.order_number} — {o.party_name ?? "No party"} ({o.status})
+                  </option>
+                ))}
+              </select>
+              {!loadingOrders && orders.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  No unbilled orders found. Already dispatched orders are excluded.
+                </p>
+              )}
+            </>
           )}
         </div>
 

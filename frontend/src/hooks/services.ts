@@ -460,6 +460,11 @@ export const billService = {
     const res = await billService.list({ order_id: orderId, size: 1 });
     return res.data[0] ?? null;
   },
+
+  update: async (id: string, payload: Partial<BillCreate>): Promise<Bill> => {
+    const { data } = await api.patch<Bill>(`/bills/${id}`, payload);
+    return data;
+  },
 };
 
 // ─── Expenses ────────────────────────────────────────────────────────────────

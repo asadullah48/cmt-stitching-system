@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { billService, Bill, BillPaymentUpdate } from "@/hooks/services";
+import { billService, Bill, BillPaymentUpdate, BillCreate } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -21,6 +21,17 @@ function fmt(n: number | undefined | null) {
   return (n ?? 0).toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+interface EditForm {
+  bill_date: string;
+  discount: number;
+  amount_due: number;
+  carrier: string;
+  tracking_number: string;
+  carton_count: string;
+  total_weight: string;
+  notes: string;
+}
+
 export default function BillDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -31,6 +42,20 @@ export default function BillDetailPage() {
   const [payment, setPayment] = useState<BillPaymentUpdate>({ amount: 0 });
   const [submitting, setSubmitting] = useState(false);
 
+  // Edit mode
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState<EditForm>({
+    bill_date: "",
+    discount: 0,
+    amount_due: 0,
+    carrier: "",
+    tracking_number: "",
+    carton_count: "",
+    total_weight: "",
+    notes: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   useEffect(() => {
     billService
       .getById(id)
@@ -38,6 +63,50 @@ export default function BillDetailPage() {
       .catch(() => showToast("Bill not found", "error"))
       .finally(() => setLoading(false));
   }, [id, showToast]);
+
+  const openEdit = () => {
+    if (!bill) return;
+    setEditForm({
+      bill_date: bill.bill_date,
+      discount: Number(bill.discount ?? 0),
+      amount_due: Number(bill.amount_due),
+      carrier: bill.carrier ?? "",
+      tracking_number: bill.tracking_number ?? "",
+      carton_count: bill.carton_count != null ? String(bill.carton_count) : "",
+      total_weight: bill.total_weight != null ? String(bill.total_weight) : "",
+      notes: bill.notes ?? "",
+    });
+    setShowEdit(true);
+  };
+
+  const setEdit = (k: keyof EditForm, v: string | number) =>
+    setEditForm((f) => ({ ...f, [k]: v }));
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bill) return;
+    setSavingEdit(true);
+    try {
+      const payload: Partial<BillCreate> = {
+        bill_date: editForm.bill_date,
+        discount: editForm.discount,
+        amount_due: editForm.amount_due,
+        carrier: editForm.carrier || undefined,
+        tracking_number: editForm.tracking_number || undefined,
+        carton_count: editForm.carton_count ? parseInt(editForm.carton_count) : undefined,
+        total_weight: editForm.total_weight ? parseFloat(editForm.total_weight) : undefined,
+        notes: editForm.notes || undefined,
+      };
+      const updated = await billService.update(bill.id, payload);
+      setBill(updated);
+      setShowEdit(false);
+      showToast("Bill updated", "success");
+    } catch {
+      showToast("Failed to update bill", "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +163,12 @@ export default function BillDetailPage() {
             </button>
           )}
           <button
+            onClick={openEdit}
+            className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+          >
+            Edit
+          </button>
+          <button
             onClick={() => window.print()}
             className="px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
           >
@@ -101,6 +176,123 @@ export default function BillDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Inline Edit Panel */}
+      {showEdit && (
+        <div className="bg-white rounded-xl border border-blue-200 shadow-sm p-6 print:hidden">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-gray-900">Edit Bill</h2>
+            <button
+              onClick={() => setShowEdit(false)}
+              className="text-sm text-gray-400 hover:text-gray-600"
+            >
+              ✕ Cancel
+            </button>
+          </div>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bill Date</label>
+                <input
+                  type="date"
+                  required
+                  value={editForm.bill_date}
+                  onChange={(e) => setEdit("bill_date", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Discount (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editForm.discount || ""}
+                  onChange={(e) => setEdit("discount", parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount Due (PKR)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={editForm.amount_due}
+                  onChange={(e) => setEdit("amount_due", parseFloat(e.target.value) || 0)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Carrier</label>
+                <input
+                  type="text"
+                  value={editForm.carrier}
+                  onChange={(e) => setEdit("carrier", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tracking #</label>
+                <input
+                  type="text"
+                  value={editForm.tracking_number}
+                  onChange={(e) => setEdit("tracking_number", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cartons</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editForm.carton_count}
+                  onChange={(e) => setEdit("carton_count", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editForm.total_weight}
+                  onChange={(e) => setEdit("total_weight", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea
+                rows={2}
+                value={editForm.notes}
+                onChange={(e) => setEdit("notes", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowEdit(false)}
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingEdit}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
+              >
+                {savingEdit ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Invoice Document */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 print:shadow-none print:border-none print:rounded-none">

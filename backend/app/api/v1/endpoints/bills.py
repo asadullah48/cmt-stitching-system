@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query
 
 from app.core.deps import CurrentUser, DbDep
-from app.schemas.bill import BillCreate, BillOut, BillListResponse, BillPaymentUpdate, NextBillNumber
+from app.schemas.bill import BillCreate, BillOut, BillListResponse, BillPaymentUpdate, BillUpdate, NextBillNumber
 from app.services.bill_service import BillService
 
 router = APIRouter(prefix="/bills", tags=["bills"])
@@ -117,6 +117,32 @@ def get_bill(bill_id: UUID, db: DbDep, _: CurrentUser):
     bill = BillService.get_by_id(db, bill_id)
     if not bill:
         raise HTTPException(status_code=404, detail="Bill not found")
+    return _to_out(bill)
+
+
+@router.patch("/{bill_id}", response_model=BillOut)
+def update_bill(bill_id: UUID, data: BillUpdate, db: DbDep, current_user: CurrentUser):
+    bill = BillService.get_by_id(db, bill_id)
+    if not bill:
+        raise HTTPException(status_code=404, detail="Bill not found")
+    if data.bill_date is not None:
+        bill.bill_date = data.bill_date
+    if data.carrier is not None:
+        bill.carrier = data.carrier
+    if data.tracking_number is not None:
+        bill.tracking_number = data.tracking_number
+    if data.carton_count is not None:
+        bill.carton_count = data.carton_count
+    if data.total_weight is not None:
+        bill.total_weight = data.total_weight
+    if data.discount is not None:
+        bill.discount = data.discount
+    if data.amount_due is not None:
+        bill.amount_due = data.amount_due
+    if data.notes is not None:
+        bill.notes = data.notes
+    db.commit()
+    db.refresh(bill)
     return _to_out(bill)
 
 

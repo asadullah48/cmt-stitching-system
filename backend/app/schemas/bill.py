@@ -35,6 +35,17 @@ class BillCreate(BaseModel):
         return self
 
 
+class BillUpdate(BaseModel):
+    bill_date: Optional[date] = None
+    carrier: Optional[str] = None
+    tracking_number: Optional[str] = None
+    carton_count: Optional[int] = None
+    total_weight: Optional[Decimal] = None
+    discount: Optional[Decimal] = None
+    amount_due: Optional[Decimal] = None
+    notes: Optional[str] = None
+
+
 class BillPaymentUpdate(BaseModel):
     amount: Decimal
     payment_method: Optional[str] = None
