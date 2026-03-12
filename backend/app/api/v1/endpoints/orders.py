@@ -12,7 +12,7 @@ from app.models.orders import Order
 from app.models.products import Product, ProductBOMItem
 from app.schemas.orders import (
     OrderCreate, OrderUpdate, OrderStatusUpdate,
-    OrderOut, OrderListResponse,
+    OrderOut, OrderListResponse, OrderItemCreate,
 )
 from app.schemas.products import OrderMaterialsOut, MaterialRequirement
 from app.services.order_service import OrderService
@@ -179,6 +179,28 @@ def update_order(order_id: UUID, data: OrderUpdate, db: DbDep, current_user: Cur
 @router.patch("/{order_id}/status", response_model=OrderOut)
 def update_status(order_id: UUID, data: OrderStatusUpdate, db: DbDep, current_user: CurrentUser):
     return _to_out(OrderService.update_status(db, order_id, data.status.value, current_user.id))
+
+
+@router.post("/{order_id}/clone", response_model=OrderOut, status_code=201)
+def clone_order(order_id: UUID, db: DbDep, current_user: CurrentUser):
+    """Clone an order: copy party, items, rates into a new pending order with today's entry date.
+    Bill/payment data and completion/dispatch fields are NOT cloned."""
+    source = OrderService.get_by_id(db, order_id)
+    clone_data = OrderCreate(
+        party_id=source.party_id,
+        party_reference=source.party_reference,
+        goods_description=source.goods_description,
+        total_quantity=source.total_quantity,
+        stitch_rate_party=source.stitch_rate_party,
+        stitch_rate_labor=source.stitch_rate_labor,
+        pack_rate_party=source.pack_rate_party,
+        pack_rate_labor=source.pack_rate_labor,
+        entry_date=date.today(),
+        product_id=source.product_id,
+        items=[OrderItemCreate(size=i.size, quantity=i.quantity) for i in source.items],
+    )
+    new_order = OrderService.create(db, clone_data, current_user.id)
+    return _to_out(new_order)
 
 
 @router.delete("/{order_id}", status_code=http_status.HTTP_204_NO_CONTENT)

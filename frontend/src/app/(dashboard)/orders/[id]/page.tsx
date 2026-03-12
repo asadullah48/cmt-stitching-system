@@ -147,6 +147,7 @@ export default function OrderDetailPage() {
   const [editSheet, setEditSheet] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [cloning, setCloning] = useState(false);
   const [materials, setMaterials] = useState<OrderMaterials | null>(null);
 
   const loadOrder = useCallback(async () => {
@@ -190,6 +191,19 @@ export default function OrderDetailPage() {
     } finally {
       setDeleting(false);
       setDeleteDialog(false);
+    }
+  };
+
+  const handleClone = async () => {
+    setCloning(true);
+    try {
+      const cloned = await ordersService.cloneOrder(id);
+      showToast(`Order cloned as ${cloned.order_number}`);
+      router.push(`/orders/${cloned.id}`);
+    } catch {
+      showToast("Failed to clone order", "error");
+    } finally {
+      setCloning(false);
     }
   };
 
@@ -309,6 +323,29 @@ export default function OrderDetailPage() {
             <Button size="sm" onClick={() => setEditSheet(true)}>
               Edit
             </Button>
+            <button
+              onClick={handleClone}
+              disabled={cloning}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            >
+              {cloning ? (
+                <>
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Cloning…
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Clone
+                </>
+              )}
+            </button>
             <Button
               variant="secondary"
               size="sm"

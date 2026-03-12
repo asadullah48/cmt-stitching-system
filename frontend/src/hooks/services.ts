@@ -135,6 +135,11 @@ export const ordersService = {
   deleteOrder: async (id: string): Promise<void> => {
     await api.delete(`/orders/${id}`);
   },
+
+  cloneOrder: async (id: string): Promise<Order> => {
+    const { data } = await api.post<Order>(`/orders/${id}/clone`);
+    return data;
+  },
 };
 
 // ─── Parties ─────────────────────────────────────────────────────────────────
