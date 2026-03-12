@@ -544,7 +544,7 @@ function DispatchCard({
   bill: Bill | null;
   router: ReturnType<typeof useRouter>;
 }) {
-  const isReady      = ["packing_complete", "dispatched"].includes(order.status);
+  const isReady      = ["stitching_complete", "packing_complete", "dispatched"].includes(order.status);
   const isDispatched = order.status === "dispatched";
 
   if (!isReady) {
