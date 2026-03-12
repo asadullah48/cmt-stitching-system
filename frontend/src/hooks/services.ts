@@ -142,6 +142,11 @@ export const ordersService = {
     return data;
   },
 
+  renumberFix: async (): Promise<{ renumbered: number; new_numbers: string[] }> => {
+    const { data } = await api.post('/orders/renumber-fix');
+    return data;
+  },
+
   bulkImport: async (file: File): Promise<{ created: number; errors: Array<{ row: number; message: string }> }> => {
     const text = await file.text();
     const lines = text.split(/\r?\n/).filter((l) => l.trim());
@@ -473,6 +478,19 @@ export const expensesService = {
   listByOrder: async (orderId: string): Promise<{ data: Expense[]; total: number }> => {
     const { data } = await api.get('/expenses/', { params: { order_id: orderId, size: 100 } });
     return data;
+  },
+  create: async (payload: {
+    order_id?: string;
+    amount: number;
+    description?: string;
+    expense_date: string;
+    receipt_number?: string;
+  }): Promise<Expense> => {
+    const { data } = await api.post<Expense>('/expenses/', payload);
+    return data;
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/expenses/${id}`);
   },
 };
 

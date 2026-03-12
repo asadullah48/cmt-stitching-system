@@ -65,7 +65,18 @@
       "Bash(.venv/Scripts/python.exe -c \"\nimport bcrypt\npwd = bcrypt.hashpw\\('admin123'.encode\\(\\), bcrypt.gensalt\\(\\)\\).decode\\(\\)\nprint\\(pwd\\)\n\" 2>&1)",
       "mcp__claude_ai_Vercel__get_deployment_build_logs",
       "mcp__claude_ai_Vercel__get_runtime_logs",
-      "Bash(ls /c/Users/Asad/cmt-stitching-system/frontend/src/app/\\\\\\(dashboard\\\\\\)/\nls /c/Users/Asad/cmt-stitching-system/frontend/src/app/)"
+      "Bash(ls /c/Users/Asad/cmt-stitching-system/frontend/src/app/\\\\\\(dashboard\\\\\\)/\nls /c/Users/Asad/cmt-stitching-system/frontend/src/app/)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTU0MmI3Ni02ZjUxLTRhOGEtOTBmYy02YmFiZTk5NTIwYTQiLCJleHAiOjE3NzMxNzg0ODd9.PoOJl9RQvFhVprcEfaIottl22Ww0gTXBV_NK-AlwxGI\"\ncurl -s \"https://cmt-backend-5xuu.onrender.com/api/v1/parties/?page=1&size=100\" -H \"Authorization: Bearer $TOKEN\" | python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(p['id'], p['name']\\) for p in d.get\\('data',[]\\)]\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTU0MmI3Ni02ZjUxLTRhOGEtOTBmYy02YmFiZTk5NTIwYTQiLCJleHAiOjE3NzMxNzg0ODd9.PoOJl9RQvFhVprcEfaIottl22Ww0gTXBV_NK-AlwxGI\"\ncurl -s \"https://cmt-backend-5xuu.onrender.com/api/v1/parties/?page=1&size=100\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(cd \"C:/Users/Asad/cmt-stitching-system/backend\" && uv --version 2>&1 && which uv 2>&1)",
+      "Bash(cd \"C:/Users/Asad/cmt-stitching-system/backend\" && .venv/Scripts/alembic upgrade head 2>&1)",
+      "Bash(cd \"C:/Users/Asad/cmt-stitching-system/backend\" && .venv/Scripts/python.exe -c \"import alembic; print\\(alembic.__version__\\)\" 2>&1)",
+      "Bash(cd \"C:/Users/Asad/cmt-stitching-system/backend\" && .venv/Scripts/python.exe -c \"\nfrom alembic.config import Config\nfrom alembic import command\n\ncfg = Config\\('alembic.ini'\\)\ncommand.upgrade\\(cfg, 'head'\\)\n\" 2>&1)",
+      "Bash(pip install:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc3MzM3MjA5NX0.rj7WFG_VNj8Fr56o1AY4UMnhWE65q5GCM8RkI2In-go\"\ncurl -s https://cmt-backend-5xuu.onrender.com/api/v1/auth/me -H \"Authorization: Bearer $TOKEN\" 2>&1)",
+      "Bash(pkill -f \"uvicorn app.main:app\" 2>/dev/null; echo \"Server killed\")",
+      "Bash(ls \"C:/Users/Asad/cmt-stitching-system/frontend/src/app/\\(dashboard\\)/orders/\")",
+      "Bash(ls \"C:/Users/Asad/cmt-stitching-system/frontend/src/app/\\(dashboard\\)/orders/[id]/\")"
     ]
   }
 }

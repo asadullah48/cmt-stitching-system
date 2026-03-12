@@ -474,6 +474,19 @@ export const expensesService = {
     const { data } = await api.get('/expenses/', { params: { order_id: orderId, size: 100 } });
     return data;
   },
+  create: async (payload: {
+    order_id?: string;
+    amount: number;
+    description?: string;
+    expense_date: string;
+    receipt_number?: string;
+  }): Promise<Expense> => {
+    const { data } = await api.post<Expense>('/expenses/', payload);
+    return data;
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/expenses/${id}`);
+  },
 };
 
 // ─── Insights ────────────────────────────────────────────────────────────────

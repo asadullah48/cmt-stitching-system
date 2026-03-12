@@ -380,3 +380,43 @@ def clone_order(order_id: UUID, db: DbDep, current_user: CurrentUser):
 @router.delete("/{order_id}", status_code=http_status.HTTP_204_NO_CONTENT)
 def delete_order(order_id: UUID, db: DbDep, current_user: CurrentUser):
     OrderService.soft_delete(db, order_id, current_user.id)
+
+
+@router.post("/renumber-fix", status_code=200)
+def renumber_orders(db: DbDep, current_user: CurrentUser):
+    """Admin only: renumber all active orders sequentially per month, starting from 0001."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    from collections import defaultdict
+
+    # Fetch all active orders ordered by existing order_number (preserves relative order)
+    orders = (
+        db.query(Order)
+        .filter(Order.is_deleted.is_(False))
+        .order_by(Order.order_number)
+        .all()
+    )
+
+    # Group by YYYYMM (second segment of ORD-YYYYMM-XXXX)
+    by_month: dict = defaultdict(list)
+    for o in orders:
+        parts = o.order_number.split("-")
+        month_key = parts[1] if len(parts) >= 3 else "000000"
+        by_month[month_key].append(o)
+
+    # Phase 1: set all to temp names to avoid unique constraint violations
+    for i, o in enumerate(orders):
+        o.order_number = f"__TEMP__{i:06d}"
+    db.flush()
+
+    # Phase 2: assign final sequential numbers
+    results = []
+    for month_key in sorted(by_month.keys()):
+        for seq, o in enumerate(by_month[month_key], 1):
+            new_num = f"ORD-{month_key}-{seq:04d}"
+            results.append(new_num)
+            o.order_number = new_num
+
+    db.commit()
+    return {"renumbered": len(results), "new_numbers": results}

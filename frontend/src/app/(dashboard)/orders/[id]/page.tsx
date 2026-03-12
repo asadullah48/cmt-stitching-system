@@ -388,12 +388,16 @@ function PackingCard({
   expenses,
   onLogSession,
   onStatusChange,
+  onAddExpense,
+  onDeleteExpense,
 }: {
   order: Order;
   sessions: ProductionSession[];
   expenses: Expense[];
   onLogSession: () => void;
   onStatusChange: (updated: Order) => void;
+  onAddExpense: (amount: number, description: string, date: string) => Promise<void>;
+  onDeleteExpense: (id: string) => Promise<void>;
 }) {
   const status      = order.status;
   const isActive    = status === "packing_in_progress";
@@ -401,10 +405,29 @@ function PackingCard({
   const isReachable = ["stitching_complete", "packing_in_progress", "packing_complete", "dispatched"].includes(status);
   const hasPacking  = order.pack_rate_party != null || order.pack_rate_labor != null;
 
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [expAmount, setExpAmount] = useState("");
+  const [expDesc, setExpDesc] = useState("");
+  const [expDate, setExpDate] = useState(new Date().toISOString().split("T")[0]);
+  const [savingExp, setSavingExp] = useState(false);
+
   const totalHours    = sessions.reduce((s, r) => s + (Number(r.duration_hours) ?? 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
   const packParty     = (order.pack_rate_party ?? 0) * order.total_quantity;
   const packLabor     = (order.pack_rate_labor ?? 0) * order.total_quantity;
+
+  const handleSaveExpense = async () => {
+    const amt = parseFloat(expAmount);
+    if (!amt || amt <= 0) return;
+    setSavingExp(true);
+    try {
+      await onAddExpense(amt, expDesc, expDate);
+      setExpAmount(""); setExpDesc(""); setExpDate(new Date().toISOString().split("T")[0]);
+      setShowExpenseForm(false);
+    } finally {
+      setSavingExp(false);
+    }
+  };
 
   if (!isReachable) {
     return (
@@ -491,24 +514,94 @@ function PackingCard({
         )}
 
         {/* Expenses list */}
-        {expenses.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Expenses (Draft) — PKR {formatCurrency(totalExpenses)}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Expenses — PKR {formatCurrency(totalExpenses)}
             </p>
+            <button
+              onClick={() => setShowExpenseForm((v) => !v)}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {showExpenseForm ? "Cancel" : "+ Add Expense"}
+            </button>
+          </div>
+
+          {showExpenseForm && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-2 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Amount (PKR) *</label>
+                  <input
+                    type="number" min="0" step="0.01" placeholder="0.00"
+                    value={expAmount}
+                    onChange={(e) => setExpAmount(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    value={expDate}
+                    onChange={(e) => setExpDate(e.target.value)}
+                    className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Description</label>
+                <input
+                  type="text" placeholder="e.g. Thread, packaging material, transport…"
+                  value={expDesc}
+                  onChange={(e) => setExpDesc(e.target.value)}
+                  className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs"
+                />
+              </div>
+              <button
+                onClick={handleSaveExpense}
+                disabled={savingExp || !expAmount}
+                className="w-full py-1.5 bg-orange-600 text-white rounded text-xs font-medium hover:bg-orange-700 disabled:opacity-60"
+              >
+                {savingExp ? "Saving…" : "Save Expense"}
+              </button>
+            </div>
+          )}
+
+          {expenses.length > 0 && (
             <div className="space-y-1.5">
               {expenses.map((e) => (
                 <div
                   key={e.id}
-                  className="flex items-center justify-between text-xs bg-orange-50 rounded-lg px-3 py-2"
+                  className="flex items-center justify-between text-xs bg-orange-50 rounded-lg px-3 py-2 group"
                 >
-                  <span className="text-gray-700">{e.description ?? "Expense"}</span>
-                  <span className="font-semibold text-orange-700">PKR {formatCurrency(e.amount)}</span>
+                  <div className="min-w-0">
+                    <span className="text-gray-700">{e.description ?? "Expense"}</span>
+                    {e.expense_date && (
+                      <span className="text-gray-400 ml-2">{formatDate(e.expense_date)}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="font-semibold text-orange-700">PKR {formatCurrency(e.amount)}</span>
+                    <button
+                      onClick={() => onDeleteExpense(e.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 p-0.5"
+                      title="Delete"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+
+          {expenses.length === 0 && !showExpenseForm && (
+            <p className="text-xs text-gray-400 italic">No expenses recorded yet.</p>
+          )}
+        </div>
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
@@ -797,6 +890,23 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleAddExpense = async (amount: number, description: string, date: string) => {
+    const expense = await expensesService.create({
+      order_id: id,
+      amount,
+      description: description || undefined,
+      expense_date: date,
+    });
+    setExpenses((prev) => [...prev, expense]);
+    showToast("Expense added");
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    await expensesService.delete(expenseId);
+    setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+    showToast("Expense removed");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -829,6 +939,15 @@ export default function OrderDetailPage() {
             </div>
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => window.open(`/orders/${id}/jobcard`, "_blank")}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Job Card
+            </button>
             <Button size="sm" onClick={() => setEditSheet(true)}>
               Edit
             </Button>
@@ -922,6 +1041,8 @@ export default function OrderDetailPage() {
         expenses={expenses}
         onLogSession={() => setSessionSheet("packing")}
         onStatusChange={setOrder}
+        onAddExpense={handleAddExpense}
+        onDeleteExpense={handleDeleteExpense}
       />
 
       <DispatchCard order={order} bill={bill} router={router} />
