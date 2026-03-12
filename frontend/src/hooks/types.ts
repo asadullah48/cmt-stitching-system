@@ -202,6 +202,30 @@ export interface DashboardSummary {
   on_hold_orders: number;
   stitching_progress_pct: number;
   packing_progress_pct: number;
+  collected_month?: number;
+  outstanding_total?: number;
+  orders_this_month?: number;
+}
+
+// ─── Insights ────────────────────────────────────────────────────────────────
+
+export interface Alert {
+  id: string;
+  level: 'warning' | 'info';
+  message: string;
+  detail?: string;
+  link?: string;
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+
+export interface AppSettings {
+  business_name: string;
+  owner_name: string;
+  no_bill_alert_days: number;
+  goods_on_hold_alert_days: number;
+  outstanding_alert_days: number;
+  rate_deviation_pct: number;
 }
 
 // ─── Pagination ──────────────────────────────────────────────────────────────

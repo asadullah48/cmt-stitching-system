@@ -30,7 +30,11 @@ import type {
   Product,
   ProductBOMItem,
   OrderMaterials,
+  Alert,
+  AppSettings,
 } from "./types";
+
+export type { Alert, AppSettings };
 
 // ─── Axios instance ──────────────────────────────────────────────────────────
 
@@ -390,6 +394,28 @@ export const billService = {
       `/bills/next-number`,
       { params: { series } }
     );
+    return data;
+  },
+};
+
+// ─── Insights ────────────────────────────────────────────────────────────────
+
+export const insightsService = {
+  getAlerts: async (): Promise<Alert[]> => {
+    const { data } = await api.get<Alert[]>('/insights/');
+    return data;
+  },
+};
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+
+export const settingsService = {
+  get: async (): Promise<AppSettings> => {
+    const { data } = await api.get<AppSettings>('/settings/');
+    return data;
+  },
+  update: async (payload: Partial<AppSettings>): Promise<AppSettings> => {
+    const { data } = await api.put<AppSettings>('/settings/', payload);
     return data;
   },
 };
