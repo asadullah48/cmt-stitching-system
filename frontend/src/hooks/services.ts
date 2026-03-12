@@ -140,6 +140,42 @@ export const ordersService = {
     const { data } = await api.post<Order>(`/orders/${id}/clone`);
     return data;
   },
+
+  bulkImport: async (file: File): Promise<{ created: number; errors: Array<{ row: number; message: string }> }> => {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length < 2) return { created: 0, errors: [{ row: 0, message: "File is empty or has no data rows" }] };
+
+    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+    const rows = lines.slice(1).map((line, i) => {
+      const vals = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      const obj: Record<string, string> = {};
+      headers.forEach((h, idx) => { obj[h] = vals[idx] ?? ""; });
+
+      const qty = parseInt(obj.total_quantity) || 0;
+      return {
+        order_date: obj.entry_date || obj.order_date || new Date().toISOString().split("T")[0],
+        party_name: obj.party_name || "",
+        goods_description: obj.goods_description || "",
+        total_quantity: qty,
+        stitch_rate_party: parseFloat(obj.stitch_rate_party) || 0,
+        stitch_rate_labor: parseFloat(obj.stitch_rate_labor) || 0,
+        pack_rate_party: obj.pack_rate_party ? parseFloat(obj.pack_rate_party) : undefined,
+        pack_rate_labor: obj.pack_rate_labor ? parseFloat(obj.pack_rate_labor) : undefined,
+        items: [{ size: "OS", quantity: qty }],
+      };
+    }).filter((r) => r.party_name && r.goods_description);
+
+    const res = await api.post<{ created: number; errors: Array<{ row: number; party?: string; reason?: string; message?: string }> }>(
+      "/orders/bulk-import",
+      rows
+    );
+    const errors = (res.data.errors ?? []).map((e) => ({
+      row: e.row,
+      message: e.reason ?? e.message ?? "Unknown error",
+    }));
+    return { created: res.data.created, errors };
+  },
 };
 
 // ─── Parties ─────────────────────────────────────────────────────────────────
