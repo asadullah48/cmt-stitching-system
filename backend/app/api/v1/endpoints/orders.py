@@ -1,14 +1,19 @@
-from datetime import date
-from decimal import Decimal
+import csv
+import io
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Optional
 from uuid import UUID
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status as http_status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status as http_status
+from pydantic import BaseModel
+from sqlalchemy import func
 
 from app.core.deps import CurrentUser, DbDep
 from app.models.inventory import InventoryItem, InventoryTransaction
 from app.models.orders import Order
+from app.models.parties import Party as PartyModel
 from app.models.products import Product, ProductBOMItem
 from app.schemas.orders import (
     OrderCreate, OrderUpdate, OrderStatusUpdate,
@@ -75,6 +80,175 @@ def list_orders(
 def create_order(data: OrderCreate, db: DbDep, current_user: CurrentUser):
     order = OrderService.create(db, data, current_user.id)
     return _to_out(order)
+
+
+# ── Bulk Import ──────────────────────────────────────────────────────────────
+# IMPORTANT: This route must remain above /{order_id} routes to avoid
+# FastAPI interpreting "bulk-import" as an order_id path parameter.
+
+class BulkImportResult(BaseModel):
+    created: int
+    errors: list[dict]
+
+
+def _parse_decimal(value: str, field: str) -> Decimal:
+    """Parse a string to Decimal, raising ValueError with a helpful message."""
+    try:
+        return Decimal(value.strip())
+    except InvalidOperation:
+        raise ValueError(f"'{field}' must be a valid number (got: {value!r})")
+
+
+def _parse_date(value: str, field: str) -> date:
+    """Parse common date formats (YYYY-MM-DD or DD/MM/YYYY)."""
+    value = value.strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            continue
+    raise ValueError(f"'{field}' must be a date (YYYY-MM-DD), got: {value!r}")
+
+
+@router.post("/bulk-import", response_model=BulkImportResult, status_code=200)
+async def bulk_import_orders(
+    db: DbDep,
+    current_user: CurrentUser,
+    file: UploadFile = File(...),
+):
+    """
+    Accept a CSV file upload and bulk-create orders from it.
+
+    Expected CSV columns (header row required):
+        party_name, goods_description, total_quantity,
+        stitch_rate_party, stitch_rate_labor,
+        pack_rate_party (optional), pack_rate_labor (optional),
+        entry_date (optional, defaults to today, YYYY-MM-DD),
+        delivery_date (optional), notes (optional)
+
+    Returns { created: N, errors: [{row: N, message: "..."}] }.
+    Rows with errors are skipped; valid rows are always committed.
+    """
+    # Read uploaded file bytes
+    content = await file.read()
+    try:
+        text = content.decode("utf-8-sig")  # handle BOM from Excel CSV exports
+    except UnicodeDecodeError:
+        text = content.decode("latin-1")
+
+    reader = csv.DictReader(io.StringIO(text))
+
+    # Normalise header names: strip whitespace, lowercase
+    if reader.fieldnames is None:
+        return BulkImportResult(created=0, errors=[{"row": 0, "message": "Empty or unreadable CSV file"}])
+
+    fieldnames_normalised = [f.strip().lower() for f in reader.fieldnames]
+    reader.fieldnames = fieldnames_normalised  # type: ignore[assignment]
+
+    required_cols = {"party_name", "goods_description", "total_quantity", "stitch_rate_party", "stitch_rate_labor"}
+    missing_cols = required_cols - set(fieldnames_normalised)
+    if missing_cols:
+        return BulkImportResult(
+            created=0,
+            errors=[{"row": 0, "message": f"CSV missing required columns: {', '.join(sorted(missing_cols))}"}],
+        )
+
+    today = date.today()
+    created = 0
+    errors: list[dict] = []
+
+    for row_num, raw_row in enumerate(reader, start=2):  # row 1 is header
+        # Strip whitespace from all values
+        row = {k: (v.strip() if v else "") for k, v in raw_row.items()}
+
+        party_name = row.get("party_name", "")
+        goods_description = row.get("goods_description", "")
+
+        # Skip completely blank rows (e.g. trailing newlines in CSV)
+        if not party_name and not goods_description:
+            continue
+
+        try:
+            # ── Validate required fields ──────────────────────────────────
+            if not party_name:
+                raise ValueError("'party_name' is required")
+            if not goods_description:
+                raise ValueError("'goods_description' is required")
+
+            qty_raw = row.get("total_quantity", "")
+            if not qty_raw:
+                raise ValueError("'total_quantity' is required")
+            try:
+                total_quantity = int(qty_raw)
+            except ValueError:
+                raise ValueError(f"'total_quantity' must be an integer (got: {qty_raw!r})")
+            if total_quantity <= 0:
+                raise ValueError(f"'total_quantity' must be > 0 (got: {total_quantity})")
+
+            stitch_rate_party = _parse_decimal(row.get("stitch_rate_party", ""), "stitch_rate_party")
+            stitch_rate_labor = _parse_decimal(row.get("stitch_rate_labor", ""), "stitch_rate_labor")
+
+            # ── Optional pack rates — must both be present or both absent ──
+            pack_rate_party_raw = row.get("pack_rate_party", "")
+            pack_rate_labor_raw = row.get("pack_rate_labor", "")
+            pack_rate_party: Optional[Decimal] = None
+            pack_rate_labor: Optional[Decimal] = None
+            if pack_rate_party_raw or pack_rate_labor_raw:
+                if pack_rate_party_raw and pack_rate_labor_raw:
+                    pack_rate_party = _parse_decimal(pack_rate_party_raw, "pack_rate_party")
+                    pack_rate_labor = _parse_decimal(pack_rate_labor_raw, "pack_rate_labor")
+                elif pack_rate_party_raw and not pack_rate_labor_raw:
+                    raise ValueError("'pack_rate_labor' must be provided when 'pack_rate_party' is set")
+                else:
+                    raise ValueError("'pack_rate_party' must be provided when 'pack_rate_labor' is set")
+
+            # ── Optional dates ────────────────────────────────────────────
+            entry_date_raw = row.get("entry_date", "")
+            entry_date = _parse_date(entry_date_raw, "entry_date") if entry_date_raw else today
+
+            delivery_date_raw = row.get("delivery_date", "")
+            delivery_date: Optional[date] = _parse_date(delivery_date_raw, "delivery_date") if delivery_date_raw else None
+
+            # ── Find or create party by name ───────────────────────────────
+            party = db.query(PartyModel).filter(
+                func.lower(PartyModel.name) == party_name.lower(),
+                PartyModel.is_deleted.is_(False),
+            ).first()
+            if not party:
+                party = PartyModel(name=party_name, balance=Decimal("0"))
+                db.add(party)
+                db.flush()  # get party.id without committing
+
+            # ── Build OrderCreate and persist ──────────────────────────────
+            order_data = OrderCreate(
+                party_id=party.id,
+                goods_description=goods_description,
+                total_quantity=total_quantity,
+                stitch_rate_party=stitch_rate_party,
+                stitch_rate_labor=stitch_rate_labor,
+                pack_rate_party=pack_rate_party,
+                pack_rate_labor=pack_rate_labor,
+                entry_date=entry_date,
+                delivery_date=delivery_date,
+                items=[OrderItemCreate(size="OS", quantity=total_quantity)],
+            )
+            # OrderService.create commits internally; use a savepoint so a
+            # per-row failure does not poison the entire session.
+            sp = db.begin_nested()
+            try:
+                OrderService.create(db, order_data, current_user.id)
+                sp.commit()
+                created += 1
+            except Exception as inner_exc:
+                sp.rollback()
+                errors.append({"row": row_num, "party": party_name, "message": str(inner_exc)})
+
+        except ValueError as exc:
+            errors.append({"row": row_num, "party": party_name, "message": str(exc)})
+        except Exception as exc:
+            errors.append({"row": row_num, "party": party_name, "message": f"Unexpected error: {exc}"})
+
+    return BulkImportResult(created=created, errors=errors)
 
 
 @router.get("/{order_id}/materials", response_model=OrderMaterialsOut)
