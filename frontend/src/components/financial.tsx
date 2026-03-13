@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { transactionsService, partiesService, ordersService } from "@/hooks/services";
+import { transactionsService, partiesService, ordersService, billService } from "@/hooks/services";
+import type { Bill } from "@/hooks/services";
 import { todayInputDate, formatCurrency, formatDate } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
 import { Button, FormField, Input, Select, Textarea } from "@/components/common";
@@ -45,8 +46,10 @@ export function TransactionForm({
   const isEdit = !!initialData;
   const [partyId, setPartyId] = useState(initialData?.party_id ?? initialPartyId ?? "");
   const [orderId, setOrderId] = useState(initialData?.order_id ?? initialOrderId ?? "");
+  const [billId, setBillId] = useState(initialData?.bill_id ?? "");
   const [parties, setParties] = useState<Party[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [bills, setBills] = useState<Bill[]>([]);
   const [txType, setTxType] = useState<TransactionType>(initialData?.transaction_type ?? "income");
   const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(initialData?.payment_method ?? "");
@@ -61,6 +64,7 @@ export function TransactionForm({
       partiesService.getParties(1, 100).then((r) => setParties(r.data));
     }
     ordersService.getOrders({ size: 100 }).then((r) => setOrders(r.data));
+    billService.list({ size: 100 }).then((r) => setBills(r.data));
   }, [initialPartyId]);
 
   const validate = () => {
@@ -82,6 +86,7 @@ export function TransactionForm({
     const payload: TransactionCreate = {
       party_id: partyId || undefined,
       order_id: orderId || undefined,
+      bill_id: billId || undefined,
       transaction_type: txType,
       amount: parseFloat(amount),
       payment_method: (paymentMethod as PaymentMethod) || undefined,
@@ -128,6 +133,15 @@ export function TransactionForm({
           <option value="">— Select order (optional) —</option>
           {orders.map((o) => (
             <option key={o.id} value={o.id}>{o.order_number} — {o.goods_description}</option>
+          ))}
+        </Select>
+      </FormField>
+
+      <FormField label="Link to Bill">
+        <Select value={billId} onChange={(e) => setBillId(e.target.value)}>
+          <option value="">— Select bill (optional) —</option>
+          {bills.map((b) => (
+            <option key={b.id} value={b.id}>{b.bill_number} {b.order_number ? `— ${b.order_number}` : ""} {b.amount_due ? `(PKR ${Number(b.amount_due).toLocaleString()})` : ""}</option>
           ))}
         </Select>
       </FormField>
