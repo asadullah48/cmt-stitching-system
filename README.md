@@ -25,12 +25,14 @@ A production management system for a CMT (Cut, Make, Trim) stitching and packing
 
 - **Orders** — Create and track orders through the full lifecycle: pending → stitching → packing → dispatched
 - **Production** — Log stitching and packing sessions per order with machine count and hours
+- **Inventory** — Categories, items, stock adjustments (in/out) with full history; quick stock-check widget
+- **Billing** — Auto-numbered bills per series, partial/full payment tracking, bill delete with ledger reversal
+- **Financial Ledger** — All 6 transaction types: income, payment, expense, purchase, stock_consumption, adjustment
 - **Quality Control** — Checkpoints and defect logging per order
 - **Dispatch** — Mark orders as dispatched with carrier, tracking number, carton count, and weight
-- **Financial Ledger** — Record income and payments per party, track running balances
 - **Income Summary** — Per-order profit calculation deducting labor, transport, loading, rent, and miscellaneous expenses
 - **Dashboard** — Live KPIs: active orders, monthly revenue, stitching/packing progress
-- **Parties** — Manage customer/vendor parties with ledger history
+- **Parties** — Manage customer/vendor parties with full ledger history
 
 ## Order Status Lifecycle
 
@@ -73,6 +75,31 @@ cmt-stitching-system/
 └── docs/
     └── plans/                  # Design and planning documents
 ```
+
+## Smoke Test
+
+End-to-end test covering all API endpoints. Creates mock data, validates responses, then cleans up.
+
+```bash
+cd backend
+# Against local server:
+PYTHONIOENCODING=utf-8 python test_smoke.py --base-url http://localhost:8000/api/v1
+
+# Keep test data for inspection:
+PYTHONIOENCODING=utf-8 python test_smoke.py --base-url http://localhost:8000/api/v1 --keep
+```
+
+Last result: **48/48 passed** — 2026-03-14. Full report: `backend/docs/smoke-test-results.md`
+
+## DB Migration Chain
+
+```
+4d1e3598580f → a1b2c3d4e5f6 → b2c3d4e5f6a7 → c3d4e5f6a7b8 → d4e5f6a7b8c9
+→ e5f6a7b8c9d0 → f6a7b8c9d0e1 → g7b8c9d0e1f2 → h8c9d0e1f2g3 → i9d0e1f2g3h4
+→ j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 (head)
+```
+
+> Frontend requires manual deploy: `cd frontend && vercel deploy --prod`
 
 ## Local Development
 
