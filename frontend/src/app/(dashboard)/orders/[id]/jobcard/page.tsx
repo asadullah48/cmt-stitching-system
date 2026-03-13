@@ -20,8 +20,12 @@ export default function JobCardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
+    const saved = localStorage.getItem(`jobcard_notes_${id}`);
+    if (saved) setNotes(saved);
+
     Promise.all([
       ordersService.getOrder(id),
       productionService.getSessionsForOrder(id, "stitching"),
@@ -36,6 +40,11 @@ export default function JobCardPage() {
       setBill(b);
     }).finally(() => setLoading(false));
   }, [id]);
+
+  const handleNotesChange = (v: string) => {
+    setNotes(v);
+    localStorage.setItem(`jobcard_notes_${id}`, v);
+  };
 
   if (loading) {
     return (
@@ -315,6 +324,28 @@ export default function JobCardPage() {
             </div>
           ) : (
             <p className="text-sm text-gray-400 italic">No bill generated yet.</p>
+          )}
+        </div>
+
+        {/* ── Notes ──────────────────────────────────────────── */}
+        <div className="mb-6">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Notes</h2>
+          {/* Editable textarea — screen only */}
+          <textarea
+            className="print:hidden w-full border border-gray-200 rounded p-2 text-sm text-gray-700 resize-y focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder:text-gray-300"
+            rows={3}
+            placeholder="Add internal notes for this job card…"
+            value={notes}
+            onChange={(e) => handleNotesChange(e.target.value)}
+          />
+          {/* Print version — only shown when printing */}
+          {notes.trim() && (
+            <div className="hidden print:block border border-gray-300 rounded p-3 text-sm text-gray-700 whitespace-pre-wrap">
+              {notes}
+            </div>
+          )}
+          {!notes.trim() && (
+            <div className="hidden print:block text-sm text-gray-400 italic">No notes.</div>
           )}
         </div>
 

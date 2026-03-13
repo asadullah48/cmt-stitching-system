@@ -37,6 +37,30 @@ export default function LedgerPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editTx, setEditTx] = useState<FinancialTransaction | null>(null);
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
+  const [reconcileMode, setReconcileMode] = useState(false);
+  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+
+  // Load reconciliation marks from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("ledger_reconcile_marks");
+      if (stored) setMarkedIds(new Set(JSON.parse(stored)));
+    } catch { /* ignore */ }
+  }, []);
+
+  const toggleMark = (txId: string) => {
+    setMarkedIds((prev) => {
+      const next = new Set(prev);
+      next.has(txId) ? next.delete(txId) : next.add(txId);
+      localStorage.setItem("ledger_reconcile_marks", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const clearMarks = () => {
+    setMarkedIds(new Set());
+    localStorage.removeItem("ledger_reconcile_marks");
+  };
 
   const load = useCallback(async (f: TransactionFilters) => {
     setLoading(true);
@@ -89,7 +113,7 @@ export default function LedgerPage() {
     day: "2-digit", month: "short", year: "numeric",
   });
 
-  const colSpan = 8;
+  const colSpan = reconcileMode ? 9 : 8;
 
   return (
     <div className="space-y-4">
@@ -109,6 +133,28 @@ export default function LedgerPage() {
             </svg>
             Print
           </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setReconcileMode((v) => !v)}
+            className={reconcileMode
+              ? "!bg-amber-500 !text-white !border-amber-600 hover:!bg-amber-600"
+              : "!bg-white/10 !text-white !border-white/20 hover:!bg-white/20"
+            }
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {reconcileMode ? "Reconciling…" : "Reconcile"}
+          </Button>
+          {reconcileMode && markedIds.size > 0 && (
+            <button
+              onClick={clearMarks}
+              className="text-xs text-amber-300 hover:text-white font-medium"
+            >
+              Clear {markedIds.size} mark{markedIds.size !== 1 ? "s" : ""}
+            </button>
+          )}
           <Button onClick={() => setSheetOpen(true)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -255,7 +301,8 @@ export default function LedgerPage() {
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Debit</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Credit</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Balance</th>
-                <th className="px-4 py-2.5 print:hidden" />
+                {reconcileMode && <th className="px-2 py-2.5 print:hidden w-8" />}
+              <th className="px-4 py-2.5 print:hidden" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -272,11 +319,17 @@ export default function LedgerPage() {
                   </td>
                 </tr>
               ) : (
-                rows.map((tx, i) => (
+                rows.map((tx, i) => {
+                  const isMarked = markedIds.has(tx.id);
+                  return (
                   <tr
                     key={tx.id}
-                    className={`group hover:bg-blue-50/40 transition-colors ${
-                      i % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                    className={`group transition-colors ${
+                      isMarked
+                        ? "bg-green-50 hover:bg-green-100/70"
+                        : i % 2 === 0
+                          ? "bg-white hover:bg-blue-50/40"
+                          : "bg-gray-50/30 hover:bg-blue-50/40"
                     }`}
                   >
                     <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">
@@ -318,6 +371,25 @@ export default function LedgerPage() {
                     }`}>
                       {formatCurrency(tx.running)}
                     </td>
+                    {reconcileMode && (
+                      <td className="px-2 py-2.5 print:hidden text-center">
+                        <button
+                          onClick={() => toggleMark(tx.id)}
+                          title={isMarked ? "Unmark" : "Mark as reconciled"}
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            isMarked
+                              ? "bg-green-500 border-green-600 text-white"
+                              : "border-gray-300 hover:border-green-400"
+                          }`}
+                        >
+                          {isMarked && (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      </td>
+                    )}
                     <td className="px-2 py-2.5 print:hidden">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
@@ -342,7 +414,8 @@ export default function LedgerPage() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
             {rows.length > 0 && (
