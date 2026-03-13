@@ -15,7 +15,7 @@ class FinancialTransaction(BaseModel):
         nullable=True,
         index=True,
     )
-    transaction_type = Column(String(20), nullable=False)  # income, payment, adjustment
+    transaction_type = Column(String(20), nullable=False)  # income, payment, expense, purchase, stock_consumption, adjustment
     amount = Column(Numeric(10, 2), nullable=False)
     payment_method = Column(String(20))
     reference_number = Column(String(50))

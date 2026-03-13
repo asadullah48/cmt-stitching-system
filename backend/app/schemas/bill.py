@@ -45,6 +45,7 @@ class BillUpdate(BaseModel):
     amount_due: Optional[Decimal] = None
     amount_paid: Optional[Decimal] = None
     notes: Optional[str] = None
+    goods_description: Optional[str] = None   # updates the linked order's goods_description
 
 
 class BillPaymentUpdate(BaseModel):

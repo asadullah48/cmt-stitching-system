@@ -24,6 +24,7 @@ function fmt(n: number | undefined | null) {
 
 interface EditForm {
   bill_date: string;
+  goods_description: string;
   discount: number;
   amount_due: number;
   amount_paid: number;
@@ -53,6 +54,7 @@ export default function BillDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
     bill_date: "",
+    goods_description: "",
     discount: 0,
     amount_due: 0,
     amount_paid: 0,
@@ -63,6 +65,7 @@ export default function BillDetailPage() {
     notes: "",
   });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchUnlinkedPayments = useCallback(async (partyId: string) => {
     setLoadingUnlinked(true);
@@ -114,6 +117,7 @@ export default function BillDetailPage() {
     if (!bill) return;
     setEditForm({
       bill_date: bill.bill_date,
+      goods_description: bill.order_items?.[0]?.description ?? "",
       discount: Number(bill.discount ?? 0),
       amount_due: Number(bill.amount_due),
       amount_paid: Number(bill.amount_paid ?? 0),
@@ -136,6 +140,7 @@ export default function BillDetailPage() {
     try {
       const payload = {
         bill_date: editForm.bill_date,
+        goods_description: editForm.goods_description || undefined,
         discount: editForm.discount,
         amount_due: editForm.amount_due,
         amount_paid: editForm.amount_paid,
@@ -153,6 +158,21 @@ export default function BillDetailPage() {
       showToast("Failed to update bill", "error");
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!bill) return;
+    if (!window.confirm(`Delete bill ${bill.bill_number}? This will revert the order to packing_complete and reverse the ledger entry.`)) return;
+    setDeleting(true);
+    try {
+      await billService.delete(bill.id);
+      showToast(`Bill ${bill.bill_number} deleted`, "success");
+      router.push("/bills");
+    } catch {
+      showToast("Failed to delete bill", "error");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -222,6 +242,13 @@ export default function BillDetailPage() {
           >
             Print / PDF
           </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60"
+          >
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
         </div>
       </div>
 
@@ -238,6 +265,18 @@ export default function BillDetailPage() {
             </button>
           </div>
           <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description <span className="text-gray-400 font-normal">(shown on invoice for all line items)</span>
+              </label>
+              <input
+                type="text"
+                value={editForm.goods_description}
+                onChange={(e) => setEdit("goods_description", e.target.value)}
+                placeholder="e.g. Bed Rail Covers (Parachute + Kim Kim Net)"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Bill Date</label>

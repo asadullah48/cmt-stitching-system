@@ -473,6 +473,10 @@ export const billService = {
     const { data } = await api.patch<Bill>(`/bills/${id}`, payload);
     return data;
   },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/bills/${id}`);
+  },
 };
 
 // ─── Expenses ────────────────────────────────────────────────────────────────

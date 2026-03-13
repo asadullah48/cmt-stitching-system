@@ -45,17 +45,37 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  // Quick stock check
+  const [quickQuery, setQuickQuery] = useState("");
+  const [quickResults, setQuickResults] = useState<InventoryItem[]>([]);
+  const [quickLoading, setQuickLoading] = useState(false);
+  const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
+
   const [addSheet, setAddSheet] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Debounce search
+  // Debounce table search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  // Quick stock check — debounced fetch
+  useEffect(() => {
+    if (!quickQuery.trim()) { setQuickResults([]); return; }
+    const t = setTimeout(async () => {
+      setQuickLoading(true);
+      try {
+        const res = await inventoryService.getItems({ size: 20, search: quickQuery.trim() });
+        setQuickResults(res.data);
+      } catch { /* ignore */ } finally {
+        setQuickLoading(false);
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [quickQuery]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -115,6 +135,76 @@ export default function InventoryPage() {
           <p className="text-sm text-gray-500 mt-0.5">Stock, materials and supplies management</p>
         </div>
         <Button onClick={() => setAddSheet(true)}>+ Add Item</Button>
+      </div>
+
+      {/* Quick Stock Check */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Quick stock check — type an item name, e.g. zip, thread, foam..."
+            value={quickQuery}
+            onChange={(e) => setQuickQuery(e.target.value)}
+            className="flex-1 text-sm border-0 outline-none bg-transparent placeholder-gray-400 text-gray-800"
+          />
+          {quickQuery && (
+            <button onClick={() => setQuickQuery("")} className="text-gray-400 hover:text-gray-600 text-xs">✕ Clear</button>
+          )}
+        </div>
+
+        {quickQuery.trim() && (
+          <div className="border-t border-gray-100 pt-3">
+            {quickLoading ? (
+              <p className="text-sm text-gray-400 text-center py-3">Searching…</p>
+            ) : quickResults.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-3">No items found for &quot;{quickQuery}&quot;</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {quickResults.map((item) => {
+                  const stock = Number(item.current_stock);
+                  const minStock = Number(item.minimum_stock);
+                  const isOut = stock === 0;
+                  const isLow = !isOut && minStock > 0 && stock <= minStock;
+                  return (
+                    <div key={item.id} className={`rounded-lg border px-4 py-3 flex items-center justify-between gap-3 ${
+                      isOut ? "border-red-200 bg-red-50" : isLow ? "border-orange-200 bg-orange-50" : "border-green-200 bg-green-50"
+                    }`}>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
+                        {item.category_name && <p className="text-xs text-gray-500">{item.category_name}</p>}
+                        {item.location && <p className="text-xs text-gray-400">{item.location}</p>}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="text-right">
+                          <p className={`text-xl font-bold tabular-nums ${isOut ? "text-red-600" : isLow ? "text-orange-600" : "text-green-700"}`}>
+                            {stock.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-500">{item.unit}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                            isOut ? "bg-red-100 text-red-700" : isLow ? "bg-orange-100 text-orange-700" : "bg-green-100 text-green-700"
+                          }`}>
+                            {isOut ? "OUT" : isLow ? "LOW" : "OK"}
+                          </span>
+                          <button
+                            onClick={() => setAdjustItem(item)}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Adjust
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* KPI Cards */}

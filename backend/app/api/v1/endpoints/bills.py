@@ -150,9 +150,25 @@ def update_bill(bill_id: UUID, data: BillUpdate, db: DbDep, current_user: Curren
             bill.payment_status = "partial"
     if data.notes is not None:
         bill.notes = data.notes
+    if data.goods_description is not None and bill.order:
+        bill.order.goods_description = data.goods_description
     db.commit()
     db.refresh(bill)
     return _to_out(bill)
+
+
+@router.delete("/{bill_id}", status_code=204)
+def delete_bill(bill_id: UUID, db: DbDep, current_user: CurrentUser):
+    """
+    Soft-delete a bill.
+
+    Reverses effects: reverts order to packing_complete, removes income ledger
+    entry, and adjusts party balance.
+    """
+    try:
+        BillService.delete(db, bill_id, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.patch("/{bill_id}/payment", response_model=BillOut)

@@ -183,7 +183,7 @@ def delete_item(item_id: UUID, db: DbDep, _: CurrentUser):
 
 
 @router.patch("/items/{item_id}/adjust", response_model=InventoryItemOut)
-def adjust_stock(item_id: UUID, data: StockAdjustment, db: DbDep, _: CurrentUser):
+def adjust_stock(item_id: UUID, data: StockAdjustment, db: DbDep, current_user: CurrentUser):
     item = db.query(InventoryItem).filter(
         InventoryItem.id == item_id, InventoryItem.is_deleted.is_(False)
     ).first()

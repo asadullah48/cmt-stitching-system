@@ -25,6 +25,8 @@ const TX_TYPES: { value: TransactionType; label: string }[] = [
   { value: "income", label: "Income (receivable)" },
   { value: "payment", label: "Payment (payable)" },
   { value: "expense", label: "Expense" },
+  { value: "purchase", label: "Purchase (material/supply)" },
+  { value: "stock_consumption", label: "Stock Consumption" },
   { value: "adjustment", label: "Adjustment" },
 ];
 
@@ -362,7 +364,7 @@ export function LedgerTable({ transactions }: LedgerTableProps) {
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date))
     .map((tx) => {
       if (tx.transaction_type === "income") running += Number(tx.amount);
-      else if (tx.transaction_type === "payment") running -= Number(tx.amount);
+      else if (["payment", "expense", "purchase", "stock_consumption"].includes(tx.transaction_type)) running -= Number(tx.amount);
       return { ...tx, running };
     });
 
@@ -389,7 +391,7 @@ export function LedgerTable({ transactions }: LedgerTableProps) {
               <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${
                 tx.transaction_type === "income" ? "text-green-600" : "text-orange-600"
               }`}>
-                {tx.transaction_type === "income" ? "+" : "-"} {formatCurrency(tx.amount)}
+                {tx.transaction_type === "income" ? "+" : "-"}{" "}{formatCurrency(tx.amount)}
               </td>
               <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${
                 tx.running >= 0 ? "text-green-600" : "text-red-600"

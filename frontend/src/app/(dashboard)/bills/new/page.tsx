@@ -101,7 +101,8 @@ export default function NewBillPage() {
       showToast(`Bill ${bill.bill_number} created`, "success");
       router.push(`/bills/${bill.id}`);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to create bill";
+      const axiosDetail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const msg = axiosDetail || (err instanceof Error ? err.message : "Failed to create bill");
       showToast(msg, "error");
     } finally {
       setSubmitting(false);

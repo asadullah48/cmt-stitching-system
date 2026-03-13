@@ -288,6 +288,57 @@ class BillService:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def delete(db: Session, bill_id: UUID, user_id: UUID) -> None:
+        """Soft-delete a bill and reverse its effects.
+
+        - Reverts the order status from dispatched → packing_complete
+        - Soft-deletes the income FinancialTransaction created at bill time
+        - Decrements the party balance by the income amount
+        - Logs an audit entry
+        """
+        bill = (
+            db.query(Bill)
+            .options(joinedload(Bill.order))
+            .filter(Bill.id == bill_id, Bill.is_deleted.is_(False))
+            .first()
+        )
+        if not bill:
+            raise ValueError("Bill not found")
+
+        # Reverse the auto-posted income transaction (matched by reference_number = bill_number)
+        income_txn = (
+            db.query(FinancialTransaction)
+            .filter(
+                FinancialTransaction.order_id == bill.order_id,
+                FinancialTransaction.transaction_type == "income",
+                FinancialTransaction.reference_number == bill.bill_number,
+                FinancialTransaction.is_deleted.is_(False),
+            )
+            .first()
+        )
+        if income_txn:
+            income_txn.is_deleted = True
+            if bill.party_id:
+                party = (
+                    db.query(Party)
+                    .filter(Party.id == bill.party_id)
+                    .with_for_update()
+                    .first()
+                )
+                if party:
+                    party.balance -= Decimal(str(income_txn.amount))
+
+        # Revert order to packing_complete
+        if bill.order:
+            bill.order.status = "packing_complete"
+            bill.order.dispatch_date = None
+            bill.order.actual_completion = None
+
+        bill.is_deleted = True
+        AuditService.log_delete(db, "cmt_bills", bill.id, user_id)
+        db.commit()
+
+    @staticmethod
     def get_all(
         db: Session,
         page: int = 1,
