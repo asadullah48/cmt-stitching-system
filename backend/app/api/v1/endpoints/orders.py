@@ -17,10 +17,11 @@ from app.models.parties import Party as PartyModel
 from app.models.products import Product, ProductBOMItem
 from app.schemas.orders import (
     OrderCreate, OrderUpdate, OrderStatusUpdate,
-    OrderOut, OrderListResponse, OrderItemCreate,
+    OrderOut, OrderListResponse, OrderItemCreate, OrderItemUpdate,
 )
 from app.schemas.products import OrderMaterialsOut, MaterialRequirement
 from app.services.order_service import OrderService
+from app.services.audit_service import AuditService
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -348,6 +349,35 @@ def get_order(order_id: UUID, db: DbDep, _: CurrentUser):
 @router.put("/{order_id}", response_model=OrderOut)
 def update_order(order_id: UUID, data: OrderUpdate, db: DbDep, current_user: CurrentUser):
     return _to_out(OrderService.update(db, order_id, data, current_user.id))
+
+
+@router.patch("/{order_id}/items", response_model=OrderOut)
+def update_items(order_id: UUID, items: list[OrderItemUpdate], db: DbDep, current_user: CurrentUser):
+    """Replace the colour/size breakdown for an order. Preserves stitching/packing progress on matched items."""
+    from app.models.orders import OrderItem as OrderItemModel
+    order = OrderService.get_by_id(db, order_id)
+
+    existing_by_id = {str(i.id): i for i in order.items}
+    incoming_ids = {str(i.id) for i in items if i.id}
+
+    # Delete items not in the new list
+    for eid, item in existing_by_id.items():
+        if eid not in incoming_ids:
+            db.delete(item)
+
+    # Upsert
+    for item_data in items:
+        if item_data.id and str(item_data.id) in existing_by_id:
+            existing = existing_by_id[str(item_data.id)]
+            existing.size = item_data.size
+            existing.quantity = item_data.quantity
+        else:
+            db.add(OrderItemModel(order_id=order.id, size=item_data.size, quantity=item_data.quantity))
+
+    AuditService.log_update(db, "cmt_orders", order.id, {}, {"items": "updated"}, current_user.id)
+    db.commit()
+    db.refresh(order)
+    return _to_out(order)
 
 
 @router.patch("/{order_id}/status", response_model=OrderOut)

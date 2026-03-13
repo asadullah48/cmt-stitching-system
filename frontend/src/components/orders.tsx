@@ -498,14 +498,125 @@ export function OrderStatusSelect({ orderId, currentStatus, onChange }: OrderSta
 
 // ─── OrderItemsTable ──────────────────────────────────────────────────────────
 
-interface OrderItemsTableProps {
-  items: Order["items"];
+interface EditableItem {
+  id?: string;
+  size: string;
+  quantity: number;
+  completed_quantity: number;
+  packed_quantity: number;
 }
 
-export function OrderItemsTable({ items }: OrderItemsTableProps) {
+interface OrderItemsTableProps {
+  items: Order["items"];
+  onSave?: (items: Array<{ id?: string; size: string; quantity: number }>) => Promise<void>;
+}
+
+export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
+  const [editing, setEditing] = React.useState(false);
+  const [rows, setRows] = React.useState<EditableItem[]>([]);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
+
   const total = items.reduce((s, i) => s + i.quantity, 0);
   const stitched = items.reduce((s, i) => s + i.completed_quantity, 0);
   const packed = items.reduce((s, i) => s + i.packed_quantity, 0);
+
+  const startEdit = () => {
+    setRows(items.map(i => ({ id: i.id, size: i.size, quantity: i.quantity, completed_quantity: i.completed_quantity, packed_quantity: i.packed_quantity })));
+    setError("");
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    const valid = rows.filter(r => r.size.trim() && r.quantity > 0);
+    if (!valid.length) { setError("At least one colour row required."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(valid.map(r => ({ id: r.id, size: r.size.trim(), quantity: r.quantity })));
+      setEditing(false);
+    } catch {
+      setError("Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const editTotal = rows.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+
+  if (editing) {
+    return (
+      <div className="space-y-3">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50">
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Colour</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Ordered</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Stitched</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Packed</th>
+                <th className="px-2 py-2.5 w-8" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, idx) => (
+                <tr key={idx} className="border-b border-gray-50 last:border-0">
+                  <td className="px-2 py-1.5">
+                    <input
+                      className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      value={row.size}
+                      onChange={e => setRows(prev => prev.map((r, i) => i === idx ? { ...r, size: e.target.value } : r))}
+                      placeholder="Colour name"
+                    />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-24 border border-gray-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500 ml-auto block"
+                      value={row.quantity}
+                      onChange={e => setRows(prev => prev.map((r, i) => i === idx ? { ...r, quantity: parseInt(e.target.value) || 0 } : r))}
+                    />
+                  </td>
+                  <td className="px-4 py-1.5 text-right tabular-nums text-blue-700 text-sm">{row.completed_quantity}</td>
+                  <td className="px-4 py-1.5 text-right tabular-nums text-teal-700 text-sm">{row.packed_quantity}</td>
+                  <td className="px-2 py-1.5 text-center">
+                    <button
+                      onClick={() => setRows(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-gray-400 hover:text-red-500 text-lg leading-none"
+                      title="Remove row"
+                    >×</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-gray-50 font-semibold">
+                <td className="px-4 py-2 text-xs text-gray-600">Total</td>
+                <td className="px-4 py-2 text-right tabular-nums text-sm">{editTotal}</td>
+                <td colSpan={3} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setRows(prev => [...prev, { size: "", quantity: 0, completed_quantity: 0, packed_quantity: 0 }])}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 rounded px-2 py-1"
+          >+ Add colour</button>
+          <div className="flex-1" />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1 border border-gray-200 rounded">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+          >{saving ? "Saving…" : "Save"}</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -513,52 +624,32 @@ export function OrderItemsTable({ items }: OrderItemsTableProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Colour
-              </th>
-              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Ordered
-              </th>
-              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Stitched
-              </th>
-              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Packed
-              </th>
-              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Stitch %
-              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Colour</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Ordered</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Stitched</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Packed</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Stitch %</th>
+              {onSave && <th className="px-2 py-2.5 w-12" />}
             </tr>
           </thead>
           <tbody>
             {items.map((item) => {
-              const pct =
-                item.quantity > 0
-                  ? Math.round((item.completed_quantity / item.quantity) * 100)
-                  : 0;
+              const pct = item.quantity > 0 ? Math.round((item.completed_quantity / item.quantity) * 100) : 0;
               return (
                 <tr key={item.id} className="border-b border-gray-50 last:border-0">
                   <td className="px-4 py-2.5 font-medium text-gray-900">{item.size}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{item.quantity}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-blue-700 font-medium">
-                    {item.completed_quantity}
-                  </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-teal-700 font-medium">
-                    {item.packed_quantity}
-                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-blue-700 font-medium">{item.completed_quantity}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-teal-700 font-medium">{item.packed_quantity}</td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 bg-gray-100 rounded-full h-1.5">
-                        <div
-                          className="bg-blue-500 h-1.5 rounded-full"
-                          style={{ width: `${pct}%` }}
-                        />
+                        <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-xs text-gray-600 tabular-nums w-8 text-right">
-                        {pct}%
-                      </span>
+                      <span className="text-xs text-gray-600 tabular-nums w-8 text-right">{pct}%</span>
                     </div>
                   </td>
+                  {onSave && <td />}
                 </tr>
               );
             })}
@@ -569,13 +660,19 @@ export function OrderItemsTable({ items }: OrderItemsTableProps) {
               <td className="px-4 py-2.5 text-right tabular-nums">{total}</td>
               <td className="px-4 py-2.5 text-right tabular-nums text-blue-700">{stitched}</td>
               <td className="px-4 py-2.5 text-right tabular-nums text-teal-700">{packed}</td>
-              <td className="px-4 py-2.5 text-right text-xs text-gray-500">
-                {total > 0 ? Math.round((stitched / total) * 100) : 0}%
-              </td>
+              <td className="px-4 py-2.5 text-right text-xs text-gray-500">{total > 0 ? Math.round((stitched / total) * 100) : 0}%</td>
+              {onSave && <td />}
             </tr>
           </tfoot>
         </table>
       </div>
+      {onSave && (
+        <div className="mt-2 flex justify-end">
+          <button onClick={startEdit} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+            Edit breakdown
+          </button>
+        </div>
+      )}
     </div>
   );
 }

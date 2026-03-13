@@ -1050,7 +1050,14 @@ export default function OrderDetailPage() {
       {/* Colour Breakdown */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-3">Colour Breakdown</h2>
-        <OrderItemsTable items={order.items} />
+        <OrderItemsTable
+          items={order.items}
+          onSave={async (items) => {
+            const updated = await ordersService.updateItems(order.id, items);
+            setOrder(updated);
+            showToast("Colour breakdown saved");
+          }}
+        />
       </div>
 
       {/* Material Requirements */}

@@ -21,6 +21,12 @@ class OrderItemCreate(BaseModel):
     quantity: int
 
 
+class OrderItemUpdate(BaseModel):
+    id: Optional[UUID] = None  # existing item ID; None = new item
+    size: str
+    quantity: int
+
+
 class OrderItemOut(BaseModel):
     id: UUID
     size: str

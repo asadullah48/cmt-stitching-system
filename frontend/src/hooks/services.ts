@@ -147,6 +147,11 @@ export const ordersService = {
     return data;
   },
 
+  updateItems: async (id: string, items: Array<{ id?: string; size: string; quantity: number }>): Promise<Order> => {
+    const { data } = await api.patch<Order>(`/orders/${id}/items`, items);
+    return data;
+  },
+
   bulkImport: async (file: File): Promise<{ created: number; errors: Array<{ row: number; message: string }> }> => {
     const text = await file.text();
     const lines = text.split(/\r?\n/).filter((l) => l.trim());
