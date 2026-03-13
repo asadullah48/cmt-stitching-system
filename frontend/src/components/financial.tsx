@@ -65,8 +65,8 @@ export function TransactionForm({
     if (!initialPartyId) {
       partiesService.getParties(1, 100).then((r) => setParties(r.data));
     }
-    ordersService.getOrders({ size: 100 }).then((r) => setOrders(r.data));
-    billService.list({ size: 100 }).then((r) => setBills(r.data));
+    ordersService.getOrders({ size: 100 }).then((r) => setOrders(r.data ?? [])).catch(() => {});
+    billService.list({ size: 100 }).then((r) => setBills(r.data ?? [])).catch(() => {});
   }, [initialPartyId]);
 
   const validate = () => {

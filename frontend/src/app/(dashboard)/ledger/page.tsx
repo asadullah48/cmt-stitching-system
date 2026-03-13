@@ -13,18 +13,23 @@ import type {
 
 // Debit = invoices/bills raised (party owes us) + expenses we incurred
 // Credit = cash/bank payments received from party
+const DEBIT_TYPES = new Set(["income", "expense", "purchase", "stock_consumption"]);
+const CREDIT_TYPES = new Set(["payment", "adjustment"]);
+
 function isDebit(tx: FinancialTransaction) {
-  return tx.transaction_type === "income" || tx.transaction_type === "expense";
+  return DEBIT_TYPES.has(tx.transaction_type);
 }
 function isCredit(tx: FinancialTransaction) {
-  return tx.transaction_type === "payment" || tx.transaction_type === "adjustment";
+  return CREDIT_TYPES.has(tx.transaction_type);
 }
 
 const TYPE_BADGE: Record<string, string> = {
-  income:     "bg-green-100 text-green-700",
-  payment:    "bg-red-100 text-red-700",
-  expense:    "bg-orange-100 text-orange-700",
-  adjustment: "bg-purple-100 text-purple-700",
+  income:            "bg-green-100 text-green-700",
+  payment:           "bg-red-100 text-red-700",
+  expense:           "bg-orange-100 text-orange-700",
+  purchase:          "bg-blue-100 text-blue-700",
+  stock_consumption: "bg-amber-100 text-amber-700",
+  adjustment:        "bg-purple-100 text-purple-700",
 };
 
 export default function LedgerPage() {
@@ -66,6 +71,8 @@ export default function LedgerPage() {
     setLoading(true);
     try {
       setResult(await transactionsService.getTransactions(f));
+    } catch {
+      // silently keep existing data on error
     } finally {
       setLoading(false);
     }
@@ -73,7 +80,7 @@ export default function LedgerPage() {
 
   useEffect(() => {
     load(filters);
-    partiesService.getParties(1, 100).then((r) => setParties(r.data));
+    partiesService.getParties(1, 100).then((r) => setParties(r.data ?? [])).catch(() => {});
   }, [load, filters]);
 
   const handleFilter = (patch: Partial<TransactionFilters>) => {
