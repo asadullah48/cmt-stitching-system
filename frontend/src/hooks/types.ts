@@ -332,6 +332,10 @@ export type InventoryItemUpdate = Partial<Omit<InventoryItemCreate, "current_sto
 export interface StockAdjustment {
   quantity: number;
   notes?: string;
+  transaction_date?: string;
+  order_number?: string;
+  bill_number?: string;
+  party_reference?: string;
 }
 
 export interface InventoryListResponse {

@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -74,3 +75,7 @@ class InventoryItemListResponse(BaseModel):
 class StockAdjustment(BaseModel):
     quantity: Decimal        # positive = stock in, negative = stock out
     notes: Optional[str] = None
+    transaction_date: Optional[date] = None
+    order_number: Optional[str] = None    # link to order, e.g. ORD-202603-0002
+    bill_number: Optional[str] = None     # link to bill, e.g. A52
+    party_reference: Optional[str] = None  # supplier / party name

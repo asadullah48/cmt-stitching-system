@@ -179,16 +179,14 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
       )}
 
       {/* Product Template */}
-      {products.length > 0 && (
-        <FormField label="Product Template (optional)">
-          <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
-            <option value="">— No template —</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </Select>
-        </FormField>
-      )}
+      <FormField label="Product Template (optional)">
+        <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
+          <option value="">— No template —</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </Select>
+      </FormField>
 
       {/* Party */}
       <FormField label="Party">
@@ -202,9 +200,9 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
         </Select>
       </FormField>
 
-      <FormField label="Party Reference (if no party)">
+      <FormField label="Party Reference">
         <Input
-          placeholder="e.g. ABC Mills"
+          placeholder="e.g. ABC Mills / PO-2025-001"
           value={partyRef}
           onChange={(e) => setPartyRef(e.target.value)}
         />

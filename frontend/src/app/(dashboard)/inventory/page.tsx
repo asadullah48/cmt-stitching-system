@@ -547,6 +547,10 @@ function AdjustStockForm({
   const { showToast } = useToast();
   const [mode, setMode] = useState<"in" | "out">("in");
   const [quantity, setQuantity] = useState("");
+  const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
+  const [orderNumber, setOrderNumber] = useState("");
+  const [billNumber, setBillNumber] = useState("");
+  const [partyRef, setPartyRef] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -559,7 +563,11 @@ function AdjustStockForm({
     try {
       await inventoryService.adjustStock(item.id, {
         quantity: mode === "in" ? qty : -qty,
-        notes: notes || undefined,
+        transaction_date: txDate,
+        order_number: orderNumber.trim() || undefined,
+        bill_number: billNumber.trim() || undefined,
+        party_reference: partyRef.trim() || undefined,
+        notes: notes.trim() || undefined,
       });
       showToast(`Stock ${mode === "in" ? "added" : "removed"} successfully`);
       onSuccess();
@@ -596,7 +604,7 @@ function AdjustStockForm({
               : "bg-white text-gray-600 border-gray-200 hover:border-green-400"
           }`}
         >
-          + Stock In
+          + Stock In (Purchase)
         </button>
         <button
           type="button"
@@ -607,36 +615,68 @@ function AdjustStockForm({
               : "bg-white text-gray-600 border-gray-200 hover:border-orange-400"
           }`}
         >
-          − Stock Out
+          − Stock Out (Used)
         </button>
       </div>
 
-      <FormField label={`Quantity to ${mode === "in" ? "Add" : "Remove"} (${item.unit})`}>
-        <Input
-          type="number"
-          step="0.01"
-          min="0.01"
-          placeholder="0"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          autoFocus
-        />
-      </FormField>
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label={`Quantity (${item.unit})`}>
+          <Input
+            type="number"
+            step="0.01"
+            min="0.01"
+            placeholder="0"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            autoFocus
+          />
+        </FormField>
+        <FormField label="Date">
+          <Input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} />
+        </FormField>
+      </div>
 
       {newStock !== null && (
         <div className={`rounded-lg px-3 py-2 text-sm ${newStock < 0 ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
-          New stock will be: <span className="font-semibold">{newStock.toLocaleString()} {item.unit}</span>
+          New stock: <span className="font-semibold">{newStock.toLocaleString()} {item.unit}</span>
           {newStock < 0 && " — insufficient stock"}
         </div>
       )}
 
-      <FormField label="Notes (optional)">
-        <Input placeholder="Reason for adjustment" value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </FormField>
+      {/* References */}
+      <div className="border-t border-gray-100 pt-3 space-y-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">References</p>
+        <FormField label="Order # (e.g. ORD-202603-0002)">
+          <Input
+            placeholder="ORD-202603-0002"
+            value={orderNumber}
+            onChange={(e) => setOrderNumber(e.target.value)}
+          />
+        </FormField>
+        {mode === "out" && (
+          <FormField label="Bill # (e.g. A52)">
+            <Input
+              placeholder="A52"
+              value={billNumber}
+              onChange={(e) => setBillNumber(e.target.value)}
+            />
+          </FormField>
+        )}
+        <FormField label={mode === "in" ? "Supplier / Party" : "Used For (Party)"}>
+          <Input
+            placeholder={mode === "in" ? "e.g. Al-Rehman Zips" : "e.g. Shopinos"}
+            value={partyRef}
+            onChange={(e) => setPartyRef(e.target.value)}
+          />
+        </FormField>
+        <FormField label="Notes (optional)">
+          <Input placeholder="Additional notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </FormField>
+      </div>
 
       <div className="flex gap-3 pt-2 border-t border-gray-100">
         <Button type="submit" loading={loading} className="flex-1 justify-center" disabled={!quantity || (newStock !== null && newStock < 0)}>
-          Confirm Adjustment
+          Confirm
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
       </div>

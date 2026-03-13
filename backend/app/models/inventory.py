@@ -43,6 +43,9 @@ class InventoryTransaction(BaseModel):
     total_cost = Column(Numeric(10, 2))
     reference_id = Column(UUID(as_uuid=True))
     reference_type = Column(String(50))
+    order_number = Column(String(50), nullable=True)    # e.g. ORD-202603-0002
+    bill_number = Column(String(50), nullable=True)     # e.g. A52
+    party_reference = Column(String(100), nullable=True)  # supplier name
     notes = Column(Text)
     created_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
     transaction_date = Column(Date, nullable=False)

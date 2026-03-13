@@ -1,9 +1,10 @@
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
 from app.core.deps import CurrentUser, DbDep
-from app.models.inventory import InventoryCategory, InventoryItem
+from app.models.inventory import InventoryCategory, InventoryItem, InventoryTransaction
 from app.schemas.inventory import (
     CategoryCreate, CategoryOut,
     InventoryItemCreate, InventoryItemUpdate, InventoryItemOut,
@@ -194,6 +195,22 @@ def adjust_stock(item_id: UUID, data: StockAdjustment, db: DbDep, _: CurrentUser
         raise HTTPException(status_code=400, detail="Stock cannot go below zero")
 
     item.current_stock = new_stock
+
+    # Determine transaction type from direction
+    tx_type = "purchase" if data.quantity > 0 else "consumption"
+
+    tx = InventoryTransaction(
+        item_id=item.id,
+        transaction_type=tx_type,
+        quantity=abs(data.quantity),
+        transaction_date=data.transaction_date or date.today(),
+        order_number=data.order_number,
+        bill_number=data.bill_number,
+        party_reference=data.party_reference,
+        notes=data.notes,
+        created_by=current_user.id,
+    )
+    db.add(tx)
     db.commit()
     db.refresh(item)
 
