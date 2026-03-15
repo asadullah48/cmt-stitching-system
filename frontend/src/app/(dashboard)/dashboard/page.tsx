@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { dashboardService, insightsService, settingsService } from "@/hooks/services";
-import type { Alert, AppSettings } from "@/hooks/types";
+import { dashboardService, insightsService, settingsService, cashAccountService } from "@/hooks/services";
+import type { Alert, AppSettings, CashAccount } from "@/hooks/types";
 import { formatCurrency, formatDate } from "@/hooks/utils";
 import { StatusBadge, DataTable } from "@/components/common";
 import type { DashboardSummary, Order } from "@/hooks/types";
@@ -148,6 +148,7 @@ export default function DashboardPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState(true);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>(() => {
     try {
       const today = new Date().toDateString();
@@ -167,6 +168,10 @@ export default function DashboardPage() {
       .catch(() => setAlerts([]))
       .finally(() => setAlertsLoading(false));
     settingsService.get().then(setSettings).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    cashAccountService.list().then(setCashAccounts).catch(() => {});
   }, []);
 
   const dismissAlert = (id: string) => {
@@ -337,6 +342,23 @@ export default function DashboardPage() {
           }
         />
       </div>
+
+      {/* Cash Position */}
+      {cashAccounts.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Cash Position</h3>
+          <div className="grid grid-cols-2 gap-4">
+            {cashAccounts.map((a) => (
+              <div key={a.id} className={`rounded-xl p-4 ${a.account_type === "cash" ? "bg-emerald-50" : "bg-blue-50"}`}>
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{a.name}</p>
+                <p className={`text-2xl font-extrabold mt-1 ${a.account_type === "cash" ? "text-emerald-700" : "text-blue-700"}`}>
+                  {formatCurrency(a.current_balance)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ─── Progress + Pipeline ─────────────────────────────── */}
       <div className="grid grid-cols-3 gap-4">
