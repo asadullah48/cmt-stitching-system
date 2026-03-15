@@ -7,6 +7,7 @@ import { cn } from "@/hooks/utils";
 import { useAuth } from "@/hooks/store";
 import { Spinner } from "@/components/common";
 import type { Role } from "@/hooks/types";
+import { QuickAddTodo } from "@/app/(dashboard)/todos/page";
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
@@ -115,6 +116,14 @@ function IconSettings() {
     </svg>
   );
 }
+function IconCheckSquare() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+    </svg>
+  );
+}
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: <IconGrid /> },
@@ -133,6 +142,7 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "accountant"],
   },
   { label: "Bills", href: "/bills", icon: <IconBill /> },
+  { label: "Todos", href: "/todos", icon: <IconCheckSquare /> },
   { label: "Settings", href: "/settings", icon: <IconSettings />, roles: ["admin"] },
 ];
 
@@ -263,6 +273,7 @@ export default function DashboardLayout({
       <main className="pl-60 print:pl-0">
         <div className="max-w-7xl mx-auto px-6 py-6 print:p-0 print:max-w-full">{children}</div>
       </main>
+      <QuickAddTodo />
     </div>
   );
 }
