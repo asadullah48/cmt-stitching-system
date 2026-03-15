@@ -39,6 +39,7 @@ created = {
     "inventory_item_ids": [],
     "expense_ids": [],
     "production_ids": [],
+    "todo_ids": [],
 }
 
 def check(name, resp, expected=(200, 201)):
@@ -323,6 +324,72 @@ def run(token):
     r = requests.get(f"{BASE_URL}/dispatch/carriers", headers=h)
     check("GET /dispatch/carriers", r)
 
+    # ── Todos ─────────────────────────────────────────────────────────────────
+    print("\n── Todos ──")
+    r = requests.get(f"{BASE_URL}/todos/", headers=h)
+    check("GET /todos/", r)
+
+    r = requests.post(f"{BASE_URL}/todos/", headers=h, json={
+        "title": "TEST Create bill for smoke party",
+        "category": "billing",
+        "priority": "high",
+        "description": "Smoke test todo — billing reminder",
+    })
+    todo = check("POST /todos/", r, 201)
+    tid = None
+    if todo:
+        tid = todo["id"]
+        created["todo_ids"].append(tid)
+
+        r = requests.get(f"{BASE_URL}/todos/{tid}", headers=h)
+        check("GET /todos/{id}", r)
+
+        r = requests.patch(f"{BASE_URL}/todos/{tid}", headers=h, json={
+            "status": "in_progress",
+            "description": "Smoke test updated",
+        })
+        check("PATCH /todos/{id}", r)
+
+    # Recurring todo — daily
+    r = requests.post(f"{BASE_URL}/todos/", headers=h, json={
+        "title": "TEST Daily machine check",
+        "category": "maintenance",
+        "priority": "medium",
+        "recurrence": "daily",
+    })
+    rtodo = check("POST /todos/ (recurring)", r, 201)
+    if rtodo:
+        rtid = rtodo["id"]
+        created["todo_ids"].append(rtid)
+
+        r = requests.patch(f"{BASE_URL}/todos/{rtid}/complete", headers=h)
+        completed = check("PATCH /todos/{id}/complete (spawns next)", r)
+        # Verify next recurring instance was auto-created
+        if completed:
+            r2 = requests.get(f"{BASE_URL}/todos/", headers=h, params={"size": 200})
+            if r2.status_code == 200:
+                spawned = [t for t in r2.json().get("data", [])
+                           if t.get("parent_todo_id") == rtid and t["status"] == "pending"]
+                sym = PASS if spawned else FAIL
+                print(f"  {sym} Recurring spawn created (found {len(spawned)} child)")
+                results.append(("Recurring todo spawns next on complete", bool(spawned), 200, None))
+                if spawned:
+                    created["todo_ids"].append(spawned[0]["id"])
+
+    # Filter tests
+    r = requests.get(f"{BASE_URL}/todos/", headers=h, params={"status": "pending"})
+    check("GET /todos/?status=pending", r)
+
+    r = requests.get(f"{BASE_URL}/todos/", headers=h, params={"category": "billing"})
+    check("GET /todos/?category=billing", r)
+
+    # Delete
+    if tid:
+        r = requests.delete(f"{BASE_URL}/todos/{tid}", headers=h)
+        ok = check("DELETE /todos/{id}", r, 204)
+        if r.status_code == 204:
+            created["todo_ids"].remove(tid)
+
     # ── Dashboard ─────────────────────────────────────────────────────────────
     print("\n── Dashboard ──")
     r = requests.get(f"{BASE_URL}/dashboard/summary", headers=h)
@@ -347,6 +414,10 @@ def run(token):
 def cleanup(token):
     h = {"Authorization": f"Bearer {token}"}
     print("\n── Cleanup ──")
+
+    for tdid in created["todo_ids"]:
+        r = requests.delete(f"{BASE_URL}/todos/{tdid}", headers=h)
+        print(f"  {'✓' if r.status_code == 204 else '✗'} DELETE todo {tdid[:8]}… [{r.status_code}]")
 
     for txid in created["transaction_ids"]:
         r = requests.delete(f"{BASE_URL}/transactions/{txid}", headers=h)
