@@ -279,7 +279,7 @@ function TopBar({
   return (
     <div
       className={cn(
-        "fixed top-0 right-0 h-10 bg-white border-b border-gray-200 z-30 flex items-center px-3 gap-3 transition-all duration-200",
+        "fixed top-0 right-0 h-10 bg-white border-b border-gray-200 z-30 flex items-center px-3 gap-3 transition-[left] duration-200",
         open ? "left-60" : "left-0"
       )}
     >
@@ -357,7 +357,7 @@ export default function DashboardLayout({
       </div>
       <main
         className={cn(
-          "pt-10 transition-all duration-200 print:pt-0 print:pl-0",
+          "pt-10 transition-[padding-left] duration-200 print:pt-0 print:pl-0",
           sidebarOpen ? "pl-60" : "pl-0"
         )}
       >
