@@ -52,6 +52,7 @@ export default function InventoryPage() {
   const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
 
   const [addSheet, setAddSheet] = useState(false);
+  const [catSheet, setCatSheet] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -134,7 +135,10 @@ export default function InventoryPage() {
           <h1 className="text-xl font-semibold text-gray-900">Inventory</h1>
           <p className="text-sm text-gray-500 mt-0.5">Stock, materials and supplies management</p>
         </div>
-        <Button onClick={() => setAddSheet(true)}>+ Add Item</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setCatSheet(true)}>Categories</Button>
+          <Button onClick={() => setAddSheet(true)}>+ Add Item</Button>
+        </div>
       </div>
 
       {/* Quick Stock Check */}
@@ -381,6 +385,11 @@ export default function InventoryPage() {
           </div>
         )}
       </div>
+
+      {/* Manage Categories Sheet */}
+      <Sheet open={catSheet} onClose={() => setCatSheet(false)} title="Manage Categories">
+        <CategoryManager categories={categories} onDone={() => { setCatSheet(false); loadData(); }} />
+      </Sheet>
 
       {/* Add Sheet */}
       <Sheet open={addSheet} onClose={() => setAddSheet(false)} title="Add Inventory Item">
@@ -771,6 +780,85 @@ function AdjustStockForm({
         <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
       </div>
     </form>
+  );
+}
+
+// ─── Category Manager ─────────────────────────────────────────────────────────
+
+const CATEGORY_TYPES = [
+  { value: "raw_material", label: "Raw Material" },
+  { value: "accessories", label: "Accessories" },
+  { value: "finished_goods", label: "Finished Goods" },
+];
+
+function CategoryManager({ categories, onDone }: { categories: InventoryCategory[]; onDone: () => void }) {
+  const { showToast } = useToast();
+  const [name, setName] = useState("");
+  const [type, setType] = useState("accessories");
+  const [loading, setLoading] = useState(false);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setLoading(true);
+    try {
+      await inventoryService.createCategory(name.trim(), type);
+      showToast("Category created");
+      setName("");
+      onDone();
+    } catch {
+      showToast("Failed to create category", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Existing categories */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Existing Categories</p>
+        {categories.length === 0 ? (
+          <p className="text-sm text-gray-400">No categories yet.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {categories.map((c) => (
+              <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                <span className="text-sm font-medium text-gray-800">{c.name}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">
+                  {CATEGORY_TYPES.find((t) => t.value === c.category_type)?.label ?? c.category_type}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add new category */}
+      <div className="border-t border-gray-100 pt-4">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Add New Category</p>
+        <form onSubmit={handleAdd} className="space-y-3">
+          <FormField label="Category Name" required>
+            <Input
+              placeholder="e.g. Accessories, Lining, Buttons"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+          </FormField>
+          <FormField label="Type" required>
+            <Select value={type} onChange={(e) => setType(e.target.value)}>
+              {CATEGORY_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </Select>
+          </FormField>
+          <div className="flex gap-3 pt-1">
+            <Button type="submit" loading={loading} className="flex-1 justify-center">Add Category</Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
