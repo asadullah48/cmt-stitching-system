@@ -22,8 +22,8 @@ except ImportError:
     import requests
 
 BASE_URL = "https://cmt-backend-5xuu.onrender.com/api/v1"
-USERNAME = "admin"
-PASSWORD = "admin123"
+USERNAME = "qaadmin"
+PASSWORD = "qaadmin123"
 
 PASS = "\033[92m✓\033[0m"
 FAIL = "\033[91m✗\033[0m"
@@ -40,6 +40,8 @@ created = {
     "expense_ids": [],
     "production_ids": [],
     "todo_ids": [],
+    "overhead_entry_ids": [],
+    "overhead_expense_ids": [],
 }
 
 def check(name, resp, expected=(200, 201)):
@@ -390,6 +392,181 @@ def run(token):
         if r.status_code == 204:
             created["todo_ids"].remove(tid)
 
+    # ── Overhead & Cash ───────────────────────────────────────────────────────
+    print("\n── Overhead & Cash ──")
+
+    # List seeded accounts (expect 2: Cash In Hand + Bank)
+    r = requests.get(f"{BASE_URL}/overhead/accounts", headers=h)
+    accounts_resp = check("GET /overhead/accounts", r)
+    acct_id = None
+    if accounts_resp and len(accounts_resp) > 0:
+        acct_id = accounts_resp[0]["id"]
+        sym = PASS if len(accounts_resp) >= 2 else FAIL
+        print(f"  {sym} Seeded accounts count (expect ≥2, got {len(accounts_resp)})")
+        results.append(("Overhead accounts seeded (≥2)", len(accounts_resp) >= 2, 200, None))
+
+        # Update opening_balance + note on first account
+        r = requests.patch(f"{BASE_URL}/overhead/accounts/{acct_id}", headers=h, json={
+            "opening_balance": "50000.00",
+            "note": "TEST smoke updated note",
+        })
+        upd = check("PATCH /overhead/accounts/{id}", r)
+        if upd:
+            sym = PASS if float(upd.get("opening_balance", 0)) == 50000.0 else FAIL
+            print(f"  {sym} opening_balance updated (got: {upd.get('opening_balance')})")
+            results.append(("Account opening_balance persisted", float(upd.get("opening_balance", 0)) == 50000.0, 200, None))
+        # Reset back so prod data is unaffected
+        requests.patch(f"{BASE_URL}/overhead/accounts/{acct_id}", headers=h, json={"opening_balance": "0.00", "note": ""})
+
+    # Create manual credit entry
+    credit_entry_id = None
+    if acct_id:
+        r = requests.post(f"{BASE_URL}/overhead/entries", headers=h, json={
+            "account_id": acct_id,
+            "entry_type": "credit",
+            "amount": "10000.00",
+            "description": "TEST smoke manual credit",
+            "entry_date": today,
+        })
+        ce = check("POST /overhead/entries (credit)", r, 201)
+        if ce:
+            credit_entry_id = ce["id"]
+            created["overhead_entry_ids"].append(credit_entry_id)
+            sym = PASS if ce.get("entry_type") == "credit" else FAIL
+            print(f"  {sym} entry_type=credit confirmed")
+            results.append(("Cash entry type=credit", ce.get("entry_type") == "credit", 201, None))
+
+        # Create manual debit entry
+        r = requests.post(f"{BASE_URL}/overhead/entries", headers=h, json={
+            "account_id": acct_id,
+            "entry_type": "debit",
+            "amount": "2500.00",
+            "description": "TEST smoke manual debit",
+            "entry_date": today,
+        })
+        de = check("POST /overhead/entries (debit)", r, 201)
+        if de:
+            created["overhead_entry_ids"].append(de["id"])
+
+        # List entries filtered by account
+        r = requests.get(f"{BASE_URL}/overhead/entries", headers=h, params={"account_id": acct_id})
+        check("GET /overhead/entries?account_id=...", r)
+
+        # List entries unfiltered
+        r = requests.get(f"{BASE_URL}/overhead/entries", headers=h)
+        check("GET /overhead/entries", r)
+
+        # Delete the credit entry
+        if credit_entry_id:
+            r = requests.delete(f"{BASE_URL}/overhead/entries/{credit_entry_id}", headers=h)
+            ok = check("DELETE /overhead/entries/{id}", r, 204)
+            if r.status_code == 204:
+                created["overhead_entry_ids"].remove(credit_entry_id)
+
+    # Create one-off overhead expense
+    r = requests.post(f"{BASE_URL}/overhead/expenses", headers=h, json={
+        "title": "TEST Factory Rent",
+        "category": "rent",
+        "amount": "30000.00",
+        "due_date": today,
+        "description": "TEST smoke one-off rent expense",
+    })
+    exp1 = check("POST /overhead/expenses (one-off)", r, 201)
+    exp1_id = None
+    if exp1:
+        exp1_id = exp1["id"]
+        created["overhead_expense_ids"].append(exp1_id)
+        sym = PASS if exp1.get("status") == "unpaid" else FAIL
+        print(f"  {sym} New expense status=unpaid (got: {exp1.get('status')})")
+        results.append(("Overhead expense status=unpaid on create", exp1.get("status") == "unpaid", 201, None))
+
+    # Create recurring monthly overhead expense
+    r = requests.post(f"{BASE_URL}/overhead/expenses", headers=h, json={
+        "title": "TEST Monthly Wages",
+        "category": "wages",
+        "amount": "80000.00",
+        "due_date": today,
+        "description": "TEST smoke recurring wages",
+        "recurrence": "monthly",
+    })
+    exp2 = check("POST /overhead/expenses (recurring monthly)", r, 201)
+    exp2_id = None
+    if exp2:
+        exp2_id = exp2["id"]
+        created["overhead_expense_ids"].append(exp2_id)
+
+    # Update one-off expense description
+    if exp1_id:
+        r = requests.patch(f"{BASE_URL}/overhead/expenses/{exp1_id}", headers=h, json={
+            "description": "TEST smoke rent updated",
+        })
+        check("PATCH /overhead/expenses/{id}", r)
+
+    # Filter expenses by status
+    r = requests.get(f"{BASE_URL}/overhead/expenses", headers=h, params={"status": "unpaid"})
+    check("GET /overhead/expenses?status=unpaid", r)
+
+    # Filter expenses by category
+    r = requests.get(f"{BASE_URL}/overhead/expenses", headers=h, params={"category": "rent"})
+    check("GET /overhead/expenses?category=rent", r)
+
+    # List all expenses
+    r = requests.get(f"{BASE_URL}/overhead/expenses", headers=h)
+    check("GET /overhead/expenses", r)
+
+    # Pay one-off expense — verify status=paid and debit entry created
+    if exp1_id and acct_id:
+        r = requests.patch(f"{BASE_URL}/overhead/expenses/{exp1_id}/pay", headers=h, json={
+            "account_id": acct_id,
+            "paid_date": today,
+        })
+        paid = check("PATCH /overhead/expenses/{id}/pay", r)
+        if paid:
+            sym = PASS if paid.get("status") == "paid" else FAIL
+            print(f"  {sym} Expense marked paid (got: {paid.get('status')})")
+            results.append(("Expense status=paid after pay", paid.get("status") == "paid", 200, None))
+            # Verify debit entry was auto-created in cash account
+            r2 = requests.get(f"{BASE_URL}/overhead/entries", headers=h, params={"account_id": acct_id, "size": 200})
+            if r2.status_code == 200:
+                overhead_debits = [e for e in r2.json().get("data", [])
+                                   if e.get("source") == "overhead" and e.get("source_id") == exp1_id]
+                sym2 = PASS if overhead_debits else FAIL
+                print(f"  {sym2} Auto-debit entry created on pay (found {len(overhead_debits)})")
+                results.append(("Pay expense auto-creates debit entry", bool(overhead_debits), 200, None))
+                if overhead_debits:
+                    created["overhead_entry_ids"].append(overhead_debits[0]["id"])
+
+        # Double-pay must return 400
+        r = requests.patch(f"{BASE_URL}/overhead/expenses/{exp1_id}/pay", headers=h, json={"account_id": acct_id})
+        sym = PASS if r.status_code == 400 else FAIL
+        print(f"  {sym} Double-pay rejected with 400 (got: {r.status_code})")
+        results.append(("Double-pay expense returns 400", r.status_code == 400, r.status_code, None))
+
+    # Pay recurring expense — verify next instance spawned with parent_expense_id
+    if exp2_id and acct_id:
+        r = requests.patch(f"{BASE_URL}/overhead/expenses/{exp2_id}/pay", headers=h, json={
+            "account_id": acct_id,
+            "paid_date": today,
+        })
+        paid2 = check("PATCH /overhead/expenses/{id}/pay (recurring)", r)
+        if paid2:
+            r2 = requests.get(f"{BASE_URL}/overhead/expenses", headers=h, params={"size": 200})
+            if r2.status_code == 200:
+                spawned = [e for e in r2.json().get("data", [])
+                           if e.get("parent_expense_id") == exp2_id and e.get("status") == "unpaid"]
+                sym = PASS if spawned else FAIL
+                print(f"  {sym} Recurring expense spawns next on pay (found {len(spawned)} child)")
+                results.append(("Recurring expense spawns next on pay", bool(spawned), 200, None))
+                if spawned:
+                    created["overhead_expense_ids"].append(spawned[0]["id"])
+
+    # Delete one-off expense (now paid — soft delete still allowed)
+    if exp1_id:
+        r = requests.delete(f"{BASE_URL}/overhead/expenses/{exp1_id}", headers=h)
+        ok = check("DELETE /overhead/expenses/{id}", r, 204)
+        if r.status_code == 204:
+            created["overhead_expense_ids"].remove(exp1_id)
+
     # ── Dashboard ─────────────────────────────────────────────────────────────
     print("\n── Dashboard ──")
     r = requests.get(f"{BASE_URL}/dashboard/summary", headers=h)
@@ -414,6 +591,14 @@ def run(token):
 def cleanup(token):
     h = {"Authorization": f"Bearer {token}"}
     print("\n── Cleanup ──")
+
+    for eid in created["overhead_entry_ids"]:
+        r = requests.delete(f"{BASE_URL}/overhead/entries/{eid}", headers=h)
+        print(f"  {'✓' if r.status_code == 204 else '✗'} DELETE overhead entry {eid[:8]}… [{r.status_code}]")
+
+    for eid in created["overhead_expense_ids"]:
+        r = requests.delete(f"{BASE_URL}/overhead/expenses/{eid}", headers=h)
+        print(f"  {'✓' if r.status_code == 204 else '✗'} DELETE overhead expense {eid[:8]}… [{r.status_code}]")
 
     for tdid in created["todo_ids"]:
         r = requests.delete(f"{BASE_URL}/todos/{tdid}", headers=h)
