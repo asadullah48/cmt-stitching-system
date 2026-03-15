@@ -416,3 +416,59 @@ export interface DispatchOrder {
   goods_description: string;
   total_quantity: number;
 }
+
+// ─── Todos ───────────────────────────────────────────────────────────────────
+
+export type TodoStatus = "pending" | "in_progress" | "completed";
+export type TodoPriority = "low" | "medium" | "high" | "urgent";
+export type TodoCategory = "billing" | "maintenance" | "workflow" | "order" | "other";
+export type TodoRecurrence = "daily" | "weekly" | "monthly" | "custom";
+
+export interface Todo {
+  id: string;
+  title: string;
+  description: string | null;
+  status: TodoStatus;
+  priority: TodoPriority;
+  category: TodoCategory;
+  due_date: string | null;
+  completed_at: string | null;
+  order_id: string | null;
+  order_number: string | null;
+  assigned_to: string | null;
+  assigned_username: string | null;
+  recurrence: TodoRecurrence | null;
+  recurrence_days: number | null;
+  parent_todo_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TodoCreate {
+  title: string;
+  description?: string;
+  status?: TodoStatus;
+  priority?: TodoPriority;
+  category?: TodoCategory;
+  due_date?: string;
+  order_id?: string;
+  assigned_to?: string;
+  recurrence?: TodoRecurrence;
+  recurrence_days?: number;
+}
+
+export type TodoUpdate = Partial<TodoCreate>;
+
+export interface TodoListResponse {
+  data: Todo[];
+  total: number;
+}
+
+export interface TodoFilters {
+  status?: TodoStatus;
+  priority?: TodoPriority;
+  category?: TodoCategory;
+  overdue_only?: boolean;
+  page?: number;
+  size?: number;
+}

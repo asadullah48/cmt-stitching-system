@@ -33,6 +33,11 @@ import type {
   Alert,
   AppSettings,
   Expense,
+  Todo,
+  TodoCreate,
+  TodoUpdate,
+  TodoListResponse,
+  TodoFilters,
 } from "./types";
 
 export type { Alert, AppSettings };
@@ -551,4 +556,34 @@ export const productService = {
 
   getOrderMaterials: (orderId: string) =>
     api.get<OrderMaterials>(`/orders/${orderId}/materials`).then((r) => r.data),
+};
+
+// ─── Todos ───────────────────────────────────────────────────────────────────
+
+export const todoService = {
+  list: (filters: TodoFilters = {}): Promise<TodoListResponse> => {
+    const params: Record<string, string | number | boolean> = {};
+    if (filters.status) params.status = filters.status;
+    if (filters.priority) params.priority = filters.priority;
+    if (filters.category) params.category = filters.category;
+    if (filters.overdue_only) params.overdue_only = true;
+    if (filters.page) params.page = filters.page;
+    if (filters.size) params.size = filters.size;
+    return api.get("/todos/", { params }).then((r) => r.data);
+  },
+
+  get: (id: string): Promise<Todo> =>
+    api.get(`/todos/${id}`).then((r) => r.data),
+
+  create: (data: TodoCreate): Promise<Todo> =>
+    api.post("/todos/", data).then((r) => r.data),
+
+  update: (id: string, data: TodoUpdate): Promise<Todo> =>
+    api.patch(`/todos/${id}`, data).then((r) => r.data),
+
+  complete: (id: string): Promise<Todo> =>
+    api.patch(`/todos/${id}/complete`).then((r) => r.data),
+
+  delete: (id: string): Promise<void> =>
+    api.delete(`/todos/${id}`).then(() => undefined),
 };
