@@ -585,7 +585,7 @@ function PackingCard({
                     <span className="font-semibold text-orange-700">PKR {formatCurrency(e.amount)}</span>
                     <button
                       onClick={() => onDeleteExpense(e.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-600 p-0.5"
+                      className=" text-gray-400 hover:text-red-600 p-0.5"
                       title="Delete"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -690,7 +690,7 @@ export default function PartyLedgerPage() {
                       {formatCurrency(tx.running)}
                     </td>
                     <td className="px-2 py-2.5 print:hidden">
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => setEditTx(tx)}
                           className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600"

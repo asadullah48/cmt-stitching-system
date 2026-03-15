@@ -201,7 +201,7 @@ export default function ProductsPage() {
                     {/* Edit button — visible on hover */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditProduct(p); }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600 flex-shrink-0"
+                      className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600 flex-shrink-0"
                       title="Edit product"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -509,7 +509,7 @@ function ImageDropZone({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
           >
             ✕
           </button>
