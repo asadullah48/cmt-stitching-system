@@ -157,7 +157,7 @@ const NAV_ITEMS: NavItem[] = [
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
-function Sidebar() {
+function Sidebar({ open }: { open: boolean }) {
   const pathname = usePathname();
   const { user, role, logout } = useAuth();
   const router = useRouter();
@@ -168,7 +168,12 @@ function Sidebar() {
   };
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-60 bg-[#1a2744] flex flex-col z-40">
+    <aside
+      className={cn(
+        "fixed top-0 left-0 h-screen w-60 bg-[#1a2744] flex flex-col z-40 transition-transform duration-200",
+        open ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       {/* Logo */}
       <div className="px-5 py-4 border-b border-white/10">
         <div className="flex items-center gap-2.5">
@@ -248,6 +253,48 @@ function Sidebar() {
   );
 }
 
+// ─── TopBar ───────────────────────────────────────────────────────────────────
+
+function TopBar({
+  open,
+  onToggle,
+}: {
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const pathname = usePathname();
+
+  const pageTitle = React.useMemo(() => {
+    for (const item of NAV_ITEMS) {
+      const isActive =
+        item.href === "/dashboard"
+          ? pathname === "/dashboard"
+          : pathname === item.href || pathname.startsWith(item.href + "/");
+      if (isActive) return item.label;
+    }
+    return "CMT System";
+  }, [pathname]);
+
+  return (
+    <div
+      className={cn(
+        "fixed top-0 right-0 h-10 bg-white border-b border-gray-200 z-30 flex items-center px-3 gap-3 transition-all duration-200",
+        open ? "left-60" : "left-0"
+      )}
+    >
+      <button
+        onClick={onToggle}
+        title={open ? "Hide sidebar" : "Show sidebar"}
+        aria-label={open ? "Hide sidebar" : "Show sidebar"}
+        className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors flex-shrink-0"
+      >
+        ☰
+      </button>
+      <span className="text-sm font-medium text-gray-700">{pageTitle}</span>
+    </div>
+  );
+}
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function DashboardLayout({
@@ -257,6 +304,29 @@ export default function DashboardLayout({
 }) {
   const { isLoading, token } = useAuth();
   const router = useRouter();
+
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+
+  // SSR-safe: read localStorage after mount
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("sidebar-open");
+      if (stored !== null) {
+        setSidebarOpen(stored === "true");
+      }
+    } catch {
+      // localStorage unavailable (e.g. private browsing restrictions)
+    }
+  }, []);
+
+  // Persist on every change
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("sidebar-open", String(sidebarOpen));
+    } catch {
+      // ignore
+    }
+  }, [sidebarOpen]);
 
   React.useEffect(() => {
     if (!isLoading && !token) {
@@ -277,9 +347,15 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="print:hidden">
-        <Sidebar />
+        <TopBar open={sidebarOpen} onToggle={() => setSidebarOpen((v) => !v)} />
+        <Sidebar open={sidebarOpen} />
       </div>
-      <main className="pl-60 print:pl-0">
+      <main
+        className={cn(
+          "pt-10 transition-all duration-200 print:pt-0 print:pl-0",
+          sidebarOpen ? "pl-60" : "pl-0"
+        )}
+      >
         <div className="max-w-7xl mx-auto px-6 py-6 print:p-0 print:max-w-full">{children}</div>
       </main>
       <QuickAddTodo />
