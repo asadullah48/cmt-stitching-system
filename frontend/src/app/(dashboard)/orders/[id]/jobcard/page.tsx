@@ -25,6 +25,7 @@ export default function JobCardPage() {
   const [notePartyRef, setNotePartyRef] = useState("");
   const [noteGoods, setNoteGoods] = useState("");
   const [noteProduct, setNoteProduct] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(`jobcard_notes_${id}`);
@@ -62,6 +63,17 @@ export default function JobCardPage() {
 
   const saveMeta = (party: string, partyRef: string, goods: string, product: string) => {
     localStorage.setItem(`jobcard_meta_${id}`, JSON.stringify({ party, partyRef, goods, product }));
+  };
+
+  const saveOrderField = async (field: string, value: string) => {
+    if (!order) return;
+    setSaving(true);
+    try {
+      const updated = await ordersService.updateOrder(id, { [field]: value || null });
+      setOrder(updated);
+    } catch { /* ignore */ } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -115,7 +127,8 @@ export default function JobCardPage() {
   return (
     <>
       {/* Print controls — hidden on print */}
-      <div className="print:hidden fixed top-4 right-4 flex gap-2 z-50">
+      <div className="print:hidden fixed top-4 right-4 flex items-center gap-2 z-50">
+        {saving && <span className="text-xs text-gray-400">Saving…</span>}
         <button
           onClick={() => window.print()}
           className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700"
@@ -158,17 +171,29 @@ export default function JobCardPage() {
             <span className="text-gray-400 w-28 flex-shrink-0">Party</span>
             <span className="font-medium">{order.party_name ?? order.party_reference ?? "—"}</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <span className="text-gray-400 w-28 flex-shrink-0">Party Ref</span>
-            <span>{order.party_reference ?? "—"}</span>
+            <EditableField
+              value={order.party_reference ?? ""}
+              placeholder="e.g. Abdus Samad"
+              onSave={(v) => saveOrderField("party_reference", v)}
+            />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <span className="text-gray-400 w-28 flex-shrink-0">Goods</span>
-            <span>{order.goods_description}</span>
+            <EditableField
+              value={order.goods_description ?? ""}
+              placeholder="e.g. Bed Rail Covers"
+              onSave={(v) => saveOrderField("goods_description", v)}
+            />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <span className="text-gray-400 w-28 flex-shrink-0">Product</span>
-            <span>{order.product_name ?? "—"}</span>
+            <EditableField
+              value={order.product_name ?? ""}
+              placeholder="e.g. Bedrail"
+              onSave={(v) => saveOrderField("product_name", v)}
+            />
           </div>
           <div className="flex gap-2">
             <span className="text-gray-400 w-28 flex-shrink-0">Total Qty</span>
@@ -407,5 +432,59 @@ export default function JobCardPage() {
         }
       `}</style>
     </>
+  );
+}
+
+// ─── Editable Field ───────────────────────────────────────────────────────────
+
+function EditableField({
+  value,
+  placeholder,
+  onSave,
+}: {
+  value: string;
+  placeholder: string;
+  onSave: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  // sync if parent value changes
+  React.useEffect(() => { setDraft(value); }, [value]);
+
+  const commit = () => {
+    setEditing(false);
+    if (draft !== value) onSave(draft);
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
+        placeholder={placeholder}
+        className="print:hidden flex-1 border-b border-blue-400 outline-none text-sm text-gray-800 bg-transparent py-0.5"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="print:hidden flex items-center gap-1 group text-left"
+      title="Click to edit"
+    >
+      <span className={`text-sm ${value ? "text-gray-800" : "text-gray-300 italic"}`}>
+        {value || placeholder}
+      </span>
+      <svg className="w-3 h-3 text-gray-300 group-hover:text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.83a4 4 0 01-1.897 1.05l-2.47.617.617-2.47A4 4 0 019 13z" />
+      </svg>
+    </button>
   );
 }
