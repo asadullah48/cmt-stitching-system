@@ -12,6 +12,7 @@ from .quality import QualityCheckpoint, DefectLog
 from .products import Product, ProductBOMItem
 from .bill import Bill
 from .todos import Todo
+from .overhead import CashAccount, CashEntry, OverheadExpense
 
 __all__ = [
     "Base",
@@ -35,4 +36,7 @@ __all__ = [
     "ProductBOMItem",
     "Bill",
     "Todo",
+    "CashAccount",
+    "CashEntry",
+    "OverheadExpense",
 ]
