@@ -169,6 +169,7 @@ function Sidebar({ open }: { open: boolean }) {
 
   return (
     <aside
+      id="app-sidebar"
       className={cn(
         "fixed top-0 left-0 h-screen w-60 bg-[#1a2744] flex flex-col z-40 transition-transform duration-200",
         open ? "translate-x-0" : "-translate-x-full"
@@ -284,11 +285,15 @@ function TopBar({
     >
       <button
         onClick={onToggle}
-        title={open ? "Hide sidebar" : "Show sidebar"}
         aria-label={open ? "Hide sidebar" : "Show sidebar"}
+        aria-expanded={open}
+        aria-controls="app-sidebar"
         className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors flex-shrink-0"
       >
-        ☰
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
       </button>
       <span className="text-sm font-medium text-gray-700">{pageTitle}</span>
     </div>
