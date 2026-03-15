@@ -309,7 +309,7 @@ export default function LedgerPage() {
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Credit</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Balance</th>
                 {reconcileMode && <th className="px-2 py-2.5 print:hidden w-8" />}
-              <th className="px-4 py-2.5 print:hidden" />
+              <th className="px-4 py-2.5 print:hidden sticky right-0 bg-gray-800" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -397,7 +397,7 @@ export default function LedgerPage() {
                         </button>
                       </td>
                     )}
-                    <td className="px-2 py-2.5 print:hidden">
+                    <td className="px-2 py-2.5 print:hidden sticky right-0 bg-inherit border-l border-gray-100">
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => setEditTx(tx)}
