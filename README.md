@@ -32,7 +32,8 @@ A production management system for a CMT (Cut, Make, Trim) stitching and packing
 - **Dispatch** — Mark orders as dispatched with carrier, tracking number, carton count, and weight
 - **Income Summary** — Per-order profit calculation deducting labor, transport, loading, rent, and miscellaneous expenses
 - **Todos** — Task management with priority, category (billing/maintenance/workflow/order), due dates, recurring schedules (daily/weekly/monthly/custom), and a floating quick-add button on every page
-- **Dashboard** — Live KPIs: active orders, monthly revenue, stitching/packing progress
+- **Overhead & Cash** — Track fixed business costs (rent, wages, utilities, insurance) with unpaid/paid status, recurring auto-spawn, and per-payment cash account debiting. Two cash accounts (Cash In Hand + Bank) with opening balance, manual credit/debit entries, and a running balance ledger
+- **Dashboard** — Live KPIs: active orders, monthly revenue, stitching/packing progress, cash position widget
 - **Parties** — Manage customer/vendor parties with full ledger history
 
 ## Order Status Lifecycle
@@ -97,7 +98,7 @@ Last result: **48/48 passed** — 2026-03-14 (todo tests added 2026-03-15, not y
 ```
 4d1e3598580f → a1b2c3d4e5f6 → b2c3d4e5f6a7 → c3d4e5f6a7b8 → d4e5f6a7b8c9
 → e5f6a7b8c9d0 → f6a7b8c9d0e1 → g7b8c9d0e1f2 → h8c9d0e1f2g3 → i9d0e1f2g3h4
-→ j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9 (head)
+→ j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9 → o5j6k7l8m9n0 (head)
 ```
 
 > Frontend requires manual deploy: `cd frontend && vercel deploy --prod`
