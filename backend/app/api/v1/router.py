@@ -10,6 +10,7 @@ from .endpoints.settings import router as settings_router
 from .endpoints.insights import router as insights_router
 from .endpoints.expenses import router as expenses_router
 from .endpoints.todos import router as todos_router
+from .endpoints.overhead import router as overhead_router
 
 api_router = APIRouter()
 
@@ -28,3 +29,4 @@ api_router.include_router(settings_router)
 api_router.include_router(insights_router)
 api_router.include_router(expenses_router)
 api_router.include_router(todos_router)
+api_router.include_router(overhead_router)
