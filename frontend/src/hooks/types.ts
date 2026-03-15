@@ -472,3 +472,92 @@ export interface TodoFilters {
   page?: number;
   size?: number;
 }
+
+// ─── Overhead & Cash ─────────────────────────────────────────────────────────
+
+export type OverheadCategory = "rent" | "wages" | "utilities" | "insurance" | "other";
+export type OverheadRecurrence = "monthly" | "weekly" | "custom";
+export type OverheadStatus = "unpaid" | "paid";
+export type CashEntryType = "credit" | "debit";
+
+export interface CashAccount {
+  id: string;
+  name: string;
+  account_type: "cash" | "bank";
+  opening_balance: number;
+  current_balance: number;
+  note: string | null;
+  updated_at: string;
+}
+
+export interface CashAccountUpdate {
+  opening_balance?: number;
+  note?: string;
+}
+
+export interface CashEntry {
+  id: string;
+  account_id: string;
+  account_name: string | null;
+  entry_type: CashEntryType;
+  amount: number;
+  description: string;
+  entry_date: string;
+  source: string | null;
+  source_id: string | null;
+  created_at: string;
+}
+
+export interface CashEntryCreate {
+  account_id: string;
+  entry_type: CashEntryType;
+  amount: number;
+  description: string;
+  entry_date: string;
+  source?: string;
+}
+
+export interface CashEntryListResponse {
+  data: CashEntry[];
+  total: number;
+  running_balance: number;
+}
+
+export interface OverheadExpense {
+  id: string;
+  title: string;
+  category: OverheadCategory;
+  amount: number;
+  due_date: string;
+  description: string | null;
+  status: OverheadStatus;
+  paid_date: string | null;
+  paid_from_account_id: string | null;
+  paid_from_account_name: string | null;
+  recurrence: OverheadRecurrence | null;
+  recurrence_days: number | null;
+  parent_expense_id: string | null;
+  created_at: string;
+}
+
+export interface OverheadExpenseCreate {
+  title: string;
+  category?: OverheadCategory;
+  amount: number;
+  due_date: string;
+  description?: string;
+  recurrence?: OverheadRecurrence;
+  recurrence_days?: number;
+}
+
+export type OverheadExpenseUpdate = Partial<OverheadExpenseCreate>;
+
+export interface MarkPaidRequest {
+  account_id: string;
+  paid_date?: string;
+}
+
+export interface OverheadExpenseListResponse {
+  data: OverheadExpense[];
+  total: number;
+}

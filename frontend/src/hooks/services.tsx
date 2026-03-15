@@ -38,6 +38,16 @@ import type {
   TodoUpdate,
   TodoListResponse,
   TodoFilters,
+  CashAccount,
+  CashAccountUpdate,
+  CashEntry,
+  CashEntryCreate,
+  CashEntryListResponse,
+  OverheadExpense,
+  OverheadExpenseCreate,
+  OverheadExpenseUpdate,
+  MarkPaidRequest,
+  OverheadExpenseListResponse,
 } from "./types";
 
 export type { Alert, AppSettings };
@@ -586,4 +596,42 @@ export const todoService = {
 
   delete: (id: string): Promise<void> =>
     api.delete(`/todos/${id}`).then(() => undefined),
+};
+
+// ─── Overhead & Cash ─────────────────────────────────────────────────────────
+
+export const cashAccountService = {
+  list: (): Promise<CashAccount[]> =>
+    api.get("/overhead/accounts").then((r) => r.data),
+
+  update: (id: string, data: CashAccountUpdate): Promise<CashAccount> =>
+    api.patch(`/overhead/accounts/${id}`, data).then((r) => r.data),
+};
+
+export const cashEntryService = {
+  list: (params: { account_id?: string; page?: number; size?: number } = {}): Promise<CashEntryListResponse> =>
+    api.get("/overhead/entries", { params }).then((r) => r.data),
+
+  create: (data: CashEntryCreate): Promise<CashEntry> =>
+    api.post("/overhead/entries", data).then((r) => r.data),
+
+  delete: (id: string): Promise<void> =>
+    api.delete(`/overhead/entries/${id}`).then(() => undefined),
+};
+
+export const overheadExpenseService = {
+  list: (params: { status?: string; category?: string; page?: number } = {}): Promise<OverheadExpenseListResponse> =>
+    api.get("/overhead/expenses", { params }).then((r) => r.data),
+
+  create: (data: OverheadExpenseCreate): Promise<OverheadExpense> =>
+    api.post("/overhead/expenses", data).then((r) => r.data),
+
+  update: (id: string, data: OverheadExpenseUpdate): Promise<OverheadExpense> =>
+    api.patch(`/overhead/expenses/${id}`, data).then((r) => r.data),
+
+  pay: (id: string, data: MarkPaidRequest): Promise<OverheadExpense> =>
+    api.patch(`/overhead/expenses/${id}/pay`, data).then((r) => r.data),
+
+  delete: (id: string): Promise<void> =>
+    api.delete(`/overhead/expenses/${id}`).then(() => undefined),
 };
