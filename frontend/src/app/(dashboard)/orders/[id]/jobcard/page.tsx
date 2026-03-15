@@ -21,10 +21,24 @@ export default function JobCardPage() {
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState("");
+  const [noteParty, setNoteParty] = useState("");
+  const [notePartyRef, setNotePartyRef] = useState("");
+  const [noteGoods, setNoteGoods] = useState("");
+  const [noteProduct, setNoteProduct] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem(`jobcard_notes_${id}`);
     if (saved) setNotes(saved);
+    const meta = localStorage.getItem(`jobcard_meta_${id}`);
+    if (meta) {
+      try {
+        const m = JSON.parse(meta);
+        setNoteParty(m.party ?? "");
+        setNotePartyRef(m.partyRef ?? "");
+        setNoteGoods(m.goods ?? "");
+        setNoteProduct(m.product ?? "");
+      } catch { /* ignore */ }
+    }
 
     Promise.all([
       ordersService.getOrder(id),
@@ -44,6 +58,10 @@ export default function JobCardPage() {
   const handleNotesChange = (v: string) => {
     setNotes(v);
     localStorage.setItem(`jobcard_notes_${id}`, v);
+  };
+
+  const saveMeta = (party: string, partyRef: string, goods: string, product: string) => {
+    localStorage.setItem(`jobcard_meta_${id}`, JSON.stringify({ party, partyRef, goods, product }));
   };
 
   if (loading) {
@@ -330,23 +348,48 @@ export default function JobCardPage() {
         {/* ── Notes ──────────────────────────────────────────── */}
         <div className="mb-6">
           <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Notes</h2>
-          {/* Editable textarea — screen only */}
+
+          {/* Structured fields — screen only */}
+          <div className="print:hidden space-y-2 mb-3">
+            {[
+              { label: "Party", value: noteParty, set: (v: string) => { setNoteParty(v); saveMeta(v, notePartyRef, noteGoods, noteProduct); } },
+              { label: "Party Ref", value: notePartyRef, set: (v: string) => { setNotePartyRef(v); saveMeta(noteParty, v, noteGoods, noteProduct); } },
+              { label: "Goods", value: noteGoods, set: (v: string) => { setNoteGoods(v); saveMeta(noteParty, notePartyRef, v, noteProduct); } },
+              { label: "Product", value: noteProduct, set: (v: string) => { setNoteProduct(v); saveMeta(noteParty, notePartyRef, noteGoods, v); } },
+            ].map(({ label, value, set }) => (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-20 flex-shrink-0 font-medium">{label}</span>
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => set(e.target.value)}
+                  placeholder={`Enter ${label.toLowerCase()}…`}
+                  className="flex-1 border border-gray-200 rounded px-2 py-1 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder:text-gray-300"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Freeform notes textarea — screen only */}
           <textarea
             className="print:hidden w-full border border-gray-200 rounded p-2 text-sm text-gray-700 resize-y focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder:text-gray-300"
             rows={3}
-            placeholder="Add internal notes for this job card…"
+            placeholder="Additional internal notes…"
             value={notes}
             onChange={(e) => handleNotesChange(e.target.value)}
           />
-          {/* Print version — only shown when printing */}
-          {notes.trim() && (
-            <div className="hidden print:block border border-gray-300 rounded p-3 text-sm text-gray-700 whitespace-pre-wrap">
-              {notes}
-            </div>
-          )}
-          {!notes.trim() && (
-            <div className="hidden print:block text-sm text-gray-400 italic">No notes.</div>
-          )}
+
+          {/* Print version */}
+          <div className="hidden print:block border border-gray-300 rounded p-3 text-sm text-gray-700 space-y-1">
+            {noteParty    && <div className="flex gap-3"><span className="text-gray-400 w-24">Party</span><span className="font-medium">{noteParty}</span></div>}
+            {notePartyRef && <div className="flex gap-3"><span className="text-gray-400 w-24">Party Ref</span><span>{notePartyRef}</span></div>}
+            {noteGoods    && <div className="flex gap-3"><span className="text-gray-400 w-24">Goods</span><span>{noteGoods}</span></div>}
+            {noteProduct  && <div className="flex gap-3"><span className="text-gray-400 w-24">Product</span><span>{noteProduct}</span></div>}
+            {notes.trim() && <div className="mt-2 pt-2 border-t border-gray-200 whitespace-pre-wrap">{notes}</div>}
+            {!noteParty && !notePartyRef && !noteGoods && !noteProduct && !notes.trim() && (
+              <span className="text-gray-400 italic">No notes.</span>
+            )}
+          </div>
         </div>
 
         {/* ── Footer ─────────────────────────────────────────── */}
