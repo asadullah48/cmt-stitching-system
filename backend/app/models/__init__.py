@@ -11,6 +11,7 @@ from .config import Config
 from .quality import QualityCheckpoint, DefectLog
 from .products import Product, ProductBOMItem
 from .bill import Bill
+from .todos import Todo
 
 __all__ = [
     "Base",
@@ -33,4 +34,5 @@ __all__ = [
     "Product",
     "ProductBOMItem",
     "Bill",
+    "Todo",
 ]
