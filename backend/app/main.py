@@ -46,10 +46,30 @@ def seed_admin() -> None:
         logger.error(f"Admin seed error (non-fatal): {e}")
 
 
+def seed_cash_accounts() -> None:
+    """Create the default cash accounts if none exist."""
+    try:
+        from app.models.overhead import CashAccount as _CashAccount
+        from app.core.database import SessionLocal as _SessionLocal
+        _db = _SessionLocal()
+        try:
+            _count = _db.query(_CashAccount).filter(_CashAccount.is_deleted == False).count()
+            if _count == 0:
+                _db.add(_CashAccount(name="Cash In Hand", account_type="cash", opening_balance=0))
+                _db.add(_CashAccount(name="Bank", account_type="bank", opening_balance=0))
+                _db.commit()
+                logger.info("Default cash accounts seeded (Cash In Hand, Bank)")
+        finally:
+            _db.close()
+    except Exception as e:
+        logger.error(f"Cash account seed error (non-fatal): {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
     seed_admin()
+    seed_cash_accounts()
     yield
 
 
