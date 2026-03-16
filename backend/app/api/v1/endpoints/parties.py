@@ -1,12 +1,18 @@
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
+from sqlalchemy import func
 
 from app.core.deps import CurrentUser, DbDep
+from app.models.financial import FinancialTransaction
 from app.models.parties import Party
 from app.schemas.parties import PartyCreate, PartyUpdate, PartyOut, PartyListResponse
 from app.schemas.financial import PartyLedgerResponse, TransactionOut
 from app.services.party_service import PartyService
+
+DEBIT_TYPES = ("income", "expense", "purchase", "stock_consumption")
+CREDIT_TYPES = ("payment", "adjustment")
 
 router = APIRouter(prefix="/parties", tags=["parties"])
 
@@ -44,6 +50,32 @@ def delete_party(party_id: UUID, db: DbDep, _: CurrentUser):
         raise HTTPException(status_code=404, detail="Party not found")
     party.is_deleted = True
     db.commit()
+
+
+@router.post("/{party_id}/recalculate-balance", response_model=PartyOut)
+def recalculate_balance(party_id: UUID, db: DbDep, _: CurrentUser):
+    """Recompute party.balance from scratch from all active transactions.
+    Use this after manually correcting ledger entries to fix stale balance."""
+    party = db.query(Party).filter(Party.id == party_id, Party.is_deleted.is_(False)).first()
+    if not party:
+        raise HTTPException(status_code=404, detail="Party not found")
+
+    debit = db.query(func.sum(FinancialTransaction.amount)).filter(
+        FinancialTransaction.party_id == party_id,
+        FinancialTransaction.transaction_type.in_(DEBIT_TYPES),
+        FinancialTransaction.is_deleted.is_(False),
+    ).scalar() or Decimal("0")
+
+    credit = db.query(func.sum(FinancialTransaction.amount)).filter(
+        FinancialTransaction.party_id == party_id,
+        FinancialTransaction.transaction_type.in_(CREDIT_TYPES),
+        FinancialTransaction.is_deleted.is_(False),
+    ).scalar() or Decimal("0")
+
+    party.balance = Decimal(str(debit)) - Decimal(str(credit))
+    db.commit()
+    db.refresh(party)
+    return party
 
 
 @router.get("/{party_id}/ledger", response_model=PartyLedgerResponse)

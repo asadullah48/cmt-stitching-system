@@ -9,9 +9,34 @@ from pydantic import BaseModel
 from app.core.deps import CurrentUser, DbDep
 from app.models.financial import FinancialTransaction
 from app.models.bill import Bill
+from app.models.parties import Party
 from app.schemas.financial import TransactionCreate, TransactionOut, TransactionListResponse
 from app.services.financial_service import FinancialService
 from app.services.bill_service import BillService
+
+DEBIT_TYPES = {"income", "expense", "purchase", "stock_consumption"}
+CREDIT_TYPES = {"payment", "adjustment"}
+
+
+def _balance_delta(txn_type: str, amount) -> "Decimal":
+    """Return the signed balance change for a transaction type."""
+    from decimal import Decimal
+    amt = Decimal(str(amount))
+    if txn_type in DEBIT_TYPES:
+        return amt       # debit = party owes us more
+    if txn_type in CREDIT_TYPES:
+        return -amt      # credit = party paid us
+    return Decimal("0")
+
+
+def _adjust_party_balance(db, party_id, delta):
+    """Add delta to party.balance (use negative delta to reverse)."""
+    from decimal import Decimal
+    if not party_id or delta == Decimal("0"):
+        return
+    party = db.query(Party).filter(Party.id == party_id).with_for_update().first()
+    if party:
+        party.balance += delta
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -68,13 +93,17 @@ def create_transaction(data: TransactionCreate, db: DbDep, current_user: Current
 
 @router.put("/{transaction_id}", response_model=TransactionOut)
 def update_transaction(transaction_id: UUID, data: TransactionCreate, db: DbDep, _: CurrentUser):
-    """Update all fields of a transaction."""
+    """Update all fields of a transaction, keeping party balance consistent."""
     txn = db.query(FinancialTransaction).filter(
         FinancialTransaction.id == transaction_id,
         FinancialTransaction.is_deleted.is_(False),
     ).first()
     if not txn:
         raise HTTPException(status_code=404, detail="Transaction not found")
+
+    # Reverse old balance effect
+    _adjust_party_balance(db, txn.party_id, -_balance_delta(txn.transaction_type, txn.amount))
+
     txn.party_id = data.party_id
     txn.order_id = data.order_id
     txn.transaction_type = data.transaction_type
@@ -83,6 +112,10 @@ def update_transaction(transaction_id: UUID, data: TransactionCreate, db: DbDep,
     txn.reference_number = data.reference_number
     txn.description = data.description
     txn.transaction_date = data.transaction_date
+
+    # Apply new balance effect
+    _adjust_party_balance(db, txn.party_id, _balance_delta(txn.transaction_type, txn.amount))
+
     db.commit()
     db.refresh(txn)
     return _to_out(txn)
@@ -126,6 +159,10 @@ def delete_transaction(transaction_id: UUID, db: DbDep, _: CurrentUser):
     ).first()
     if not txn:
         raise HTTPException(status_code=404, detail="Transaction not found")
+
+    # Reverse the balance effect before soft-deleting
+    _adjust_party_balance(db, txn.party_id, -_balance_delta(txn.transaction_type, txn.amount))
+
     old_bill_id = txn.bill_id
     txn.is_deleted = True
     db.flush()
