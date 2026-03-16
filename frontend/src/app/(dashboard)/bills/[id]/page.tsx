@@ -526,18 +526,6 @@ export default function BillDetailPage() {
               <span>Amount Due</span>
               <span>PKR {fmt(amountDue)}</span>
             </div>
-            {prevBalance > 0 && (
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Previous Balance</span>
-                <span className="text-orange-600">PKR {fmt(prevBalance)}</span>
-              </div>
-            )}
-            {prevBalance > 0 && (
-              <div className="flex justify-between text-sm font-semibold border-t border-gray-200 pt-2 text-gray-700">
-                <span>Total Outstanding</span>
-                <span>PKR {fmt(totalOutstanding)}</span>
-              </div>
-            )}
             <div className="flex justify-between text-sm text-green-700">
               <span>Amount Paid</span>
               <span>PKR {fmt(amountPaid)}</span>
