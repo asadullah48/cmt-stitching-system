@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { billService, ordersService, BillCreate } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
 import type { Order } from "@/hooks/types";
 
-export default function NewBillPage() {
+function NewBillForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { showToast } = useToast();
@@ -370,5 +370,17 @@ export default function NewBillPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewBillPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full" />
+      </div>
+    }>
+      <NewBillForm />
+    </Suspense>
   );
 }
