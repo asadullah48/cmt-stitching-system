@@ -6,8 +6,8 @@ CMT (Cut-Make-Trim) stitching and packing department management system. Tracks o
 
 **Production URLs**
 - Frontend: https://cmt-stitching-asadullah-shafiques-projects.vercel.app
-- Backend API: https://cmt-backend-5xuu.onrender.com/api/v1
-- API Docs: https://cmt-backend-5xuu.onrender.com/docs
+- Backend API: https://level-hazel-agenticengineer-d513213b.koyeb.app/api/v1
+- API Docs: https://level-hazel-agenticengineer-d513213b.koyeb.app/docs
 
 ---
 
