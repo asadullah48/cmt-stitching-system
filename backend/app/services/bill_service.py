@@ -190,6 +190,7 @@ class BillService:
             txn = FinancialTransaction(
                 party_id=party_id,
                 order_id=data.order_id,
+                bill_id=bill.id,
                 transaction_type="income",
                 amount=data.amount_due,
                 reference_number=bill_number,
@@ -309,9 +310,8 @@ class BillService:
         income_txn = (
             db.query(FinancialTransaction)
             .filter(
+                FinancialTransaction.bill_id == bill.id,
                 FinancialTransaction.transaction_type == "income",
-                FinancialTransaction.reference_number == bill.bill_number,
-                FinancialTransaction.party_id == bill.party_id,
                 FinancialTransaction.is_deleted.is_(False),
             )
             .first()

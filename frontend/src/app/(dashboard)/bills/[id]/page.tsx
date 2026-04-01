@@ -172,7 +172,10 @@ export default function BillDetailPage() {
 
   const handleDelete = async () => {
     if (!bill) return;
-    if (!window.confirm(`Delete bill ${bill.bill_number}? This will revert the order to packing_complete and reverse the ledger entry.`)) return;
+    const confirmMsg = bill.order_id
+      ? `Delete bill ${bill.bill_number}? This will revert the linked order to packing_complete and remove the ledger entry.`
+      : `Delete bill ${bill.bill_number}? This will remove the ledger entry. This cannot be undone.`;
+    if (!window.confirm(confirmMsg)) return;
     setDeleting(true);
     try {
       await billService.delete(bill.id);
