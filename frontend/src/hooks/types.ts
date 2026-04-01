@@ -389,6 +389,30 @@ export interface OrderMaterials {
   packing_consumed: boolean;
 }
 
+// ─── Order Accessories ───────────────────────────────────────────────────────
+
+export interface OrderAccessory {
+  id: string;
+  order_id: string;
+  name: string;
+  total_qty: number;
+  unit_price: number;
+  from_stock: number;
+  purchased_qty: number;
+  purchase_cost: number | null;
+  total_charge: number;
+  total_purchase_spend: number | null;
+}
+
+export interface AccessoryCreate {
+  name: string;
+  total_qty: number;
+  unit_price: number;
+  from_stock: number;
+  purchased_qty: number;
+  purchase_cost?: number;
+}
+
 // ─── Expenses ────────────────────────────────────────────────────────────────
 
 export interface Expense {
