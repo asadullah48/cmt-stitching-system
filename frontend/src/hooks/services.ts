@@ -419,7 +419,7 @@ export interface Bill {
   bill_number: string;
   bill_series: string;
   bill_sequence: number;
-  order_id: string;
+  order_id: string | null;
   order_number?: string;
   party_id?: string;
   party_name?: string;
@@ -443,7 +443,9 @@ export interface Bill {
 }
 
 export interface BillCreate {
-  order_id: string;
+  order_id?: string;
+  party_id?: string;
+  description?: string;
   bill_number?: string;
   bill_series?: string;
   bill_date: string;
