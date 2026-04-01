@@ -34,11 +34,6 @@ const STAGES = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function daysSince(dateStr: string): number {
-  if (!dateStr) return 0;
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
-}
-
 function allocatedDays(entry: string, delivery: string | null | undefined): number | null {
   if (!entry || !delivery) return null;
   return Math.round((new Date(delivery).getTime() - new Date(entry).getTime()) / 86_400_000);
@@ -91,7 +86,7 @@ function MaterialRequirementsPanel({ materials, onEdit }: { materials: OrderMate
             <p className="text-xs text-gray-500 mb-3">Track accessories, zip, fabric, and other materials needed for this order.</p>
             <div className="space-y-1.5 text-xs text-gray-500">
               <p className="font-medium text-gray-600">To add materials (e.g. Zip, Thread):</p>
-              <p>1. <a href="/inventory" className="text-blue-600 hover:underline">Inventory</a> → add items like "Zip", "Thread", "Lace"</p>
+              <p>1. <a href="/inventory" className="text-blue-600 hover:underline">Inventory</a> → add items like &ldquo;Zip&rdquo;, &ldquo;Thread&rdquo;, &ldquo;Lace&rdquo;</p>
               <p>2. <a href="/products" className="text-blue-600 hover:underline">Products</a> → create a product template → add those items to its BOM</p>
               <p>3. Click <strong>Edit Order</strong> below → assign the Product Template</p>
             </div>
