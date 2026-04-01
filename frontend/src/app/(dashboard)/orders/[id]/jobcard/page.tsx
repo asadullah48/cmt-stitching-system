@@ -147,9 +147,12 @@ export default function JobCardPage() {
 
         {/* ── Header ─────────────────────────────────────────── */}
         <div className="flex justify-between items-start border-b-2 border-gray-900 pb-4 mb-6">
-          <div>
-            <h1 className="text-xl font-black tracking-tight uppercase">CMT Stitching &amp; Packing</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Internal Cost Analysis &amp; Job Card</p>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="CMT" className="w-10 h-10 object-contain flex-shrink-0" />
+            <div>
+              <h1 className="text-xl font-black tracking-tight uppercase">CMT Stitching &amp; Packing</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Internal Cost Analysis &amp; Job Card</p>
+            </div>
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-500">Generated: {today}</p>

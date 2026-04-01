@@ -398,11 +398,14 @@ export default function BillDetailPage() {
 
         {/* ── Invoice Header ── */}
         <div className="flex items-start justify-between pb-6 border-b border-gray-200">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#1a2744] tracking-tight">
-              CMT Stitching &amp; Packing
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">Stitching &amp; Packing Department</p>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="CMT" className="w-12 h-12 object-contain flex-shrink-0" />
+            <div>
+              <h1 className="text-2xl font-extrabold text-[#1a2744] tracking-tight">
+                CMT Stitching &amp; Packing
+              </h1>
+              <p className="text-sm text-gray-500 mt-0.5">Stitching &amp; Packing Department</p>
+            </div>
           </div>
           <div className="text-right">
             <p className="text-3xl font-extrabold text-gray-400 uppercase tracking-widest">Invoice</p>
