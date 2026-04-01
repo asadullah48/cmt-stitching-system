@@ -14,7 +14,9 @@ class PaymentStatus(str, Enum):
 
 
 class BillCreate(BaseModel):
-    order_id: UUID
+    order_id: Optional[UUID] = None
+    party_id: Optional[UUID] = None       # required when order_id is None
+    description: Optional[str] = None    # ledger description for standalone bills
     bill_number: Optional[str] = None   # None = auto-generate
     bill_series: str = "A"              # series to use for auto-gen
     bill_date: date
@@ -32,6 +34,12 @@ class BillCreate(BaseModel):
             self.bill_number = self.bill_number.strip().upper()
             if not self.bill_number:
                 raise ValueError("bill_number cannot be blank")
+        return self
+
+    @model_validator(mode="after")
+    def standalone_requires_party(self):
+        if self.order_id is None and self.party_id is None:
+            raise ValueError("party_id is required when order_id is not provided")
         return self
 
 
@@ -59,7 +67,7 @@ class BillOut(BaseModel):
     bill_number: str
     bill_series: str
     bill_sequence: int
-    order_id: UUID
+    order_id: Optional[UUID] = None
     order_number: Optional[str] = None
     party_id: Optional[UUID] = None
     party_name: Optional[str] = None

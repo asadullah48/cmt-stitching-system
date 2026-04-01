@@ -11,7 +11,7 @@ class Bill(BaseModel):
     bill_series = Column(String(5), nullable=False)                  # "A", "B"
     bill_sequence = Column(Integer, nullable=False)                  # 51, 7
 
-    order_id = Column(UUID(as_uuid=True), ForeignKey("cmt_orders.id"), nullable=False)
+    order_id = Column(UUID(as_uuid=True), ForeignKey("cmt_orders.id"), nullable=True)
     party_id = Column(UUID(as_uuid=True), ForeignKey("cmt_parties.id"), nullable=True)
 
     bill_date = Column(Date, nullable=False)
