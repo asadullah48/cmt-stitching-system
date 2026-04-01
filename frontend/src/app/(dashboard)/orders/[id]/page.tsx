@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ordersService, productionService, transactionsService, partiesService, productService, expensesService, billService } from "@/hooks/services";
+import { ordersService, productionService, transactionsService, partiesService, productService, expensesService, billService, accessoryService } from "@/hooks/services";
 import type { Bill } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
 import {
-  StatusBadge, Button, Sheet, ConfirmDialog, Spinner,
+  StatusBadge, Button, Sheet, ConfirmDialog, Spinner, FormField, Input,
 } from "@/components/common";
 import { OrderStatusSelect, OrderItemsTable, OrderForm } from "@/components/orders";
 import { SessionForm } from "@/components/production";
 import { TransactionForm } from "@/components/financial";
-import type { Order, ProductionSession, Department, Party, OrderMaterials, MaterialRequirement, Expense } from "@/hooks/types";
+import type { Order, ProductionSession, Department, Party, OrderMaterials, MaterialRequirement, Expense, OrderAccessory, AccessoryCreate } from "@/hooks/types";
 
 // ─── Stage Config ─────────────────────────────────────────────────────────────
 
@@ -826,6 +826,174 @@ function RateItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ─── Accessories Panel ────────────────────────────────────────────────────────
+
+function AccessoriesPanel({
+  orderId,
+  accessories,
+  onReload,
+}: {
+  orderId: string;
+  accessories: OrderAccessory[];
+  onReload: () => void;
+}) {
+  const { showToast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<AccessoryCreate>({
+    name: "", total_qty: 0, unit_price: 0, from_stock: 0, purchased_qty: 0,
+  });
+
+  const totalAccessoryCharge = accessories.reduce((s, a) => s + Number(a.total_charge), 0);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await accessoryService.create(orderId, form);
+      setForm({ name: "", total_qty: 0, unit_price: 0, from_stock: 0, purchased_qty: 0 });
+      setShowForm(false);
+      onReload();
+      showToast("Accessory added");
+    } catch {
+      showToast("Failed to add accessory", "error");
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (accessoryId: string) => {
+    try {
+      await accessoryService.delete(orderId, accessoryId);
+      onReload();
+      showToast("Removed");
+    } catch { showToast("Failed to remove", "error"); }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-3.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Accessories</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {accessories.length > 0
+              ? `${accessories.length} item${accessories.length > 1 ? "s" : ""} · PKR ${formatCurrency(totalAccessoryCharge)} billed to party`
+              : "Zip, thread, fabric, etc. charged to party"}
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
+          {showForm ? "Cancel" : "+ Add"}
+        </Button>
+      </div>
+
+      {accessories.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <th className="px-4 py-2.5 text-left">Item</th>
+                <th className="px-4 py-2.5 text-right">Total Qty</th>
+                <th className="px-4 py-2.5 text-right">Unit Price</th>
+                <th className="px-4 py-2.5 text-right">Charge</th>
+                <th className="px-4 py-2.5 text-right">From Stock</th>
+                <th className="px-4 py-2.5 text-right">Purchased</th>
+                <th className="px-4 py-2.5 text-right">Buy Cost/u</th>
+                <th className="px-4 py-2.5 text-right">Spend</th>
+                <th className="px-4 py-2.5" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {accessories.map((a) => (
+                <tr key={a.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5 font-medium text-gray-900">{a.name}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{Number(a.total_qty).toLocaleString()}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">PKR {formatCurrency(a.unit_price)}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-blue-700">PKR {formatCurrency(a.total_charge)}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{Number(a.from_stock).toLocaleString()}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{Number(a.purchased_qty).toLocaleString()}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">
+                    {a.purchase_cost != null ? `PKR ${formatCurrency(a.purchase_cost)}` : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-orange-600">
+                    {a.total_purchase_spend != null ? `PKR ${formatCurrency(a.total_purchase_spend)}` : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      onClick={() => handleDelete(a.id)}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-gray-200 bg-blue-50">
+                <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Total accessory charge to party</td>
+                <td className="px-4 py-2.5 text-right text-sm font-bold text-blue-700 tabular-nums">
+                  PKR {formatCurrency(totalAccessoryCharge)}
+                </td>
+                <td colSpan={5} />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+
+      {showForm && (
+        <form onSubmit={handleAdd} className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+          <p className="text-xs font-semibold text-gray-600 mb-3 uppercase tracking-wide">New Accessory</p>
+          <div className="flex gap-3 flex-wrap items-end">
+            <div className="flex-1 min-w-[140px]">
+              <FormField label="Item Name" required>
+                <Input placeholder="e.g. Zip" value={form.name}
+                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+              </FormField>
+            </div>
+            <div>
+              <FormField label="Total Qty" required>
+                <Input type="number" min="0" step="0.01" className="w-24" value={form.total_qty || ""}
+                  onChange={(e) => setForm((p) => ({ ...p, total_qty: parseFloat(e.target.value) || 0 }))} required />
+              </FormField>
+            </div>
+            <div>
+              <FormField label="Unit Price (PKR)" required>
+                <Input type="number" min="0" step="0.01" className="w-28" value={form.unit_price || ""}
+                  onChange={(e) => setForm((p) => ({ ...p, unit_price: parseFloat(e.target.value) || 0 }))} required />
+              </FormField>
+            </div>
+            <div>
+              <FormField label="From Stock">
+                <Input type="number" min="0" step="0.01" className="w-24" value={form.from_stock || ""}
+                  onChange={(e) => setForm((p) => ({ ...p, from_stock: parseFloat(e.target.value) || 0 }))} />
+              </FormField>
+            </div>
+            <div>
+              <FormField label="Purchased Qty">
+                <Input type="number" min="0" step="0.01" className="w-24" value={form.purchased_qty || ""}
+                  onChange={(e) => setForm((p) => ({ ...p, purchased_qty: parseFloat(e.target.value) || 0 }))} />
+              </FormField>
+            </div>
+            <div>
+              <FormField label="Buy Cost/unit">
+                <Input type="number" min="0" step="0.01" className="w-28" value={form.purchase_cost ?? ""}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    setForm((p) => ({ ...p, purchase_cost: isNaN(v) ? undefined : v }));
+                  }} />
+              </FormField>
+            </div>
+            <div className="pb-0.5">
+              <Button type="submit" loading={saving} disabled={!form.name || !form.total_qty || !form.unit_price}>
+                Add
+              </Button>
+            </div>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {
@@ -847,6 +1015,7 @@ export default function OrderDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [cloning, setCloning] = useState(false);
   const [materials, setMaterials] = useState<OrderMaterials | null>(null);
+  const [accessories, setAccessories] = useState<OrderAccessory[]>([]);
 
   const loadOrder = useCallback(async () => {
     try {
@@ -871,6 +1040,14 @@ export default function OrderDetailPage() {
     } catch { /* ignore */ }
   }, [id]);
 
+  const loadAccessories = useCallback(async () => {
+    if (!id) return;
+    try {
+      const data = await accessoryService.list(id as string);
+      setAccessories(data);
+    } catch { /* silent */ }
+  }, [id]);
+
   useEffect(() => {
     setLoading(true);
     Promise.all([loadOrder(), loadSessions(), loadTransactions()]).finally(() =>
@@ -880,7 +1057,8 @@ export default function OrderDetailPage() {
     productService.getOrderMaterials(id).then(setMaterials).catch(() => setMaterials(null));
     expensesService.listByOrder(id).then((r) => setExpenses(r.data)).catch(() => {});
     billService.getByOrder(id).then(setBill).catch(() => {});
-  }, [loadOrder, loadSessions, loadTransactions, id]);
+    loadAccessories();
+  }, [loadOrder, loadSessions, loadTransactions, loadAccessories, id]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -1075,6 +1253,13 @@ export default function OrderDetailPage() {
           }}
         />
       </div>
+
+      {/* Accessories */}
+      <AccessoriesPanel
+        orderId={order.id}
+        accessories={accessories}
+        onReload={loadAccessories}
+      />
 
       {/* Material Requirements */}
       <MaterialRequirementsPanel materials={materials} onEdit={() => setEditSheet(true)} />
