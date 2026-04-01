@@ -6,6 +6,7 @@ import { ToastProvider } from "@/hooks/toast";
 export const metadata: Metadata = {
   title: "CMT Stitching & Packing System",
   description: "Department management system for CMT operations",
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({

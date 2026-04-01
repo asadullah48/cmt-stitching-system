@@ -39,6 +39,11 @@ function daysSince(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
 }
 
+function allocatedDays(entry: string, delivery: string | null | undefined): number | null {
+  if (!entry || !delivery) return null;
+  return Math.round((new Date(delivery).getTime() - new Date(entry).getTime()) / 86_400_000);
+}
+
 // ─── Material Requirements Panel ─────────────────────────────────────────────
 
 function MaterialRow({ req }: { req: MaterialRequirement }) {
@@ -72,7 +77,7 @@ function MaterialRow({ req }: { req: MaterialRequirement }) {
   );
 }
 
-function MaterialRequirementsPanel({ materials }: { materials: OrderMaterials | null }) {
+function MaterialRequirementsPanel({ materials, onEdit }: { materials: OrderMaterials | null; onEdit: () => void }) {
   const [matTab, setMatTab] = useState<"stitching" | "packing">("stitching");
 
   if (!materials) return null;
@@ -80,8 +85,24 @@ function MaterialRequirementsPanel({ materials }: { materials: OrderMaterials | 
   if (!materials.product_name) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Material Requirements</h2>
-        <p className="text-xs text-gray-400">No product assigned. Edit the order to assign a product template.</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-1">Material Requirements</h2>
+            <p className="text-xs text-gray-500 mb-3">Track accessories, zip, fabric, and other materials needed for this order.</p>
+            <div className="space-y-1.5 text-xs text-gray-500">
+              <p className="font-medium text-gray-600">To add materials (e.g. Zip, Thread):</p>
+              <p>1. <a href="/inventory" className="text-blue-600 hover:underline">Inventory</a> → add items like "Zip", "Thread", "Lace"</p>
+              <p>2. <a href="/products" className="text-blue-600 hover:underline">Products</a> → create a product template → add those items to its BOM</p>
+              <p>3. Click <strong>Edit Order</strong> below → assign the Product Template</p>
+            </div>
+          </div>
+          <button
+            onClick={onEdit}
+            className="flex-shrink-0 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Edit Order
+          </button>
+        </div>
       </div>
     );
   }
@@ -201,7 +222,7 @@ function PipelineHeader({ order }: { order: Order }) {
               {/* Date/state hint */}
               <span className="text-xs text-gray-400 text-center">
                 {idx === 0 && formatDate(order.entry_date)}
-                {idx === 1 && (active ? `Day ${daysSince(order.entry_date)}` : done ? "Complete" : "Pending")}
+                {idx === 1 && (active ? `${allocatedDays(order.entry_date, order.delivery_date) ?? "—"} days` : done ? "Complete" : "Pending")}
                 {idx === 2 && (active ? "In Progress" : done ? "Complete" : "Pending")}
                 {idx === 3 && (done ? "Dispatched" : "Pending")}
               </span>
@@ -233,7 +254,7 @@ function StitchingCard({
 
   const totalHours    = sessions.reduce((s, r) => s + (Number(r.duration_hours) ?? 0), 0);
   const totalMachines = sessions.reduce((s, r) => s + r.machines_used, 0);
-  const daysElapsed   = isDone || isActive ? daysSince(order.entry_date) : null;
+  const daysElapsed   = isDone || isActive ? allocatedDays(order.entry_date, order.delivery_date) : null;
 
   const laborCost = order.stitch_rate_labor * order.total_quantity;
   const partyCost = order.stitch_rate_party * order.total_quantity;
@@ -1061,7 +1082,7 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Material Requirements */}
-      <MaterialRequirementsPanel materials={materials} />
+      <MaterialRequirementsPanel materials={materials} onEdit={() => setEditSheet(true)} />
 
       {/* Cost Summary */}
       <CostSummaryPanel order={order} expenses={expenses} bill={bill} />
