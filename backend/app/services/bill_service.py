@@ -100,38 +100,36 @@ class BillService:
 
     @staticmethod
     def create(db: Session, data: BillCreate, user_id: UUID) -> Bill:
-        """Create a new Bill for an order.
+        party_id = None
+        order = None
 
-        Steps:
-          1. Fetch the order (must exist and not be soft-deleted).
-          2. Guard against duplicate bills on the same order.
-          3. Resolve the bill number (manual or auto-generated).
-          4. Persist the Bill record.
-          5. Mark the order as dispatched.
-          6. Post an income FinancialTransaction and update the party balance.
-          7. Write an audit log entry.
-          8. Commit and return the refreshed Bill.
-        """
-        # 1. Fetch order with its party eagerly loaded
-        order = (
-            db.query(Order)
-            .options(joinedload(Order.party))
-            .filter(Order.id == data.order_id, Order.is_deleted.is_(False))
-            .first()
-        )
-        if not order:
-            raise ValueError("Order not found")
+        if data.order_id is not None:
+            # --- Order-linked bill ---
+            order = (
+                db.query(Order)
+                .options(joinedload(Order.party))
+                .filter(Order.id == data.order_id, Order.is_deleted.is_(False))
+                .first()
+            )
+            if not order:
+                raise ValueError("Order not found")
 
-        # 2. Ensure order has no existing active bill
-        existing = (
-            db.query(Bill)
-            .filter(Bill.order_id == data.order_id, Bill.is_deleted.is_(False))
-            .first()
-        )
-        if existing:
-            raise ValueError(f"Order already has bill {existing.bill_number}")
+            existing = (
+                db.query(Bill)
+                .filter(Bill.order_id == data.order_id, Bill.is_deleted.is_(False))
+                .first()
+            )
+            if existing:
+                raise ValueError(f"Order already has bill {existing.bill_number}")
 
-        # 3. Resolve bill number — manual takes priority over auto-generation
+            party_id = order.party_id
+        else:
+            # --- Standalone bill ---
+            party_id = data.party_id
+            if not party_id:
+                raise ValueError("party_id is required for standalone bills")
+
+        # Resolve bill number
         if data.bill_number:
             dup = (
                 db.query(Bill)
@@ -146,11 +144,10 @@ class BillService:
             bill_number, seq = BillService.next_number(db, data.bill_series)
             series = data.bill_series.upper()
 
-        # 4. Create the Bill record; fall back to order fields for dispatch metadata
-        # Capture previous balance before modifying it
+        # Capture previous balance
         captured_previous_balance = Decimal("0")
-        if order.party_id:
-            pre_party = db.query(Party).filter(Party.id == order.party_id).first()
+        if party_id:
+            pre_party = db.query(Party).filter(Party.id == party_id).first()
             if pre_party:
                 captured_previous_balance = Decimal(str(pre_party.balance))
 
@@ -161,12 +158,12 @@ class BillService:
             bill_series=series,
             bill_sequence=seq,
             order_id=data.order_id,
-            party_id=order.party_id,
+            party_id=party_id,
             bill_date=data.bill_date,
-            carrier=data.carrier or order.carrier,
-            tracking_number=data.tracking_number or order.tracking_number,
-            carton_count=data.carton_count or order.carton_count,
-            total_weight=data.total_weight or order.total_weight,
+            carrier=data.carrier or (order.carrier if order else None),
+            tracking_number=data.tracking_number or (order.tracking_number if order else None),
+            carton_count=data.carton_count or (order.carton_count if order else None),
+            total_weight=data.total_weight or (order.total_weight if order else None),
             payment_status="unpaid",
             amount_due=data.amount_due,
             amount_paid=Decimal("0"),
@@ -176,39 +173,42 @@ class BillService:
             created_by=user_id,
         )
         db.add(bill)
-        db.flush()  # obtain bill.id before audit log
+        db.flush()
 
-        # 5. Mark order as dispatched
-        order.status = "dispatched"
-        order.dispatch_date = data.bill_date
-        order.actual_completion = data.bill_date
+        # Mark order dispatched (only for order-linked bills)
+        if order:
+            order.status = "dispatched"
+            order.dispatch_date = data.bill_date
+            order.actual_completion = data.bill_date
 
-        # 6. Post income ledger entry and update party balance
-        if order.party_id:
+        # Post income ledger entry
+        if party_id:
+            desc = data.description or (
+                f"Bill #{bill_number} — {order.goods_description}" if order
+                else f"Bill #{bill_number}"
+            )
             txn = FinancialTransaction(
-                party_id=order.party_id,
-                order_id=order.id,
+                party_id=party_id,
+                order_id=data.order_id,
                 transaction_type="income",
                 amount=data.amount_due,
                 reference_number=bill_number,
-                description=f"Bill #{bill_number} — {order.goods_description}",
+                description=desc,
                 transaction_date=data.bill_date,
                 created_by=user_id,
             )
             db.add(txn)
             db.flush()
 
-            # Lock the party row to prevent concurrent balance corruption
             party = (
                 db.query(Party)
-                .filter(Party.id == order.party_id)
+                .filter(Party.id == party_id)
                 .with_for_update()
                 .first()
             )
             if party:
                 party.balance += data.amount_due
 
-        # 7. Audit log
         AuditService.log_create(
             db,
             "cmt_bills",
@@ -309,9 +309,9 @@ class BillService:
         income_txn = (
             db.query(FinancialTransaction)
             .filter(
-                FinancialTransaction.order_id == bill.order_id,
                 FinancialTransaction.transaction_type == "income",
                 FinancialTransaction.reference_number == bill.bill_number,
+                FinancialTransaction.party_id == bill.party_id,
                 FinancialTransaction.is_deleted.is_(False),
             )
             .first()
