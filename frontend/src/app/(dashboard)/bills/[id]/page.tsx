@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { billService, Bill, BillPaymentUpdate, BillCreate, transactionsService } from "@/hooks/services";
-import type { FinancialTransaction } from "@/hooks/types";
+import { billService, Bill, BillPaymentUpdate, BillCreate, transactionsService, accessoryService } from "@/hooks/services";
+import type { FinancialTransaction, OrderAccessory } from "@/hooks/types";
 import { useToast } from "@/hooks/toast";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -67,6 +67,9 @@ export default function BillDetailPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Accessories
+  const [accessories, setAccessories] = useState<OrderAccessory[]>([]);
+
   const fetchUnlinkedPayments = useCallback(async (partyId: string) => {
     setLoadingUnlinked(true);
     try {
@@ -94,6 +97,12 @@ export default function BillDetailPage() {
       .catch(() => showToast("Bill not found", "error"))
       .finally(() => setLoading(false));
   }, [id, showToast, fetchUnlinkedPayments]);
+
+  useEffect(() => {
+    if (bill?.order_id) {
+      accessoryService.list(bill.order_id).then(setAccessories).catch(() => {});
+    }
+  }, [bill?.order_id]);
 
   const handleLinkPayment = async (txId: string) => {
     if (!bill) return;
@@ -210,6 +219,8 @@ export default function BillDetailPage() {
   const outstanding = Number(bill.amount_outstanding ?? amountDue - amountPaid);
   const prevBalance = Number(bill.previous_balance ?? 0);
   const totalOutstanding = amountDue + prevBalance;
+  const accessoryTotal = accessories.reduce((s, a) => s + Number(a.total_charge), 0);
+  const grandSubtotal = subtotal + accessoryTotal;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -509,15 +520,52 @@ export default function BillDetailPage() {
                 </tr>
               )}
             </tbody>
+            {accessories.length > 0 && (
+              <tbody>
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-200"
+                  >
+                    Accessories
+                  </td>
+                </tr>
+                {accessories.map((a, idx) => (
+                  <tr key={a.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2.5 text-gray-400">
+                      {(bill.order_items?.length ?? 0) + idx + 1}
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-800">{a.name}</td>
+                    <td className="px-3 py-2.5 text-center text-gray-500">—</td>
+                    <td className="px-3 py-2.5 text-right text-gray-700">
+                      {Number(a.total_qty).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-gray-700">
+                      PKR {fmt(a.unit_price)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-gray-400">—</td>
+                    <td className="px-3 py-2.5 text-right font-medium text-gray-900">
+                      PKR {fmt(a.total_charge)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            )}
           </table>
         </div>
 
         {/* ── Totals Section ── */}
         <div className="mt-6 flex justify-end">
           <div className="w-80 space-y-1.5">
+            {accessoryTotal > 0 && (
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Accessories</span>
+                <span>PKR {fmt(accessoryTotal)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm text-gray-600">
               <span>Subtotal</span>
-              <span>PKR {fmt(subtotal)}</span>
+              <span>PKR {fmt(grandSubtotal)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-sm text-amber-700">
