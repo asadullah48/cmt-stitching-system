@@ -506,7 +506,7 @@ interface EditableItem {
 
 interface OrderItemsTableProps {
   items: Order["items"];
-  onSave?: (items: Array<{ id?: string; size: string; quantity: number }>) => Promise<void>;
+  onSave?: (items: Array<{ id?: string; size: string; quantity: number; completed_quantity?: number; packed_quantity?: number }>) => Promise<void>;
 }
 
 export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
@@ -532,7 +532,7 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
     setSaving(true);
     setError("");
     try {
-      await onSave(valid.map(r => ({ id: r.id, size: r.size.trim(), quantity: r.quantity })));
+      await onSave(valid.map(r => ({ id: r.id, size: r.size.trim(), quantity: r.quantity, completed_quantity: r.completed_quantity, packed_quantity: r.packed_quantity })));
       setEditing(false);
     } catch {
       setError("Failed to save. Please try again.");
@@ -577,8 +577,24 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
                       onChange={e => setRows(prev => prev.map((r, i) => i === idx ? { ...r, quantity: parseInt(e.target.value) || 0 } : r))}
                     />
                   </td>
-                  <td className="px-4 py-1.5 text-right tabular-nums text-blue-700 text-sm">{row.completed_quantity}</td>
-                  <td className="px-4 py-1.5 text-right tabular-nums text-teal-700 text-sm">{row.packed_quantity}</td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-24 border border-gray-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500 ml-auto block"
+                      value={row.completed_quantity}
+                      onChange={e => setRows(prev => prev.map((r, i) => i === idx ? { ...r, completed_quantity: parseInt(e.target.value) || 0 } : r))}
+                    />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-24 border border-gray-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500 ml-auto block"
+                      value={row.packed_quantity}
+                      onChange={e => setRows(prev => prev.map((r, i) => i === idx ? { ...r, packed_quantity: parseInt(e.target.value) || 0 } : r))}
+                    />
+                  </td>
                   <td className="px-2 py-1.5 text-center">
                     <button
                       onClick={() => setRows(prev => prev.filter((_, i) => i !== idx))}

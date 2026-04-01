@@ -164,7 +164,7 @@ export const ordersService = {
     return data;
   },
 
-  updateItems: async (id: string, items: Array<{ id?: string; size: string; quantity: number }>): Promise<Order> => {
+  updateItems: async (id: string, items: Array<{ id?: string; size: string; quantity: number; completed_quantity?: number; packed_quantity?: number }>): Promise<Order> => {
     const { data } = await api.patch<Order>(`/orders/${id}/items`, items);
     return data;
   },

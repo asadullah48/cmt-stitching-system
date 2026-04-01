@@ -25,6 +25,8 @@ class OrderItemUpdate(BaseModel):
     id: Optional[UUID] = None  # existing item ID; None = new item
     size: str
     quantity: int
+    completed_quantity: Optional[int] = None
+    packed_quantity: Optional[int] = None
 
 
 class OrderItemOut(BaseModel):

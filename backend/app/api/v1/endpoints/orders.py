@@ -371,6 +371,10 @@ def update_items(order_id: UUID, items: list[OrderItemUpdate], db: DbDep, curren
             existing = existing_by_id[str(item_data.id)]
             existing.size = item_data.size
             existing.quantity = item_data.quantity
+            if item_data.completed_quantity is not None:
+                existing.completed_quantity = item_data.completed_quantity
+            if item_data.packed_quantity is not None:
+                existing.packed_quantity = item_data.packed_quantity
         else:
             db.add(OrderItemModel(order_id=order.id, size=item_data.size, quantity=item_data.quantity))
 
