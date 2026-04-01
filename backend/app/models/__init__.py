@@ -13,6 +13,7 @@ from .products import Product, ProductBOMItem
 from .bill import Bill
 from .todos import Todo
 from .overhead import CashAccount, CashEntry, OverheadExpense
+from .accessories import OrderAccessory
 
 __all__ = [
     "Base",
@@ -39,4 +40,5 @@ __all__ = [
     "CashAccount",
     "CashEntry",
     "OverheadExpense",
+    "OrderAccessory",
 ]

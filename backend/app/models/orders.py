@@ -50,6 +50,7 @@ class Order(BaseModel):
     defect_logs = relationship("DefectLog", back_populates="order", cascade="all, delete-orphan")
     product = relationship("Product", back_populates="orders")
     bill = relationship("Bill", back_populates="order", uselist=False)
+    accessories = relationship("OrderAccessory", back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderItem(BaseModel):
