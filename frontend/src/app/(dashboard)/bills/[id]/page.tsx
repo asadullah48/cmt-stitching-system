@@ -557,16 +557,6 @@ export default function BillDetailPage() {
         {/* ── Totals Section ── */}
         <div className="mt-6 flex justify-end">
           <div className="w-80 space-y-1.5">
-            {accessoryTotal > 0 && (
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Accessories</span>
-                <span>PKR {fmt(accessoryTotal)}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Subtotal</span>
-              <span>PKR {fmt(grandSubtotal)}</span>
-            </div>
             {discount > 0 && (
               <div className="flex justify-between text-sm text-amber-700">
                 <span>Discount</span>
@@ -575,7 +565,7 @@ export default function BillDetailPage() {
             )}
             <div className="flex justify-between text-base font-bold border-t border-gray-300 pt-2 mt-2 text-gray-900">
               <span>Amount Due</span>
-              <span>PKR {fmt(amountDue)}</span>
+              <span>PKR {fmt(grandSubtotal - discount)}</span>
             </div>
             <div className="flex justify-between text-sm text-green-700">
               <span>Amount Paid</span>
@@ -583,11 +573,11 @@ export default function BillDetailPage() {
             </div>
             <div
               className={`flex justify-between text-base font-bold border-t border-gray-300 pt-2 mt-1 ${
-                outstanding > 0 ? "text-red-600" : "text-green-600"
+                (grandSubtotal - discount - amountPaid) > 0 ? "text-red-600" : "text-green-600"
               }`}
             >
               <span>Balance Due</span>
-              <span>PKR {fmt(outstanding)}</span>
+              <span>PKR {fmt(grandSubtotal - discount - amountPaid)}</span>
             </div>
           </div>
         </div>
