@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { billService, ordersService, BillCreate } from "@/hooks/services";
+import { billService, ordersService, partiesService, BillCreate } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
-import type { Order } from "@/hooks/types";
+import type { Order, Party } from "@/hooks/types";
 
 function NewBillForm() {
   const router = useRouter();
@@ -17,11 +17,15 @@ function NewBillForm() {
   const [nextNumber, setNextNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
+  const [billType, setBillType] = useState<"order" | "standalone">("order");
+  const [parties, setParties] = useState<Party[]>([]);
 
   const urlOrderId = params.get("order") || "";
 
   const [form, setForm] = useState<BillCreate & { discount: number }>({
     order_id: urlOrderId,
+    party_id: "",
+    description: "",
     bill_number: "",
     bill_series: "A",
     bill_date: new Date().toISOString().split("T")[0],
@@ -60,6 +64,10 @@ function NewBillForm() {
     loadAllOrders();
   }, [urlOrderId]);
 
+  useEffect(() => {
+    partiesService.getParties(1, 200).then((r) => setParties(r.data ?? [])).catch(() => {});
+  }, []);
+
   // Fetch next number when series changes
   useEffect(() => {
     if (!autoMode) return;
@@ -88,12 +96,38 @@ function NewBillForm() {
     setForm((f) => ({ ...f, amount_due: Math.max(0, subtotal - f.discount) }));
   }, [form.discount, subtotal]);
 
+  // Reset amounts when switching to standalone mode (no auto-calc applies)
+  useEffect(() => {
+    if (billType === "standalone") {
+      setSubtotal(0);
+      setForm((f) => ({ ...f, amount_due: 0, discount: 0 }));
+    }
+  }, [billType]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
+      if (billType === "order" && !form.order_id) {
+        showToast("Select an order", "error");
+        setSubmitting(false);
+        return;
+      }
+      if (billType === "standalone" && !form.party_id) {
+        showToast("Select a party", "error");
+        setSubmitting(false);
+        return;
+      }
+      if (billType === "standalone" && !form.description?.trim()) {
+        showToast("Enter a description", "error");
+        setSubmitting(false);
+        return;
+      }
       const payload: BillCreate = {
         ...form,
+        order_id: billType === "order" ? form.order_id : undefined,
+        party_id: billType === "standalone" ? form.party_id : undefined,
+        description: billType === "standalone" ? form.description : undefined,
         bill_number: autoMode ? undefined : form.bill_number,
         discount: form.discount || 0,
       };
@@ -117,8 +151,26 @@ function NewBillForm() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">New Bill</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Creates dispatch record, updates ledger &amp; marks order complete
+          {billType === "order"
+            ? "Creates dispatch record, updates ledger & marks order complete"
+            : "Standalone misc bill — posts to party ledger, no order required"}
         </p>
+        <div className="flex gap-3 mt-2">
+          {(["order", "standalone"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setBillType(t)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                billType === t
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {t === "order" ? "Linked to Order" : "Standalone (misc)"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <form
@@ -126,37 +178,73 @@ function NewBillForm() {
         className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5"
       >
         {/* Order */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Order *
-          </label>
-          {loadingOrders ? (
-            <div className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500">
-              <svg className="animate-spin w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-              </svg>
-              Loading orders… (first load may take up to 30 seconds)
-            </div>
-          ) : (
-            <>
-              <select required value={form.order_id} onChange={(e) => set("order_id", e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                <option value="">Select an order...</option>
-                {orders.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.order_number} — {o.party_name ?? "No party"} ({o.status})
-                  </option>
+        {billType === "order" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Order *
+            </label>
+            {loadingOrders ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-500">
+                <svg className="animate-spin w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                Loading orders… (first load may take up to 30 seconds)
+              </div>
+            ) : (
+              <>
+                <select value={form.order_id} onChange={(e) => set("order_id", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Select an order...</option>
+                  {orders.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.order_number} — {o.party_name ?? "No party"} ({o.status})
+                    </option>
+                  ))}
+                </select>
+                {!loadingOrders && orders.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    No unbilled orders found. Already dispatched orders are excluded.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Standalone fields */}
+        {billType === "standalone" && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Party *
+              </label>
+              <select
+                value={form.party_id ?? ""}
+                onChange={(e) => set("party_id", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              >
+                <option value="">Select a party...</option>
+                {parties.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-              {!loadingOrders && orders.length === 0 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  No unbilled orders found. Already dispatched orders are excluded.
-                </p>
-              )}
-            </>
-          )}
-        </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Misc stitching charges — April 2026"
+                value={form.description ?? ""}
+                onChange={(e) => set("description", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+          </>
+        )}
 
         {/* Bill Number */}
         <div>
@@ -244,7 +332,7 @@ function NewBillForm() {
           </div>
 
           {/* Amount summary */}
-          {subtotal > 0 && (
+          {billType === "order" && subtotal > 0 && (
             <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm space-y-1">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
@@ -278,66 +366,70 @@ function NewBillForm() {
               }
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Auto-calculated from order rates minus discount — adjust if needed
-            </p>
+            {billType === "order" && (
+              <p className="text-xs text-gray-400 mt-1">
+                Auto-calculated from order rates minus discount — adjust if needed
+              </p>
+            )}
           </div>
         </div>
 
         {/* Dispatch details */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Carrier
-            </label>
-            <input
-              type="text"
-              value={form.carrier || ""}
-              onChange={(e) => set("carrier", e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
+        {billType === "order" && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Carrier
+              </label>
+              <input
+                type="text"
+                value={form.carrier || ""}
+                onChange={(e) => set("carrier", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tracking #
+              </label>
+              <input
+                type="text"
+                value={form.tracking_number || ""}
+                onChange={(e) => set("tracking_number", e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cartons
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={form.carton_count || ""}
+                onChange={(e) =>
+                  set("carton_count", parseInt(e.target.value) || undefined)
+                }
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Weight (kg)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.total_weight || ""}
+                onChange={(e) =>
+                  set("total_weight", parseFloat(e.target.value) || undefined)
+                }
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tracking #
-            </label>
-            <input
-              type="text"
-              value={form.tracking_number || ""}
-              onChange={(e) => set("tracking_number", e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cartons
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={form.carton_count || ""}
-              onChange={(e) =>
-                set("carton_count", parseInt(e.target.value) || undefined)
-              }
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Weight (kg)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.total_weight || ""}
-              onChange={(e) =>
-                set("total_weight", parseFloat(e.target.value) || undefined)
-              }
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
+        )}
 
         {/* Notes */}
         <div>
