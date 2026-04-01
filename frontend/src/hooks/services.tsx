@@ -48,6 +48,8 @@ import type {
   OverheadExpenseUpdate,
   MarkPaidRequest,
   OverheadExpenseListResponse,
+  OrderAccessory,
+  AccessoryCreate,
 } from "./types";
 
 export type { Alert, AppSettings };
@@ -566,6 +568,17 @@ export const productService = {
 
   getOrderMaterials: (orderId: string) =>
     api.get<OrderMaterials>(`/orders/${orderId}/materials`).then((r) => r.data),
+};
+
+// ─── Accessories ─────────────────────────────────────────────────────────────
+
+export const accessoryService = {
+  list: (orderId: string) =>
+    api.get<OrderAccessory[]>(`/orders/${orderId}/accessories`).then((r) => r.data),
+  create: (orderId: string, data: AccessoryCreate) =>
+    api.post<OrderAccessory>(`/orders/${orderId}/accessories`, data).then((r) => r.data),
+  delete: (orderId: string, accessoryId: string) =>
+    api.delete(`/orders/${orderId}/accessories/${accessoryId}`),
 };
 
 // ─── Todos ───────────────────────────────────────────────────────────────────
