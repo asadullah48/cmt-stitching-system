@@ -320,11 +320,17 @@ class BillService:
                 if party:
                     party.balance -= Decimal(str(income_txn.amount))
 
-        # Revert order to packing_complete
+        # Revert order to packing_complete only if no other active bills remain
         if bill.order:
-            bill.order.status = "packing_complete"
-            bill.order.dispatch_date = None
-            bill.order.actual_completion = None
+            other_bills = db.query(Bill).filter(
+                Bill.order_id == bill.order_id,
+                Bill.id != bill.id,
+                Bill.is_deleted.is_(False),
+            ).count()
+            if other_bills == 0:
+                bill.order.status = "packing_complete"
+                bill.order.dispatch_date = None
+                bill.order.actual_completion = None
 
         bill.is_deleted = True
         AuditService.log_delete(db, "cmt_bills", bill.id, user_id)
