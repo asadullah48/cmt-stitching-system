@@ -32,6 +32,13 @@ const STAGES = [
   { key: "dispatch", label: "Dispatched",    icon: "🚚" },
 ];
 
+const PACKING_STAGE_OPTIONS = [
+  { key: "packing",          label: "Packing" },
+  { key: "loading",          label: "Loading" },
+  { key: "ready_to_invoice", label: "Ready to Invoice" },
+  { key: "invoiced",         label: "Invoiced" },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function allocatedDays(entry: string, delivery: string | null | undefined): number | null {
@@ -1016,6 +1023,9 @@ export default function OrderDetailPage() {
   const [cloning, setCloning] = useState(false);
   const [materials, setMaterials] = useState<OrderMaterials | null>(null);
   const [accessories, setAccessories] = useState<OrderAccessory[]>([]);
+  const [subOrderSheetOpen, setSubOrderSheetOpen] = useState(false);
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
+  const [creatingSubOrder, setCreatingSubOrder] = useState(false);
 
   const loadOrder = useCallback(async () => {
     try {
@@ -1101,6 +1111,37 @@ export default function OrderDetailPage() {
     showToast("Expense removed");
   };
 
+  const handleCreateSubOrder = async () => {
+    if (selectedStages.length === 0) {
+      showToast("Select at least one stage", "error");
+      return;
+    }
+    setCreatingSubOrder(true);
+    try {
+      const subOrder = await ordersService.createOrder({
+        party_id: order.party_id ?? undefined,
+        party_reference: order.party_reference ?? undefined,
+        goods_description: order.goods_description,
+        total_quantity: order.total_quantity,
+        stitch_rate_party: order.stitch_rate_party,
+        stitch_rate_labor: order.stitch_rate_labor,
+        pack_rate_party: order.pack_rate_party ?? undefined,
+        pack_rate_labor: order.pack_rate_labor ?? undefined,
+        entry_date: order.entry_date,
+        items: order.items.map((i) => ({ size: i.size, quantity: i.quantity })),
+        sub_suffix: "B",
+        parent_order_id: order.id,
+        sub_stages: selectedStages,
+      });
+      showToast("Sub-order B created");
+      router.push(`/orders/${subOrder.id}`);
+    } catch {
+      showToast("Failed to create sub-order", "error");
+    } finally {
+      setCreatingSubOrder(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -1175,6 +1216,14 @@ export default function OrderDetailPage() {
             >
               Delete
             </Button>
+            {!order.sub_suffix && (
+              <button
+                onClick={() => setSubOrderSheetOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+              >
+                + Sub-Order B
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1300,6 +1349,48 @@ export default function OrderDetailPage() {
           onSuccess={(updated) => { setEditSheet(false); setOrder(updated); showToast("Order updated"); }}
           onCancel={() => setEditSheet(false)}
         />
+      </Sheet>
+
+      <Sheet open={subOrderSheetOpen} onClose={() => setSubOrderSheetOpen(false)} title="Create Sub-Order B">
+        <div className="space-y-5">
+          <p className="text-sm text-gray-500">
+            Create a B sub-order for additional charges (packing, loading, etc.)
+          </p>
+
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-gray-700">Select stages to include:</p>
+            {PACKING_STAGE_OPTIONS.map((stage) => (
+              <label key={stage.key} className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedStages.includes(stage.key)}
+                  onChange={(e) => {
+                    setSelectedStages((prev) =>
+                      e.target.checked
+                        ? [...prev, stage.key]
+                        : prev.filter((s) => s !== stage.key)
+                    );
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-800">{stage.label}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              onClick={handleCreateSubOrder}
+              loading={creatingSubOrder}
+              disabled={selectedStages.length === 0}
+            >
+              Create Sub-Order B
+            </Button>
+            <Button variant="secondary" onClick={() => setSubOrderSheetOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
       </Sheet>
 
       <ConfirmDialog
