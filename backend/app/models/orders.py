@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Numeric, Date, Text, ForeignKey
+from sqlalchemy import Column, String, Integer, Numeric, Date, Text, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .base import BaseModel
@@ -35,6 +35,13 @@ class Order(BaseModel):
     miscellaneous_expense = Column(Numeric(10, 2), nullable=True, default=0)
     rent = Column(Numeric(10, 2), nullable=True, default=0)
     loading_charges = Column(Numeric(10, 2), nullable=True, default=0)
+    # Lot number — auto-assigned per party + party_reference on create; editable manually
+    lot_number = Column(Integer, nullable=True)
+    # Sub-order support: suffix "A" or "B", parent link, and stage tracking for B
+    sub_suffix = Column(String(5), nullable=True)
+    parent_order_id = Column(UUID(as_uuid=True), ForeignKey("cmt_orders.id"), nullable=True)
+    sub_stages = Column(JSON, nullable=True)   # list of selected stage keys e.g. ["packing","invoiced"]
+    current_stage = Column(String(30), nullable=True)
     # Optional link to a product; used to drive BOM-based inventory deductions
     product_id = Column(UUID(as_uuid=True), ForeignKey("cmt_products.id"), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
@@ -51,6 +58,7 @@ class Order(BaseModel):
     product = relationship("Product", back_populates="orders")
     bill = relationship("Bill", back_populates="order", uselist=False)
     accessories = relationship("OrderAccessory", back_populates="order", cascade="all, delete-orphan")
+    sub_orders = relationship("Order", foreign_keys="[Order.parent_order_id]", backref="parent_order")
 
 
 class OrderItem(BaseModel):
