@@ -58,6 +58,10 @@ class OrderCreate(BaseModel):
     rent: Optional[Decimal] = Decimal("0")
     loading_charges: Optional[Decimal] = Decimal("0")
     product_id: Optional[UUID] = None
+    lot_number: Optional[int] = None
+    sub_suffix: Optional[str] = None           # "A" or "B"
+    parent_order_id: Optional[UUID] = None
+    sub_stages: Optional[list[str]] = None     # subset of ["packing","loading","ready_to_invoice","invoiced"]
     items: list[OrderItemCreate]
 
     @model_validator(mode="after")
@@ -94,6 +98,11 @@ class OrderUpdate(BaseModel):
     rent: Optional[Decimal] = None
     loading_charges: Optional[Decimal] = None
     product_id: Optional[UUID] = None
+    lot_number: Optional[int] = None
+    sub_suffix: Optional[str] = None
+    parent_order_id: Optional[UUID] = None
+    sub_stages: Optional[list[str]] = None
+    current_stage: Optional[str] = None
 
 
 class OrderStatusUpdate(BaseModel):
@@ -130,6 +139,11 @@ class OrderOut(BaseModel):
     loading_charges: Optional[Decimal] = Decimal("0")
     product_id: Optional[UUID] = None
     product_name: Optional[str] = None
+    lot_number: Optional[int] = None
+    sub_suffix: Optional[str] = None
+    parent_order_id: Optional[UUID] = None
+    sub_stages: Optional[list[str]] = None
+    current_stage: Optional[str] = None
     items: list[OrderItemOut] = []
 
     model_config = {"from_attributes": True}
@@ -140,3 +154,10 @@ class OrderListResponse(BaseModel):
     total: int
     page: int
     size: int
+
+
+SUB_ORDER_STAGES = ["packing", "loading", "ready_to_invoice", "invoiced"]
+
+class SubOrderStageAdvance(BaseModel):
+    """Advance a B sub-order to the next stage, or set a specific stage."""
+    stage: str  # must be one of SUB_ORDER_STAGES
