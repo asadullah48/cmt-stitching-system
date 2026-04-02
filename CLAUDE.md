@@ -113,6 +113,52 @@ Frontend: service call (both .ts + .tsx) → types (both files) → page → add
 
 ---
 
+## Verification Tools
+
+Two tools are available to verify code actually works before declaring a task done.
+
+### Playwright — UI verification
+Use Playwright browser tools to navigate to the live app and confirm UI changes are visible and correct.
+
+**When to use:** After deploying frontend changes — navigate to the production URL, take a screenshot or snapshot, interact with the relevant page to confirm the feature works.
+
+**Production URL:** `https://cmt-stitching-asadullah-shafiques-projects.vercel.app`
+
+**Key tools:**
+- `browser_navigate` — open a URL
+- `browser_snapshot` — read the page DOM (fast, good for checking text/data)
+- `browser_take_screenshot` — see the page visually
+- `browser_click` / `browser_type` / `browser_fill_form` — interact with forms and buttons
+- `browser_wait_for` — wait for elements to appear after navigation
+
+**Example flow:** After deploying a bill change → `browser_navigate` to the bills page → log in → open a bill → `browser_snapshot` to confirm lot # appears next to description.
+
+### Backend server — API verification
+Use when you need to test a backend change locally before pushing to Koyeb.
+
+**Start the server:**
+```bash
+# Run in background so you can keep working
+cd backend && uvicorn app.main:app --reload --port 8000
+# (use run_in_background=true on the Bash tool)
+```
+
+**Then test with curl:**
+```bash
+# Login
+curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+
+# Hit any endpoint
+curl -s http://localhost:8000/api/v1/bills/?size=1 \
+  -H "Authorization: Bearer <token>"
+```
+
+**When to use:** When adding or changing an API endpoint — start the server, hit the endpoint with curl, confirm the response shape before pushing.
+
+---
+
 ## Common Commands
 
 ```bash
