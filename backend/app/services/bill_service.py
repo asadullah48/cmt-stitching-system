@@ -114,14 +114,6 @@ class BillService:
             if not order:
                 raise ValueError("Order not found")
 
-            existing = (
-                db.query(Bill)
-                .filter(Bill.order_id == data.order_id, Bill.is_deleted.is_(False))
-                .first()
-            )
-            if existing:
-                raise ValueError(f"Order already has bill {existing.bill_number}")
-
             party_id = order.party_id
         else:
             # --- Standalone bill ---
@@ -175,8 +167,8 @@ class BillService:
         db.add(bill)
         db.flush()
 
-        # Mark order dispatched (only for order-linked bills)
-        if order:
+        # Mark order dispatched on first bill only
+        if order and order.status != "dispatched":
             order.status = "dispatched"
             order.dispatch_date = data.bill_date
             order.actual_completion = data.bill_date
