@@ -58,7 +58,7 @@ class Order(BaseModel):
     product = relationship("Product", back_populates="orders")
     bills = relationship("Bill", back_populates="order")
     accessories = relationship("OrderAccessory", back_populates="order", cascade="all, delete-orphan")
-    sub_orders = relationship("Order", foreign_keys="[Order.parent_order_id]", backref="parent_order")
+    sub_orders = relationship("Order", primaryjoin="Order.id == remote(Order.parent_order_id)", foreign_keys="[Order.parent_order_id]", backref="parent_order")
 
 
 class OrderItem(BaseModel):
