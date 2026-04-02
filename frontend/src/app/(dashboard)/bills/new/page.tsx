@@ -48,9 +48,8 @@ function NewBillForm() {
           );
           all = [...all, ...rest.flatMap((r) => r.data)];
         }
-        const eligible = all.filter((o) => o.status !== "dispatched");
-        setOrders(eligible);
-        if (urlOrderId && !eligible.find((o) => o.id === urlOrderId)) {
+        setOrders(all);
+        if (urlOrderId && !all.find((o) => o.id === urlOrderId)) {
           ordersService.getOrder(urlOrderId).then((order) => {
             setOrders((prev) => prev.find((o) => o.id === urlOrderId) ? prev : [...prev, order]);
           }).catch(() => {});
@@ -170,7 +169,7 @@ function NewBillForm() {
         <h1 className="text-2xl font-bold text-gray-900">New Bill</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           {billType === "order"
-            ? "Creates dispatch record, updates ledger & marks order complete"
+            ? "Posts to party ledger & links to order. First bill also marks order dispatched."
             : "Standalone misc bill — posts to party ledger, no order required"}
         </p>
         <div className="flex gap-3 mt-2">
@@ -222,7 +221,7 @@ function NewBillForm() {
                 </select>
                 {!loadingOrders && orders.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
-                    No unbilled orders found. Already dispatched orders are excluded.
+                    No orders found.
                   </p>
                 )}
               </>
