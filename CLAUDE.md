@@ -27,16 +27,16 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 4. **Migration files** — use ABSOLUTE paths: `C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\`
 5. **Migration HEAD** — currently `s9n0o1p2q3r4` (add_lot_and_suborder); always append, never modify existing migrations
 6. **Services layer** — business logic in `app/services/`, not in route handlers
-7. **Base import** — ORM models must import `Base` from `app.models.base`, NOT from `app.core.database`
-8. **Self-referential relationships** — always include `primaryjoin` with `remote()` annotation. Example for Order.sub_orders:
+7. **Base import** — ORM models import `Base` from `app.models.base`, never from `app.core.database`
+8. **Self-referential relationships** — always include `primaryjoin` with `remote()` to avoid mapper direction errors:
    ```python
    sub_orders = relationship("Order",
        primaryjoin="Order.id == remote(Order.parent_order_id)",
        foreign_keys="[Order.parent_order_id]",
        backref="parent_order")
    ```
-9. **Multiple bills per order** — allowed by design. The 1-bill-per-order guard was intentionally removed. Do not re-add it. Bill service only dispatches order on the FIRST bill (`if order and order.status != "dispatched"`). Bill delete only reverts order status if no other active bills remain.
-10. **Always verify app boots** before pushing: `cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"`
+9. **Multiple bills per order** — intentional by design. Do not add a duplicate-bill guard. First bill dispatches the order; second bill skips re-dispatch. Bill delete only reverts order status if no other active bills remain.
+10. **Boot check before every push** — `cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"` must pass
 
 ### Frontend
 
@@ -48,7 +48,7 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 3. **Dashboard route** — home is `/dashboard` not `/` (route group conflict)
 4. **Forms** — slide-in sheet pattern, not full-page navigation
 5. **No Redux** — React Context + useReducer only
-6. **Bill accessories display** — accessories only auto-show on a bill if it is the sole bill for that order (`res.total === 1`). Do not revert this check in `bills/[id]/page.tsx`.
+6. **Bill accessories display** — accessories only auto-show on a bill when it is the sole bill for that order (`res.total === 1` check in `bills/[id]/page.tsx`). Do not remove this guard.
 
 ---
 
@@ -58,9 +58,9 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 |--------|---------|
 | **A** | Stitching & packing bills (primary) |
 | **B** | Accessories, materials, misc charges |
-| C–E   | Reserved / future use |
+| C–E   | Reserved |
 
-When a party order has both a stitching charge and an accessories charge, create two separate bills: one A-series for stitching, one B-series for accessories. Both link to the same order and both appear in the party ledger.
+One order can have both an A-bill (stitching) and a B-bill (accessories). Both link to the same order and appear separately in the party ledger.
 
 ---
 
@@ -87,15 +87,9 @@ When a party order has both a stitching charge and an accessories charge, create
 
 ## Deployment
 
-- **Frontend** → Vercel (auto-deploy on push to master); force-redeploy: `cd frontend && npx vercel --prod --yes`
-- **Backend** → Koyeb (auto-deploy on push to master — NOT Railway)
+- **Frontend** → Vercel (auto-deploy on push to master)
+- **Backend** → Koyeb (auto-deploy on push to master)
 - **DB** → Neon PostgreSQL (shared, `cmt_` prefix on all tables)
-
-### Deploy checklist (before pushing backend changes)
-1. `cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"` — must print `App OK`
-2. `git push origin master` — triggers Koyeb redeploy
-3. Wait ~2 min, check `GET /health` returns `{"status":"ok"}`
-4. If Koyeb shows error UUID in dashboard: check app boot locally first, fix import/mapper errors before pushing again
 
 ### Backend env vars required
 ```
@@ -131,10 +125,10 @@ cd frontend && npm run dev
 # New migration
 cd backend && alembic revision --autogenerate -m "describe" && alembic upgrade head
 
-# Verify backend boots cleanly (run before every push)
+# Verify backend boots (run before every push)
 cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"
 
-# Force-redeploy frontend to Vercel
+# Force-redeploy frontend
 cd frontend && npx vercel --prod --yes
 
 # Smoke test
