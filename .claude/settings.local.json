@@ -76,7 +76,22 @@
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc3MzM3MjA5NX0.rj7WFG_VNj8Fr56o1AY4UMnhWE65q5GCM8RkI2In-go\"\ncurl -s https://cmt-backend-5xuu.onrender.com/api/v1/auth/me -H \"Authorization: Bearer $TOKEN\" 2>&1)",
       "Bash(pkill -f \"uvicorn app.main:app\" 2>/dev/null; echo \"Server killed\")",
       "Bash(ls \"C:/Users/Asad/cmt-stitching-system/frontend/src/app/\\(dashboard\\)/orders/\")",
-      "Bash(ls \"C:/Users/Asad/cmt-stitching-system/frontend/src/app/\\(dashboard\\)/orders/[id]/\")"
+      "Bash(ls \"C:/Users/Asad/cmt-stitching-system/frontend/src/app/\\(dashboard\\)/orders/[id]/\")",
+      "Bash(find /c/Users/Asad/cmt-stitching-system -name \"*.env*\" -o -name \".env\" 2>/dev/null | head -5)",
+      "Bash(psql \"postgresql://neondb_owner:npg_obEkIWj1Nve3@ep-late-wind-a4e6k8u2-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require\" -c \"SELECT username, password_hash FROM cmt_users LIMIT 5;\" 2>/dev/null || echo \"psql not available\")",
+      "mcp__plugin_playwright_playwright__browser_handle_dialog",
+      "Bash(cd /c/Users/Asad/cmt-stitching-system/backend && PYTHONIOENCODING=utf-8 python test_smoke.py 2>&1 | head -5)",
+      "Bash(PYTHONIOENCODING=utf-8 python test_smoke.py 2>&1)",
+      "Bash(PYTHONIOENCODING=utf-8 python test_smoke.py --base-url http://127.0.0.1:8001/api/v1 2>&1)",
+      "WebFetch(domain:github.com)",
+      "Bash(which uv:*)",
+      "Bash(cd:*)",
+      "Bash(find:*)",
+      "Skill(claude-api)",
+      "WebFetch(domain:www.anthropic.com)",
+      "Skill(agents-md-generator)",
+      "WebFetch(domain:level-hazel-agenticengineer-d513213b.koyeb.app)",
+      "Bash(alembic upgrade:*)"
     ]
   }
 }
