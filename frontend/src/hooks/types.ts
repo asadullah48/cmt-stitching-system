@@ -87,6 +87,11 @@ export interface Order {
   miscellaneous_expense: number | null;
   rent: number | null;
   loading_charges: number | null;
+  lot_number: number | null;
+  sub_suffix: string | null;
+  parent_order_id: string | null;
+  sub_stages: string[] | null;
+  current_stage: string | null;
   items: OrderItem[];
   created_at: string;
   updated_at: string;
@@ -110,6 +115,10 @@ export interface OrderCreate {
   miscellaneous_expense?: number;
   rent?: number;
   loading_charges?: number;
+  lot_number?: number;
+  sub_suffix?: string;
+  parent_order_id?: string;
+  sub_stages?: string[];
   items: OrderItemCreate[];
 }
 
