@@ -31,7 +31,7 @@ class Bill(BaseModel):
     created_by = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
 
     # Relationships
-    order = relationship("Order", back_populates="bill", uselist=False)
+    order = relationship("Order", back_populates="bills", uselist=False)
     party = relationship("Party", back_populates="bills")
     creator = relationship("User")
     transactions = relationship(

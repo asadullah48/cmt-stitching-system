@@ -56,7 +56,7 @@ class Order(BaseModel):
     quality_checkpoints = relationship("QualityCheckpoint", back_populates="order", cascade="all, delete-orphan")
     defect_logs = relationship("DefectLog", back_populates="order", cascade="all, delete-orphan")
     product = relationship("Product", back_populates="orders")
-    bill = relationship("Bill", back_populates="order", uselist=False)
+    bills = relationship("Bill", back_populates="order")
     accessories = relationship("OrderAccessory", back_populates="order", cascade="all, delete-orphan")
     sub_orders = relationship("Order", foreign_keys="[Order.parent_order_id]", backref="parent_order")
 
