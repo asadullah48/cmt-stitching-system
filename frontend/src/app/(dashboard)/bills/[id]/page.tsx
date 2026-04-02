@@ -499,7 +499,14 @@ export default function BillDetailPage() {
                 bill.order_items.map((item, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="px-3 py-2.5 text-gray-400">{idx + 1}</td>
-                    <td className="px-3 py-2.5 text-gray-800">{item.description}</td>
+                    <td className="px-3 py-2.5 text-gray-800">
+                      {item.description}
+                      {bill.lot_number != null && (
+                        <span className="ml-1.5 text-xs text-gray-400">
+                          Lot #{bill.lot_number}{bill.sub_suffix ?? ""}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2.5 text-center text-gray-700">{item.size}</td>
                     <td className="px-3 py-2.5 text-right text-gray-700">{fmt(item.quantity)}</td>
                     <td className="px-3 py-2.5 text-right text-gray-700">PKR {fmt(item.stitch_rate)}</td>
@@ -516,6 +523,11 @@ export default function BillDetailPage() {
                   <td className="px-3 py-2.5 text-gray-400">1</td>
                   <td className="px-3 py-2.5 text-gray-800" colSpan={5}>
                     Stitching &amp; Packing Services
+                    {bill.lot_number != null && (
+                      <span className="ml-1.5 text-xs text-gray-400">
+                        Lot #{bill.lot_number}{bill.sub_suffix ?? ""}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-right font-medium text-gray-900">
                     PKR {fmt(subtotal)}

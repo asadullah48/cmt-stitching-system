@@ -33,7 +33,7 @@ function NewBillForm() {
     discount: 0,
   });
 
-  // Load all non-dispatched orders across pages (backend max size=100)
+  // Load all orders across pages (backend max size=100)
   useEffect(() => {
     async function loadAllOrders() {
       try {

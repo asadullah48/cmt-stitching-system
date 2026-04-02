@@ -424,6 +424,8 @@ export interface Bill {
   bill_sequence: number;
   order_id: string | null;
   order_number?: string;
+  lot_number?: number;
+  sub_suffix?: string;
   party_id?: string;
   party_name?: string;
   party_contact_person?: string;

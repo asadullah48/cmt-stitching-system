@@ -47,6 +47,8 @@ def _to_out(bill) -> BillOut:
         bill_sequence=bill.bill_sequence,
         order_id=bill.order_id,
         order_number=bill.order.order_number if bill.order else None,
+        lot_number=bill.order.lot_number if bill.order else None,
+        sub_suffix=bill.order.sub_suffix if bill.order else None,
         party_id=bill.party_id,
         party_name=bill.party.name if bill.party else None,
         party_contact_person=bill.party.contact_person if bill.party else None,

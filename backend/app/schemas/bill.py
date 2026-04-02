@@ -69,6 +69,8 @@ class BillOut(BaseModel):
     bill_sequence: int
     order_id: Optional[UUID] = None
     order_number: Optional[str] = None
+    lot_number: Optional[int] = None
+    sub_suffix: Optional[str] = None
     party_id: Optional[UUID] = None
     party_name: Optional[str] = None
     party_contact_person: Optional[str] = None

@@ -198,6 +198,12 @@ export default function JobCardPage() {
               onSave={(v) => saveOrderField("product_name", v)}
             />
           </div>
+          {order.lot_number != null && (
+            <div className="flex gap-2">
+              <span className="text-gray-400 w-28 flex-shrink-0">Lot #</span>
+              <span className="font-medium">{order.lot_number}{order.sub_suffix ?? ""}</span>
+            </div>
+          )}
           <div className="flex gap-2">
             <span className="text-gray-400 w-28 flex-shrink-0">Total Qty</span>
             <span className="font-bold">{qty.toLocaleString()} pcs</span>
