@@ -650,3 +650,64 @@ export const overheadExpenseService = {
   delete: (id: string): Promise<void> =>
     api.delete(`/overhead/expenses/${id}`).then(() => undefined),
 };
+
+// ─── Share Links ─────────────────────────────────────────────────────────────
+
+export interface ShareLink {
+  id: string;
+  token: string;
+  party_id: string;
+  party_name?: string;
+  date_from: string;
+  date_to: string;
+  created_at: string;
+  is_revoked: boolean;
+}
+
+export interface ShareLinkCreate {
+  party_id: string;
+  date_from: string;
+  date_to: string;
+}
+
+export interface PublicTransactionRow {
+  transaction_date: string;
+  transaction_type: string;
+  description?: string;
+  reference_number?: string;
+  payment_method?: string;
+  debit?: number;
+  credit?: number;
+  running_balance: number;
+}
+
+export interface PublicStatementOut {
+  party_name: string;
+  date_from: string;
+  date_to: string;
+  transactions: PublicTransactionRow[];
+  total_debit: number;
+  total_credit: number;
+  outstanding_balance: number;
+}
+
+export const shareLinksService = {
+  create: async (payload: ShareLinkCreate): Promise<ShareLink> => {
+    const { data } = await api.post<ShareLink>('/share-links/', payload);
+    return data;
+  },
+
+  listByParty: async (party_id: string): Promise<ShareLink[]> => {
+    const { data } = await api.get<{ data: ShareLink[]; total: number }>('/share-links/', { params: { party_id } });
+    return data.data;
+  },
+
+  revoke: async (id: string): Promise<void> => {
+    await api.delete(`/share-links/${id}`);
+  },
+
+  getPublicStatement: async (token: string): Promise<PublicStatementOut> => {
+    const { data } = await api.get<PublicStatementOut>(`/public/statement/${token}`);
+    return data;
+  },
+};
