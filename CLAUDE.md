@@ -25,7 +25,7 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 2. **DATABASE_URL** — always `asyncpg://` in .env; `database.py` and `alembic/env.py` normalize to `psycopg2://` — do not break this
 3. **Table prefix** — all CMT tables use `cmt_` prefix (shared Neon DB with another project)
 4. **Migration files** — use ABSOLUTE paths: `C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\`
-5. **Migration HEAD** — currently `o5j6k7l8m9n0` (add_overhead_tables); always append, never modify existing migrations
+5. **Migration HEAD** — currently `s9n0o1p2q3r4` (add_lot_and_suborder); always append, never modify existing migrations
 6. **Services layer** — business logic in `app/services/`, not in route handlers
 
 ### Frontend
