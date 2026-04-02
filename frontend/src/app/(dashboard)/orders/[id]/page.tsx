@@ -1175,6 +1175,7 @@ export default function OrderDetailPage() {
   };
 
   const handleCreateSubOrder = async () => {
+    if (!order) return;
     if (selectedStages.length === 0) {
       showToast("Select at least one stage", "error");
       return;
