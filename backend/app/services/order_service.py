@@ -71,13 +71,40 @@ class OrderService:
         return f"{prefix}{seq:04d}"
 
     @staticmethod
+    def _assign_lot_number(db: Session, party_id, party_reference: str) -> int:
+        """Return the next lot number for a given party + party_reference (case-insensitive)."""
+        from sqlalchemy import func
+        count = (
+            db.query(func.count(Order.id))
+            .filter(
+                Order.party_id == party_id,
+                func.lower(Order.party_reference) == party_reference.strip().lower(),
+                Order.is_deleted.is_(False),
+            )
+            .scalar()
+        ) or 0
+        return count + 1
+
+    @staticmethod
     def create(db: Session, data: OrderCreate, user_id: UUID) -> Order:
         order_number = OrderService._generate_order_number(db)
+        # Auto-assign lot number if party + party_reference provided
+        lot_number = None
+        if data.party_id and data.party_reference:
+            lot_number = OrderService._assign_lot_number(db, data.party_id, data.party_reference)
+        # Allow manual override
+        if data.lot_number is not None:
+            lot_number = data.lot_number
         order = Order(
             order_number=order_number,
             product_id=data.product_id,
             party_id=data.party_id,
             party_reference=data.party_reference,
+            lot_number=lot_number,
+            sub_suffix=data.sub_suffix,
+            parent_order_id=data.parent_order_id,
+            sub_stages=data.sub_stages,
+            current_stage=data.sub_stages[0] if data.sub_stages else None,
             goods_description=data.goods_description,
             total_quantity=data.total_quantity,
             stitch_rate_party=data.stitch_rate_party,
@@ -165,6 +192,16 @@ class OrderService:
         changes = data.model_dump(exclude_unset=True)
         for field, value in changes.items():
             setattr(order, field, value)
+        if data.lot_number is not None:
+            order.lot_number = data.lot_number
+        if data.sub_suffix is not None:
+            order.sub_suffix = data.sub_suffix
+        if data.parent_order_id is not None:
+            order.parent_order_id = data.parent_order_id
+        if data.sub_stages is not None:
+            order.sub_stages = data.sub_stages
+        if data.current_stage is not None:
+            order.current_stage = data.current_stage
         AuditService.log_update(db, "cmt_orders", order.id, {}, changes, user_id)
         db.commit()
         db.refresh(order)
