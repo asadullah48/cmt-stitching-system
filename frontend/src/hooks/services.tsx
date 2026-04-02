@@ -150,6 +150,9 @@ export const ordersService = {
     return data;
   },
 
+  advanceStage: (id: string, stage: string): Promise<Order> =>
+    api.patch<Order>(`/orders/${id}/advance-stage`, { stage }).then((r) => r.data),
+
   deleteOrder: async (id: string): Promise<void> => {
     await api.delete(`/orders/${id}`);
   },
