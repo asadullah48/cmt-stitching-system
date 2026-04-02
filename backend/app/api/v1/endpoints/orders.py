@@ -9,6 +9,7 @@ import uuid
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status as http_status
 from pydantic import BaseModel
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from app.core.deps import CurrentUser, DbDep
 from app.models.inventory import InventoryItem, InventoryTransaction
@@ -18,6 +19,7 @@ from app.models.products import Product, ProductBOMItem
 from app.schemas.orders import (
     OrderCreate, OrderUpdate, OrderStatusUpdate,
     OrderOut, OrderListResponse, OrderItemCreate, OrderItemUpdate,
+    SubOrderStageAdvance,
 )
 from app.schemas.products import OrderMaterialsOut, MaterialRequirement
 from app.services.order_service import OrderService
@@ -57,6 +59,11 @@ def _to_out(order) -> OrderOut:
         loading_charges=order.loading_charges,
         product_id=order.product_id,
         product_name=order.product.name if order.product else None,
+        lot_number=order.lot_number,
+        sub_suffix=order.sub_suffix,
+        parent_order_id=order.parent_order_id,
+        sub_stages=order.sub_stages,
+        current_stage=order.current_stage,
         items=order.items,
     )
 
@@ -387,6 +394,32 @@ def update_items(order_id: UUID, items: list[OrderItemUpdate], db: DbDep, curren
 @router.patch("/{order_id}/status", response_model=OrderOut)
 def update_status(order_id: UUID, data: OrderStatusUpdate, db: DbDep, current_user: CurrentUser):
     return _to_out(OrderService.update_status(db, order_id, data.status.value, current_user.id))
+
+
+@router.patch("/{order_id}/advance-stage", response_model=OrderOut)
+def advance_sub_order_stage(
+    order_id: UUID,
+    body: SubOrderStageAdvance,
+    db: DbDep,
+    _: CurrentUser,
+):
+    """Set the current_stage on a B sub-order. Stage must be in the order's sub_stages list."""
+    from app.schemas.orders import SUB_ORDER_STAGES
+    order = db.query(Order).options(
+        joinedload(Order.items), joinedload(Order.party), joinedload(Order.product)
+    ).filter(Order.id == order_id, Order.is_deleted.is_(False)).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.sub_suffix != "B":
+        raise HTTPException(status_code=400, detail="Stage advancement is only for B sub-orders")
+    if body.stage not in SUB_ORDER_STAGES:
+        raise HTTPException(status_code=400, detail=f"Invalid stage. Must be one of: {SUB_ORDER_STAGES}")
+    if order.sub_stages and body.stage not in order.sub_stages:
+        raise HTTPException(status_code=400, detail="Stage not in this sub-order's selected stages")
+    order.current_stage = body.stage
+    db.commit()
+    db.refresh(order)
+    return _to_out(order)
 
 
 @router.post("/{order_id}/clone", response_model=OrderOut, status_code=201)
