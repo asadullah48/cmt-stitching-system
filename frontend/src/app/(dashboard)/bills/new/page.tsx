@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { billService, ordersService, partiesService, BillCreate } from "@/hooks/services";
+import { billService, ordersService, partiesService, accessoryService, BillCreate } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
 import type { Order, Party } from "@/hooks/types";
 
@@ -82,13 +82,31 @@ function NewBillForm() {
     if (!form.order_id) return;
     const order = orders.find((o) => o.id === form.order_id);
     if (!order) return;
+
+    // B sub-orders bill additional charges manually — no auto stitch/pack calc
+    if (order.sub_suffix === "B") {
+      setSubtotal(0);
+      setForm((f) => ({ ...f, amount_due: 0 }));
+      return;
+    }
+
     const stitch = Number(order.stitch_rate_party) * order.total_quantity;
     const pack = order.pack_rate_party
       ? Number(order.pack_rate_party) * order.total_quantity
       : 0;
-    const computed = stitch + pack;
-    setSubtotal(computed);
-    setForm((f) => ({ ...f, amount_due: computed - (f.discount || 0) }));
+    accessoryService.list(form.order_id).then((accessories) => {
+      const accessoryTotal = accessories.reduce(
+        (sum, a) => sum + Number(a.total_qty) * Number(a.unit_price),
+        0
+      );
+      const computed = stitch + pack + accessoryTotal;
+      setSubtotal(computed);
+      setForm((f) => ({ ...f, amount_due: computed - (f.discount || 0) }));
+    }).catch(() => {
+      const computed = stitch + pack;
+      setSubtotal(computed);
+      setForm((f) => ({ ...f, amount_due: computed - (f.discount || 0) }));
+    });
   }, [form.order_id, orders]);
 
   // Recalculate amount_due when discount changes
