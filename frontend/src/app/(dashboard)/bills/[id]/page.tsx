@@ -100,7 +100,14 @@ export default function BillDetailPage() {
 
   useEffect(() => {
     if (bill?.order_id) {
-      accessoryService.list(bill.order_id).then(setAccessories).catch(() => {});
+      // Only show accessories if this is the sole bill for the order.
+      // If a second bill exists (e.g. accessories billed separately), don't
+      // auto-append accessories to every bill for the same order.
+      billService.list({ order_id: bill.order_id, size: 10 }).then((res) => {
+        if (res.total === 1) {
+          accessoryService.list(bill.order_id!).then(setAccessories).catch(() => {});
+        }
+      }).catch(() => {});
     }
   }, [bill?.order_id]);
 
