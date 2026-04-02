@@ -295,7 +295,23 @@ export default function OrdersPage() {
       key: "order_number",
       header: "Order #",
       render: (row) => (
-        <span className="font-semibold text-blue-600">{row.order_number}</span>
+        <span className="font-semibold text-blue-600">
+          {row.order_number}
+          {row.sub_suffix && (
+            <span className="ml-1.5 text-xs font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
+              {row.sub_suffix}
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "lot_number",
+      header: "Lot #",
+      render: (row) => (
+        <span className="text-gray-500 text-xs">
+          {row.lot_number ? `Lot #${row.lot_number}` : "—"}
+        </span>
       ),
     },
     {

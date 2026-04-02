@@ -1305,6 +1305,12 @@ export default function OrderDetailPage() {
             <InfoCard label="Entry"    value={formatDate(order.entry_date)} />
             <InfoCard label="Delivery" value={formatDate(order.delivery_date ?? "")} />
           </div>
+          {order.lot_number && (
+            <div>
+              <span className="text-xs text-gray-500">Lot #</span>
+              <p className="font-semibold text-gray-900">{order.lot_number}</p>
+            </div>
+          )}
         </div>
 
         {/* Rates */}
