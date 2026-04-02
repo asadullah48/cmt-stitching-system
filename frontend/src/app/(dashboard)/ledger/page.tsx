@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { transactionsService, partiesService } from "@/hooks/services";
+import { transactionsService, partiesService, shareLinksService, ShareLink, ShareLinkCreate } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
 import {
   Button, Sheet, Pagination, Select, Input, Spinner,
@@ -44,6 +44,11 @@ export default function LedgerPage() {
   const [deletingTxId, setDeletingTxId] = useState<string | null>(null);
   const [reconcileMode, setReconcileMode] = useState(false);
   const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const [shareSheetOpen, setShareSheetOpen] = useState(false);
+  const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
+  const [shareForm, setShareForm] = useState<ShareLinkCreate>({ party_id: "", date_from: "", date_to: "" });
+  const [sharingLoading, setSharingLoading] = useState(false);
+  const [newLink, setNewLink] = useState<ShareLink | null>(null);
 
   // Load reconciliation marks from localStorage on mount
   useEffect(() => {
@@ -82,6 +87,44 @@ export default function LedgerPage() {
     load(filters);
     partiesService.getParties(1, 100).then((r) => setParties(r.data ?? [])).catch(() => {});
   }, [load, filters]);
+
+  const loadShareLinks = useCallback(async (partyId: string) => {
+    try {
+      setShareLinks(await shareLinksService.listByParty(partyId));
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    setShareForm((f) => ({ ...f, party_id: filters.party_id ?? "" }));
+    setNewLink(null);
+    if (filters.party_id) loadShareLinks(filters.party_id);
+    else setShareLinks([]);
+  }, [filters.party_id, loadShareLinks]);
+
+  const handleCreateShareLink = async () => {
+    if (!shareForm.party_id || !shareForm.date_from || !shareForm.date_to) return;
+    setSharingLoading(true);
+    try {
+      const link = await shareLinksService.create(shareForm);
+      setNewLink(link);
+      loadShareLinks(shareForm.party_id);
+    } catch {
+      alert("Failed to create share link.");
+    } finally {
+      setSharingLoading(false);
+    }
+  };
+
+  const handleRevokeLink = async (id: string) => {
+    if (!confirm("Revoke this link? Anyone with the URL will lose access.")) return;
+    try {
+      await shareLinksService.revoke(id);
+      if (shareForm.party_id) loadShareLinks(shareForm.party_id);
+      if (newLink?.id === id) setNewLink(null);
+    } catch {
+      alert("Failed to revoke link.");
+    }
+  };
 
   const handleFilter = (patch: Partial<TransactionFilters>) => {
     setFilters((f) => ({ ...f, ...patch, page: 1 }));
@@ -162,6 +205,19 @@ export default function LedgerPage() {
               Clear {markedIds.size} mark{markedIds.size !== 1 ? "s" : ""}
             </button>
           )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShareSheetOpen(true)}
+            disabled={!filters.party_id}
+            title={!filters.party_id ? "Select a party to share their statement" : "Share party statement"}
+            className="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20 disabled:opacity-40"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            Share
+          </Button>
           <Button onClick={() => setSheetOpen(true)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -343,9 +399,21 @@ export default function LedgerPage() {
                       {formatDate(tx.transaction_date)}
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${TYPE_BADGE[tx.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
-                        {tx.transaction_type}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {CREDIT_TYPES.has(tx.transaction_type) && !tx.bill_id && (
+                          <span
+                            title="Unlinked payment — not applied to any bill. Edit this transaction to link it to a bill."
+                            className="inline-flex items-center text-amber-500"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                        )}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${TYPE_BADGE[tx.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
+                          {tx.transaction_type}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-gray-800 font-medium whitespace-nowrap">
                       {tx.party_name ?? "—"}
@@ -498,6 +566,109 @@ export default function LedgerPage() {
             onCancel={() => setEditTx(null)}
           />
         )}
+      </Sheet>
+
+      <Sheet open={shareSheetOpen} onClose={() => { setShareSheetOpen(false); setNewLink(null); }} title="Share Statement">
+        <div className="space-y-5 p-1">
+          <p className="text-sm text-gray-500">
+            Generate a read-only link for{" "}
+            <span className="font-medium text-gray-800">
+              {parties.find((p) => p.id === filters.party_id)?.name ?? "this party"}
+            </span>
+            . Anyone with the link can view the statement without logging in.
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+              <input
+                type="date"
+                value={shareForm.date_from}
+                onChange={(e) => setShareForm((f) => ({ ...f, date_from: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+              <input
+                type="date"
+                value={shareForm.date_to}
+                onChange={(e) => setShareForm((f) => ({ ...f, date_to: e.target.value }))}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={handleCreateShareLink}
+            disabled={sharingLoading || !shareForm.date_from || !shareForm.date_to}
+            className="w-full"
+          >
+            {sharingLoading ? "Generating…" : "Generate Link"}
+          </Button>
+
+          {newLink && (() => {
+            const url = `${window.location.origin}/share/${newLink.token}`;
+            const partyName = parties.find((p) => p.id === newLink.party_id)?.name ?? "Party";
+            const waText = encodeURIComponent(
+              `Dear ${partyName},\n\nPlease find your account statement for the period ${newLink.date_from} to ${newLink.date_to}:\n${url}\n\nThis is a read-only link.`
+            );
+            return (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Link Ready</p>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={url}
+                    className="flex-1 text-xs border border-blue-200 rounded-lg px-3 py-2 bg-white text-gray-700 truncate"
+                  />
+                  <button
+                    onClick={() => navigator.clipboard.writeText(url)}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <a
+                  href={`https://wa.me/?text=${waText}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-semibold transition-colors"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.533 5.857L.057 23.882l6.187-1.623A11.935 11.935 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.805 9.805 0 01-5.034-1.388l-.361-.214-3.732.979 1.001-3.641-.235-.374A9.818 9.818 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+                  </svg>
+                  Share on WhatsApp
+                </a>
+              </div>
+            );
+          })()}
+
+          {shareLinks.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Active Links</p>
+              <div className="space-y-2">
+                {shareLinks.filter((l) => !l.is_revoked).map((l) => (
+                  <div key={l.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                    <div>
+                      <p className="text-xs font-medium text-gray-700">{l.date_from} → {l.date_to}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRevokeLink(l.id)}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                ))}
+                {shareLinks.filter((l) => !l.is_revoked).length === 0 && (
+                  <p className="text-xs text-gray-400 italic">No active links for this party.</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </Sheet>
     </div>
   );
