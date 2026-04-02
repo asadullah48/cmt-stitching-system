@@ -27,6 +27,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
   const [productId, setProductId] = useState(initialData?.product_id ?? "");
   const [partyId, setPartyId] = useState(initialData?.party_id ?? "");
   const [partyRef, setPartyRef] = useState(initialData?.party_reference ?? "");
+  const [lotNumber, setLotNumber] = useState<number | null>(initialData?.lot_number ?? null);
 
   useEffect(() => {
     productService.getProducts().then(setProducts).catch(() => {});
@@ -120,6 +121,7 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
           product_id: productId || undefined,
           party_id: partyId || undefined,
           party_reference: partyRef || undefined,
+          lot_number: lotNumber ?? undefined,
           goods_description: goods,
           stitch_rate_party: parseFloat(stitchRateParty),
           stitch_rate_labor: parseFloat(stitchRateLabor),
@@ -207,6 +209,20 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
           onChange={(e) => setPartyRef(e.target.value)}
         />
       </FormField>
+
+      {orderId && (
+        <FormField label="Lot #">
+          <Input
+            type="number"
+            min="1"
+            placeholder="Auto-assigned"
+            value={lotNumber ?? ""}
+            onChange={(e) =>
+              setLotNumber(e.target.value ? parseInt(e.target.value) : null)
+            }
+          />
+        </FormField>
+      )}
 
       <FormField label="Goods Description" required error={errors.goods}>
         <Textarea
