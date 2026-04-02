@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import Column, Boolean, Date, DateTime, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.models.base import Base
 
 
 class ShareLink(Base):
