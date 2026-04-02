@@ -330,7 +330,9 @@ class BillService:
             if other_bills == 0:
                 bill.order.status = "packing_complete"
                 bill.order.dispatch_date = None
-                bill.order.actual_completion = None
+                # Only clear actual_completion if it was set by this bill's dispatch
+                if bill.order.actual_completion == bill.bill_date:
+                    bill.order.actual_completion = None
 
         bill.is_deleted = True
         AuditService.log_delete(db, "cmt_bills", bill.id, user_id)

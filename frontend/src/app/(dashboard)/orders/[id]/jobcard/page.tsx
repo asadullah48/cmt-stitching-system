@@ -46,7 +46,7 @@ export default function JobCardPage() {
       productionService.getSessionsForOrder(id, "stitching"),
       productionService.getSessionsForOrder(id, "packing"),
       expensesService.listByOrder(id),
-      billService.getByOrder(id).catch(() => null),
+      billService.list({ order_id: id, series: "A", size: 1 }).then((r) => r.data[0] ?? null).catch(() => null),
     ]).then(([o, ss, ps, exp, b]) => {
       setOrder(o);
       setStitchSessions(ss);

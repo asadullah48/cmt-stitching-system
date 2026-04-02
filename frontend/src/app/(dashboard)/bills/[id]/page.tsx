@@ -180,7 +180,7 @@ export default function BillDetailPage() {
   const handleDelete = async () => {
     if (!bill) return;
     const confirmMsg = bill.order_id
-      ? `Delete bill ${bill.bill_number}? This will revert the linked order to packing_complete and remove the ledger entry.`
+      ? `Delete bill ${bill.bill_number}? This will remove the ledger entry and may revert the linked order status if no other bills remain.`
       : `Delete bill ${bill.bill_number}? This will remove the ledger entry. This cannot be undone.`;
     if (!window.confirm(confirmMsg)) return;
     setDeleting(true);
