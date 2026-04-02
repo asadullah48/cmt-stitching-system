@@ -113,6 +113,12 @@ Frontend: service call (both .ts + .tsx) → types (both files) → page → add
 
 ---
 
+## Before Starting Any Task
+
+**State your verification plan first.** Before writing any code, briefly say how you will confirm the work is correct — e.g. "I'll start the local server and curl the endpoint" or "I'll run the test suite" or "I'll use Playwright to check the UI." Then do the work. Then verify.
+
+---
+
 ## Verification — REQUIRED
 
 **Never declare a task complete without verifying it works.** Rules by type:
