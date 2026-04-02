@@ -113,9 +113,23 @@ Frontend: service call (both .ts + .tsx) → types (both files) → page → add
 
 ---
 
-## Verification Tools
+## Verification — REQUIRED
 
-Two tools are available to verify code actually works before declaring a task done.
+**Never declare a task complete without verifying it works.** Rules by type:
+
+### Backend / API changes
+1. Start the local server in the background
+2. Hit every new or modified endpoint with `curl` and confirm the response shape is correct
+3. Only then push to master
+
+### Tests
+1. After writing or modifying tests, run them immediately
+2. Confirm all tests pass — do not commit failing tests
+3. If a test fails, fix the code (or the test if it's wrong) before moving on
+
+---
+
+## Verification Tools
 
 ### Playwright — UI verification
 Use Playwright browser tools to navigate to the live app and confirm UI changes are visible and correct.
