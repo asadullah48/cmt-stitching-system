@@ -39,6 +39,69 @@ const PACKING_STAGE_OPTIONS = [
   { key: "invoiced",         label: "Invoiced" },
 ];
 
+// ─── Sub-Order B Stage Tracker ────────────────────────────────────────────────
+
+function SubOrderStageTracker({
+  order,
+  onStageChange,
+}: {
+  order: Order;
+  onStageChange: () => void;
+}) {
+  const { showToast } = useToast();
+  const stages = order.sub_stages ?? [];
+  const current = order.current_stage;
+
+  const advance = async (stage: string) => {
+    try {
+      await ordersService.advanceStage(order.id, stage);
+      showToast("Stage updated");
+      onStageChange();
+    } catch {
+      showToast("Failed to update stage", "error");
+    }
+  };
+
+  const stageLabels: Record<string, string> = {
+    packing: "Packing",
+    loading: "Loading",
+    ready_to_invoice: "Ready to Invoice",
+    invoiced: "Invoiced",
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">Sub-Order Progress</h3>
+      <div className="flex items-center gap-2 flex-wrap">
+        {stages.map((stage, idx) => {
+          const currentIdx = current ? stages.indexOf(current) : -1;
+          const isDone = currentIdx >= idx;
+          const isCurrent = stage === current;
+          return (
+            <React.Fragment key={stage}>
+              <button
+                onClick={() => advance(stage)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  isCurrent
+                    ? "bg-blue-600 text-white"
+                    : isDone
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {stageLabels[stage] ?? stage}
+              </button>
+              {idx < stages.length - 1 && (
+                <span className="text-gray-300 text-xs">→</span>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function allocatedDays(entry: string, delivery: string | null | undefined): number | null {
@@ -1268,7 +1331,11 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Pipeline Header */}
-      <PipelineHeader order={order} />
+      {order.sub_suffix === "B" ? (
+        <SubOrderStageTracker order={order} onStageChange={loadOrder} />
+      ) : (
+        <PipelineHeader order={order} />
+      )}
 
       {/* Stage Cards */}
       <StitchingCard
