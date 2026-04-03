@@ -76,7 +76,7 @@ function NewBillForm() {
       .catch(() => {});
   }, [form.bill_series, autoMode]);
 
-  // Auto-calculate amount_due when order is selected
+  // Auto-calculate amount_due when order or series changes
   useEffect(() => {
     if (!form.order_id) return;
     const order = orders.find((o) => o.id === form.order_id);
@@ -89,10 +89,13 @@ function NewBillForm() {
       return;
     }
 
-    const stitch = Number(order.stitch_rate_party) * order.total_quantity;
-    const pack = order.pack_rate_party
+    // B-series bill = accessories only, no stitch/pack rates
+    const isBSeries = (form.bill_series ?? "A").toUpperCase() === "B";
+
+    const stitch = isBSeries ? 0 : Number(order.stitch_rate_party) * order.total_quantity;
+    const pack = isBSeries ? 0 : (order.pack_rate_party
       ? Number(order.pack_rate_party) * order.total_quantity
-      : 0;
+      : 0);
     accessoryService.list(form.order_id).then((accessories) => {
       const accessoryTotal = accessories.reduce(
         (sum, a) => sum + Number(a.total_qty) * Number(a.unit_price),
@@ -106,7 +109,7 @@ function NewBillForm() {
       setSubtotal(computed);
       setForm((f) => ({ ...f, amount_due: computed - (f.discount || 0) }));
     });
-  }, [form.order_id, orders]);
+  }, [form.order_id, form.bill_series, orders]);
 
   // Recalculate amount_due when discount changes
   useEffect(() => {
