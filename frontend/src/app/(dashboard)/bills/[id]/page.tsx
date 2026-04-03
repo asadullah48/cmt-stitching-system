@@ -489,91 +489,126 @@ export default function BillDetailPage() {
 
         {/* ── Items Table ── */}
         <div className="mt-6">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-8">#</th>
-                <th className="text-left px-3 py-2.5 font-semibold text-gray-600">Description</th>
-                <th className="text-center px-3 py-2.5 font-semibold text-gray-600 w-16">Size</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-20">Qty</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Stitch Rate</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Pack Rate</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-28">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {bill.order_items && bill.order_items.length > 0 ? (
-                bill.order_items.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-3 py-2.5 text-gray-400">{idx + 1}</td>
-                    <td className="px-3 py-2.5 text-gray-800">
-                      {item.description}
+          {bill.bill_series?.toUpperCase() === "B" ? (
+            /* B-series: accessories-only table */
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-8">#</th>
+                  <th className="text-left px-3 py-2.5 font-semibold text-gray-600">Description</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-20">Qty</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-28">Unit Price</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-28">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {accessories.length > 0 ? (
+                  accessories.map((a, idx) => (
+                    <tr key={a.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2.5 text-gray-400">{idx + 1}</td>
+                      <td className="px-3 py-2.5 text-gray-800">{a.name}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-700">{Number(a.total_qty).toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-700">PKR {fmt(a.unit_price)}</td>
+                      <td className="px-3 py-2.5 text-right font-medium text-gray-900">PKR {fmt(a.total_charge)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-3 py-2.5 text-gray-400">1</td>
+                    <td className="px-3 py-2.5 text-gray-800" colSpan={3}>Accessories &amp; Materials</td>
+                    <td className="px-3 py-2.5 text-right font-medium text-gray-900">PKR {fmt(bill.amount_due)}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          ) : (
+            /* A-series (and others): stitching table with optional accessories */
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-left px-3 py-2.5 font-semibold text-gray-600 w-8">#</th>
+                  <th className="text-left px-3 py-2.5 font-semibold text-gray-600">Description</th>
+                  <th className="text-center px-3 py-2.5 font-semibold text-gray-600 w-16">Size</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-20">Qty</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Stitch Rate</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Pack Rate</th>
+                  <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-28">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {bill.order_items && bill.order_items.length > 0 ? (
+                  bill.order_items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-3 py-2.5 text-gray-400">{idx + 1}</td>
+                      <td className="px-3 py-2.5 text-gray-800">
+                        {item.description}
+                        {bill.lot_number != null && (
+                          <span className="ml-1.5 text-xs text-gray-400">
+                            Lot #{bill.lot_number}{bill.sub_suffix ?? ""}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-gray-700">{item.size}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-700">{fmt(item.quantity)}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-700">PKR {fmt(item.stitch_rate)}</td>
+                      <td className="px-3 py-2.5 text-right text-gray-700">
+                        {item.pack_rate > 0 ? `PKR ${fmt(item.pack_rate)}` : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-medium text-gray-900">
+                        PKR {fmt(item.amount)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-3 py-2.5 text-gray-400">1</td>
+                    <td className="px-3 py-2.5 text-gray-800" colSpan={5}>
+                      Stitching &amp; Packing Services
                       {bill.lot_number != null && (
                         <span className="ml-1.5 text-xs text-gray-400">
                           Lot #{bill.lot_number}{bill.sub_suffix ?? ""}
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 text-center text-gray-700">{item.size}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-700">{fmt(item.quantity)}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-700">PKR {fmt(item.stitch_rate)}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-700">
-                      {item.pack_rate > 0 ? `PKR ${fmt(item.pack_rate)}` : "—"}
-                    </td>
                     <td className="px-3 py-2.5 text-right font-medium text-gray-900">
-                      PKR {fmt(item.amount)}
+                      PKR {fmt(subtotal)}
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-3 py-2.5 text-gray-400">1</td>
-                  <td className="px-3 py-2.5 text-gray-800" colSpan={5}>
-                    Stitching &amp; Packing Services
-                    {bill.lot_number != null && (
-                      <span className="ml-1.5 text-xs text-gray-400">
-                        Lot #{bill.lot_number}{bill.sub_suffix ?? ""}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-medium text-gray-900">
-                    PKR {fmt(subtotal)}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-            {accessories.length > 0 && (
-              <tbody>
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-200"
-                  >
-                    Accessories
-                  </td>
-                </tr>
-                {accessories.map((a, idx) => (
-                  <tr key={a.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2.5 text-gray-400">
-                      {(bill.order_items?.length ?? 0) + idx + 1}
-                    </td>
-                    <td className="px-3 py-2.5 text-gray-800">{a.name}</td>
-                    <td className="px-3 py-2.5 text-center text-gray-500">—</td>
-                    <td className="px-3 py-2.5 text-right text-gray-700">
-                      {Number(a.total_qty).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2.5 text-right text-gray-700">
-                      PKR {fmt(a.unit_price)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right text-gray-400">—</td>
-                    <td className="px-3 py-2.5 text-right font-medium text-gray-900">
-                      PKR {fmt(a.total_charge)}
-                    </td>
-                  </tr>
-                ))}
+                )}
               </tbody>
-            )}
-          </table>
+              {accessories.length > 0 && (
+                <tbody>
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-200"
+                    >
+                      Accessories
+                    </td>
+                  </tr>
+                  {accessories.map((a, idx) => (
+                    <tr key={a.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2.5 text-gray-400">
+                        {(bill.order_items?.length ?? 0) + idx + 1}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-800">{a.name}</td>
+                      <td className="px-3 py-2.5 text-center text-gray-500">—</td>
+                      <td className="px-3 py-2.5 text-right text-gray-700">
+                        {Number(a.total_qty).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-gray-700">
+                        PKR {fmt(a.unit_price)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-gray-400">—</td>
+                      <td className="px-3 py-2.5 text-right font-medium text-gray-900">
+                        PKR {fmt(a.total_charge)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              )}
+            </table>
+          )}
         </div>
 
         {/* ── Totals Section ── */}
