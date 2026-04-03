@@ -164,9 +164,11 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
         showToast("Order created successfully");
         onSuccess(order);
       }
-    } catch {
-      showToast("Failed to save order. Please try again.", "error");
-      setErrors({ form: "Failed to save order. Please try again." });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        || "Failed to save order. Please try again.";
+      showToast(msg, "error");
+      setErrors({ form: msg });
     } finally {
       setLoading(false);
     }

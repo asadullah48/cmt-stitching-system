@@ -86,6 +86,28 @@ class OrderService:
         return count + 1
 
     @staticmethod
+    def _check_duplicate_lot(
+        db: Session,
+        lot_number: int,
+        goods_description: str,
+        exclude_order_id: UUID | None = None,
+    ) -> None:
+        from sqlalchemy import func
+        q = db.query(Order).filter(
+            Order.lot_number == lot_number,
+            func.lower(Order.goods_description) == goods_description.strip().lower(),
+            Order.is_deleted.is_(False),
+        )
+        if exclude_order_id:
+            q = q.filter(Order.id != exclude_order_id)
+        existing = q.first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Lot #{lot_number} already exists for '{existing.goods_description}' (Order {existing.order_number})",
+            )
+
+    @staticmethod
     def create(db: Session, data: OrderCreate, user_id: UUID) -> Order:
         order_number = OrderService._generate_order_number(db)
         # Auto-assign lot number if party + party_reference provided
@@ -95,6 +117,9 @@ class OrderService:
         # Allow manual override
         if data.lot_number is not None:
             lot_number = data.lot_number
+        # Block duplicate lot + description combinations
+        if lot_number is not None and data.goods_description:
+            OrderService._check_duplicate_lot(db, lot_number, data.goods_description)
         order = Order(
             order_number=order_number,
             product_id=data.product_id,
@@ -190,6 +215,11 @@ class OrderService:
     def update(db: Session, order_id: UUID, data: OrderUpdate, user_id: UUID) -> Order:
         order = OrderService.get_by_id(db, order_id)
         changes = data.model_dump(exclude_unset=True)
+        # Check for duplicate lot if lot_number or goods_description is being changed
+        new_lot = data.lot_number if data.lot_number is not None else order.lot_number
+        new_desc = data.goods_description if data.goods_description is not None else order.goods_description
+        if new_lot is not None and new_desc:
+            OrderService._check_duplicate_lot(db, new_lot, new_desc, exclude_order_id=order_id)
         for field, value in changes.items():
             setattr(order, field, value)
         if data.lot_number is not None:
