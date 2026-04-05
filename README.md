@@ -16,10 +16,10 @@ A production management system for a CMT (Cut, Make, Trim) stitching and packing
 ## Deployed
 
 - **Frontend:** https://cmt-stitching-asadullah-shafiques-projects.vercel.app
-- **Backend API:** https://cmt-backend-5xuu.onrender.com/api/v1
-- **API Docs:** https://cmt-backend-5xuu.onrender.com/docs
+- **Backend API:** https://level-hazel-agenticengineer-d513213b.koyeb.app/api/v1
+- **API Docs:** https://level-hazel-agenticengineer-d513213b.koyeb.app/docs
 
-> The backend runs on Render free tier and may take ~30 seconds to wake from cold start.
+> The backend runs on Koyeb (always-on, no cold start).
 
 ## Features
 
@@ -35,6 +35,10 @@ A production management system for a CMT (Cut, Make, Trim) stitching and packing
 - **Overhead & Cash** — Track fixed business costs (rent, wages, utilities, insurance) with unpaid/paid status, recurring auto-spawn, and per-payment cash account debiting. Two cash accounts (Cash In Hand + Bank) with opening balance, manual credit/debit entries, and a running balance ledger
 - **Dashboard** — Live KPIs: active orders, monthly revenue, stitching/packing progress, cash position widget
 - **Parties** — Manage customer/vendor parties with full ledger history
+- **Lot Numbers & Sub-Orders** — Per-party sequential lot numbers on orders; optional B sub-order with configurable packing stages
+- **B-Series Bills (Accessories)** — Series-B bills for accessories and material charges, linked to the same order and party ledger
+- **Standalone Bills** — Bills without a linked order for direct party charges (`order_id = null`)
+- **Share Links** — Token-based read-only URLs for bills and party statements, shareable without login
 
 ## Order Status Lifecycle
 
@@ -91,17 +95,18 @@ PYTHONIOENCODING=utf-8 python test_smoke.py --base-url http://localhost:8000/api
 PYTHONIOENCODING=utf-8 python test_smoke.py --base-url http://localhost:8000/api/v1 --keep
 ```
 
-Last result: **48/48 passed** — 2026-03-14 (todo tests added 2026-03-15, not yet re-run against prod). Full report: `backend/docs/smoke-test-results.md`
+Full report: `backend/docs/smoke-test-results.md`
 
 ## DB Migration Chain
 
 ```
 4d1e3598580f → a1b2c3d4e5f6 → b2c3d4e5f6a7 → c3d4e5f6a7b8 → d4e5f6a7b8c9
 → e5f6a7b8c9d0 → f6a7b8c9d0e1 → g7b8c9d0e1f2 → h8c9d0e1f2g3 → i9d0e1f2g3h4
-→ j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9 → o5j6k7l8m9n0 (head)
+→ j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9
+→ o5j6k7l8m9n0 → p6k7l8m9n0o1 → q7l8m9n0o1p2 → r8m9n0o1p2q3 → s9n0o1p2q3r4 [HEAD]
 ```
 
-> Frontend requires manual deploy: `cd frontend && vercel deploy --prod`
+> Both frontend (Vercel) and backend (Koyeb) auto-deploy on push to `master`.
 
 ## Local Development
 
@@ -133,6 +138,10 @@ Set `NEXT_PUBLIC_API_URL` in `frontend/.env.local` to point to your backend (e.g
 | `DATABASE_URL` | PostgreSQL connection string (asyncpg:// format) |
 | `SECRET_KEY` | JWT signing secret |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token lifetime in minutes (default: 480) |
+| `ADMIN_USERNAME` | Seeded admin account username |
+| `ADMIN_EMAIL` | Seeded admin account email |
+| `ADMIN_PASSWORD` | Seeded admin account password |
 
 ### Frontend
 

@@ -338,3 +338,19 @@ cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App 
 | Mapper direction error on self-referential relationship | Include `primaryjoin` with `remote()` — see convention above |
 | Second bill unexpectedly dispatching order | Intentional — first bill dispatches, second skips re-dispatch |
 | Bill delete reverting order status incorrectly | Delete only reverts if no other active bills remain |
+
+---
+
+## Custom Skills
+
+Five CMT-specific skills are installed in Claude Code. Invoke them with the Skill tool — e.g. `skill: "cmt-verify"`. Each skill contains the detailed steps, invariants, and checklists that are not repeated here.
+
+| Skill | Invoke when... |
+|-------|---------------|
+| **cmt-bill** | Reading or writing any bill-related code — contains invariants for series A/B logic, multi-bill dispatch, accessories guard, standalone bills, and party ledger impact |
+| **cmt-feature** | Adding any new feature end-to-end — enforces the model→migration→schema→service→endpoint build order and the dual-file hook requirement |
+| **cmt-hooks-sync** | Editing any file in `frontend/src/hooks/` — ensures `.ts` and `.tsx` counterparts stay identical |
+| **cmt-migration** | Adding or modifying any database migration — handles absolute path, `cmt_` prefix validation, chain tracking, and doc updates |
+| **cmt-verify** | Before declaring any change complete — runs boot check, curl verification, and optional Playwright UI snapshot before push |
+
+When a skill's instructions conflict with a general rule in this file, follow the skill.
