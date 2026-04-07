@@ -100,11 +100,11 @@ export default function BillDetailPage() {
 
   useEffect(() => {
     if (bill?.order_id) {
-      // Only show accessories if this is the sole bill for the order.
-      // If a second bill exists (e.g. accessories billed separately), don't
-      // auto-append accessories to every bill for the same order.
+      // Show accessories if this is the sole bill for the order,
+      // OR if this is a B-series bill (B-bills are the accessories bill).
+      // A-bills hide accessories when a separate B-bill exists for the same order.
       billService.list({ order_id: bill.order_id, size: 10 }).then((res) => {
-        if (res.total === 1) {
+        if (res.total === 1 || bill.bill_series === "B") {
           accessoryService.list(bill.order_id!).then(setAccessories).catch(() => {});
         }
       }).catch(() => {});

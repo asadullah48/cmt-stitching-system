@@ -21,13 +21,14 @@ function NewBillForm() {
   const [parties, setParties] = useState<Party[]>([]);
 
   const urlOrderId = params.get("order") || "";
+  const urlSeries = params.get("series")?.toUpperCase() || "A";
 
   const [form, setForm] = useState<BillCreate & { discount: number }>({
     order_id: urlOrderId,
     party_id: "",
     description: "",
     bill_number: "",
-    bill_series: "A",
+    bill_series: urlSeries,
     bill_date: new Date().toISOString().split("T")[0],
     amount_due: 0,
     discount: 0,

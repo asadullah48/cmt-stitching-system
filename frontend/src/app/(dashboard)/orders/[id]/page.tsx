@@ -714,13 +714,56 @@ function PackingCard({
 
 // ─── Dispatch Card ────────────────────────────────────────────────────────────
 
+function BillRow({
+  bill,
+  router,
+}: {
+  bill: Bill;
+  router: ReturnType<typeof useRouter>;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Bill #",  value: bill.bill_number },
+          { label: "Amount",  value: `PKR ${formatCurrency(bill.amount_due)}` },
+          { label: "Status",  value: bill.payment_status.toUpperCase() },
+        ].map((s) => (
+          <div key={s.label} className="bg-gray-50 rounded-lg px-3 py-2.5 text-center">
+            <p className="text-sm font-bold text-gray-900">{s.value}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => router.push(`/bills/${bill.id}`)}
+          className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+        >
+          View Bill
+        </button>
+        {bill.payment_status !== "paid" && (
+          <button
+            onClick={() => router.push(`/bills/${bill.id}`)}
+            className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+          >
+            Record Payment
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DispatchCard({
   order,
   bill,
+  bBill,
   router,
 }: {
   order: Order;
   bill: Bill | null;
+  bBill: Bill | null;
   router: ReturnType<typeof useRouter>;
 }) {
   const isReady      = ["stitching_complete", "packing_complete", "dispatched"].includes(order.status);
@@ -769,51 +812,50 @@ function DispatchCard({
         )}
       </div>
 
-      <div className="p-5 space-y-4">
-        {bill ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Bill #",  value: bill.bill_number },
-                { label: "Amount",  value: `PKR ${formatCurrency(bill.amount_due)}` },
-                { label: "Status",  value: bill.payment_status.toUpperCase() },
-              ].map((s) => (
-                <div key={s.label} className="bg-gray-50 rounded-lg px-3 py-2.5 text-center">
-                  <p className="text-sm font-bold text-gray-900">{s.value}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2">
+      <div className="p-5 space-y-5">
+        {/* ── A-Bill: Stitching ── */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            A-Bill — Stitching
+          </p>
+          {bill ? (
+            <BillRow bill={bill} router={router} />
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500 mb-4">
+                Order is ready — create a bill to mark as dispatched
+              </p>
               <button
-                onClick={() => router.push(`/bills/${bill.id}`)}
-                className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                onClick={() => router.push(`/bills/new?order=${order.id}`)}
+                className="px-6 py-2.5 bg-[#1a2744] text-white rounded-lg text-sm font-semibold hover:bg-[#253461] transition-colors"
               >
-                View Bill
+                Create Bill
               </button>
-              {bill.payment_status !== "paid" && (
-                <button
-                  onClick={() => router.push(`/bills/${bill.id}`)}
-                  className="flex-1 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                >
-                  Record Payment
-                </button>
-              )}
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-sm text-gray-500 mb-4">
-              Order is ready — create a bill to mark as dispatched
-            </p>
-            <button
-              onClick={() => router.push(`/bills/new?order=${order.id}`)}
-              className="px-6 py-2.5 bg-[#1a2744] text-white rounded-lg text-sm font-semibold hover:bg-[#253461] transition-colors"
-            >
-              Create Bill
-            </button>
-          </div>
-        )}
+          )}
+        </div>
+
+        <div className="border-t border-gray-100" />
+
+        {/* ── B-Bill: Accessories ── */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            B-Bill — Accessories
+          </p>
+          {bBill ? (
+            <BillRow bill={bBill} router={router} />
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-400">No accessories bill yet</p>
+              <button
+                onClick={() => router.push(`/bills/new?order=${order.id}&series=B`)}
+                className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                + Create Accessories Bill
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1078,6 +1120,7 @@ export default function OrderDetailPage() {
   const [packSessions, setPackSessions] = useState<ProductionSession[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
+  const [bBill, setBBill] = useState<Bill | null>(null);
   const [sessionSheet, setSessionSheet] = useState<Department | null>(null);
   const [txSheet, setTxSheet] = useState(false);
   const [editSheet, setEditSheet] = useState(false);
@@ -1129,7 +1172,8 @@ export default function OrderDetailPage() {
     partiesService.getParties(1, 100).then((r) => setParties(r.data));
     productService.getOrderMaterials(id).then(setMaterials).catch(() => setMaterials(null));
     expensesService.listByOrder(id).then((r) => setExpenses(r.data)).catch(() => {});
-    billService.getByOrder(id).then(setBill).catch(() => {});
+    billService.list({ order_id: id, series: "A", size: 1 }).then((r) => setBill(r.data[0] ?? null)).catch(() => {});
+    billService.list({ order_id: id, series: "B", size: 1 }).then((r) => setBBill(r.data[0] ?? null)).catch(() => {});
     loadAccessories();
   }, [loadOrder, loadSessions, loadTransactions, loadAccessories, id]);
 
@@ -1362,7 +1406,7 @@ export default function OrderDetailPage() {
         onDeleteExpense={handleDeleteExpense}
       />
 
-      <DispatchCard order={order} bill={bill} router={router} />
+      <DispatchCard order={order} bill={bill} bBill={bBill} router={router} />
 
       {/* Colour Breakdown */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
