@@ -149,17 +149,18 @@ Current HEAD: `s9n0o1p2q3r4` (add_lot_and_suborder)
 
 | Series | Purpose |
 |--------|---------|
-| **A** | Stitching & packing bills (primary) |
+| **A** | Stitching bills (`stitch_rate_party × qty`) |
 | **B** | Accessories, materials, misc charges |
-| C–E   | Reserved |
+| **C** | Packing bills (`pack_rate_party × qty`) |
+| D–E   | Reserved |
 
-One order can have both an A-bill (stitching) and a B-bill (accessories). Both link to the same order and appear separately in the party ledger.
+One order can have up to 3 bills (A + B + C), all linking to the same order and appearing separately in the party ledger.
 
-**Multiple bills per order** — intentional by design. First bill dispatches the order; second bill skips re-dispatch. Bill delete only reverts order status if no other active bills remain.
+**Multiple bills per order** — intentional by design. First bill dispatches the order; subsequent bills skip re-dispatch. Bill delete only reverts order status if no other active bills remain.
 
 **Standalone bills** — bills can exist without an order (e.g. direct charges to a party). These have `order_id = null`.
 
-**Accessories display** — accessories auto-show on a bill only when it is the sole bill for that order (`res.total === 1` check in `bills/[id]/page.tsx`). Do not remove this guard.
+**Accessories display** — accessories show only on B-series bills (`bill.bill_series === "B"` in `bills/[id]/page.tsx`). A-bills and C-bills never show accessories.
 
 ---
 
@@ -347,7 +348,7 @@ Five CMT-specific skills are installed in Claude Code. Invoke them with the Skil
 
 | Skill | Invoke when... |
 |-------|---------------|
-| **cmt-bill** | Reading or writing any bill-related code — contains invariants for series A/B logic, multi-bill dispatch, accessories guard, standalone bills, and party ledger impact |
+| **cmt-bill** | Reading or writing any bill-related code — contains invariants for series A/B/C logic, multi-bill dispatch, accessories guard (B-bills only), standalone bills, and party ledger impact |
 | **cmt-feature** | Adding any new feature end-to-end — enforces the model→migration→schema→service→endpoint build order and the dual-file hook requirement |
 | **cmt-hooks-sync** | Editing any file in `frontend/src/hooks/` — ensures `.ts` and `.tsx` counterparts stay identical |
 | **cmt-migration** | Adding or modifying any database migration — handles absolute path, `cmt_` prefix validation, chain tracking, and doc updates |

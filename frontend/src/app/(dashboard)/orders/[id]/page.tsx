@@ -759,11 +759,13 @@ function DispatchCard({
   order,
   bill,
   bBill,
+  cBill,
   router,
 }: {
   order: Order;
   bill: Bill | null;
   bBill: Bill | null;
+  cBill: Bill | null;
   router: ReturnType<typeof useRouter>;
 }) {
   const isReady      = ["stitching_complete", "packing_complete", "dispatched"].includes(order.status);
@@ -852,6 +854,28 @@ function DispatchCard({
                 className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
               >
                 + Create Accessories Bill
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-gray-100" />
+
+        {/* ── C-Bill: Packing ── */}
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+            C-Bill — Packing
+          </p>
+          {cBill ? (
+            <BillRow bill={cBill} router={router} />
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-400">No packing bill yet</p>
+              <button
+                onClick={() => router.push(`/bills/new?order=${order.id}&series=C`)}
+                className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                + Create Packing Bill
               </button>
             </div>
           )}
@@ -1121,6 +1145,7 @@ export default function OrderDetailPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [bill, setBill] = useState<Bill | null>(null);
   const [bBill, setBBill] = useState<Bill | null>(null);
+  const [cBill, setCBill] = useState<Bill | null>(null);
   const [sessionSheet, setSessionSheet] = useState<Department | null>(null);
   const [txSheet, setTxSheet] = useState(false);
   const [editSheet, setEditSheet] = useState(false);
@@ -1174,6 +1199,7 @@ export default function OrderDetailPage() {
     expensesService.listByOrder(id).then((r) => setExpenses(r.data)).catch(() => {});
     billService.list({ order_id: id, series: "A", size: 1 }).then((r) => setBill(r.data[0] ?? null)).catch(() => {});
     billService.list({ order_id: id, series: "B", size: 1 }).then((r) => setBBill(r.data[0] ?? null)).catch(() => {});
+    billService.list({ order_id: id, series: "C", size: 1 }).then((r) => setCBill(r.data[0] ?? null)).catch(() => {});
     loadAccessories();
   }, [loadOrder, loadSessions, loadTransactions, loadAccessories, id]);
 
@@ -1406,7 +1432,7 @@ export default function OrderDetailPage() {
         onDeleteExpense={handleDeleteExpense}
       />
 
-      <DispatchCard order={order} bill={bill} bBill={bBill} router={router} />
+      <DispatchCard order={order} bill={bill} bBill={bBill} cBill={cBill} router={router} />
 
       {/* Colour Breakdown */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">

@@ -100,14 +100,11 @@ export default function BillDetailPage() {
 
   useEffect(() => {
     if (bill?.order_id) {
-      // Show accessories if this is the sole bill for the order,
-      // OR if this is a B-series bill (B-bills are the accessories bill).
-      // A-bills hide accessories when a separate B-bill exists for the same order.
-      billService.list({ order_id: bill.order_id, size: 10 }).then((res) => {
-        if (res.total === 1 || bill.bill_series === "B") {
-          accessoryService.list(bill.order_id!).then(setAccessories).catch(() => {});
-        }
-      }).catch(() => {});
+      // Accessories display only on B-series bills.
+      // After the A/B/C split, accessories always live on the B-bill.
+      if (bill.bill_series === "B") {
+        accessoryService.list(bill.order_id!).then(setAccessories).catch(() => {});
+      }
     }
   }, [bill?.order_id]);
 

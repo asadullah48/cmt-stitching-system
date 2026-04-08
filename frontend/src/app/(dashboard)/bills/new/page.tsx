@@ -90,26 +90,34 @@ function NewBillForm() {
       return;
     }
 
-    // B-series bill = accessories only, no stitch/pack rates
-    const isBSeries = (form.bill_series ?? "A").toUpperCase() === "B";
+    const seriesUpper = (form.bill_series ?? "A").toUpperCase();
+    const isASeries = seriesUpper === "A";
+    const isBSeries = seriesUpper === "B";
+    const isCSeries = seriesUpper === "C";
 
-    const stitch = isBSeries ? 0 : Number(order.stitch_rate_party) * order.total_quantity;
-    const pack = isBSeries ? 0 : (order.pack_rate_party
-      ? Number(order.pack_rate_party) * order.total_quantity
-      : 0);
-    accessoryService.list(form.order_id).then((accessories) => {
-      const accessoryTotal = accessories.reduce(
-        (sum, a) => sum + Number(a.total_qty) * Number(a.unit_price),
-        0
-      );
-      const computed = stitch + pack + accessoryTotal;
-      setSubtotal(computed);
-      setForm((f) => ({ ...f, amount_due: computed - (f.discount || 0) }));
-    }).catch(() => {
+    // A-series: stitching only
+    // B-series: accessories only
+    // C-series: packing only
+    const stitch = isASeries ? Number(order.stitch_rate_party) * order.total_quantity : 0;
+    const pack   = isCSeries ? Number(order.pack_rate_party ?? 0) * order.total_quantity : 0;
+
+    if (isBSeries) {
+      accessoryService.list(form.order_id).then((accessories) => {
+        const accessoryTotal = accessories.reduce(
+          (sum, a) => sum + Number(a.total_qty) * Number(a.unit_price),
+          0
+        );
+        setSubtotal(accessoryTotal);
+        setForm((f) => ({ ...f, amount_due: accessoryTotal - (f.discount || 0) }));
+      }).catch(() => {
+        setSubtotal(0);
+        setForm((f) => ({ ...f, amount_due: 0 }));
+      });
+    } else {
       const computed = stitch + pack;
       setSubtotal(computed);
       setForm((f) => ({ ...f, amount_due: computed - (f.discount || 0) }));
-    });
+    }
   }, [form.order_id, form.bill_series, orders]);
 
   // Recalculate amount_due when discount changes
@@ -297,9 +305,15 @@ function NewBillForm() {
                 onChange={(e) => set("bill_series", e.target.value)}
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
               >
-                {["A", "B", "C", "D", "E"].map((s) => (
-                  <option key={s} value={s}>
-                    Series {s}
+                {[
+                  { value: "A", label: "Series A — Stitching" },
+                  { value: "B", label: "Series B — Accessories" },
+                  { value: "C", label: "Series C — Packing" },
+                  { value: "D", label: "Series D" },
+                  { value: "E", label: "Series E" },
+                ].map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
                   </option>
                 ))}
               </select>

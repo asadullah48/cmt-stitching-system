@@ -48,7 +48,7 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 3. **Dashboard route** — home is `/dashboard` not `/` (route group conflict)
 4. **Forms** — slide-in sheet pattern, not full-page navigation
 5. **No Redux** — React Context + useReducer only
-6. **Bill accessories display** — accessories only auto-show on a bill when it is the sole bill for that order (`res.total === 1` check in `bills/[id]/page.tsx`). Do not remove this guard.
+6. **Bill accessories display** — accessories show only on B-series bills (`bill.bill_series === "B"` in `bills/[id]/page.tsx`). A-bills and C-bills never show accessories.
 
 ---
 
@@ -56,11 +56,12 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 
 | Series | Purpose |
 |--------|---------|
-| **A** | Stitching & packing bills (primary) |
+| **A** | Stitching bills (`stitch_rate_party × qty`) |
 | **B** | Accessories, materials, misc charges |
-| C–E   | Reserved |
+| **C** | Packing bills (`pack_rate_party × qty`) |
+| D–E   | Reserved |
 
-One order can have both an A-bill (stitching) and a B-bill (accessories). Both link to the same order and appear separately in the party ledger.
+One order can have up to 3 bills (A + B + C), all linking to the same order and appearing separately in the party ledger.
 
 ---
 
