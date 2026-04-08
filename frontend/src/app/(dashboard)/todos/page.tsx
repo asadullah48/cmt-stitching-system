@@ -22,7 +22,7 @@ function dueBadge(todo: Todo) {
     return <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium">Today</span>;
   if (diffDays <= 3)
     return <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">Soon</span>;
-  return <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{due.toLocaleDateString()}</span>;
+  return <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{due.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>;
 }
 
 const PRIORITY_COLORS: Record<TodoPriority, string> = {

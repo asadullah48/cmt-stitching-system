@@ -211,7 +211,7 @@ export default function QualityPage() {
                         <span className="text-red-700 font-medium text-xs">{d.defect_type}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">×{d.quantity}</span>
-                          <span className="text-xs text-gray-400">{new Date(d.logged_at).toLocaleDateString()}</span>
+                          <span className="text-xs text-gray-400">{new Date(d.logged_at).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
                         </div>
                       </li>
                     ))}

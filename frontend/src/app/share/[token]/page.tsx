@@ -19,7 +19,7 @@ export default function PublicStatementPage() {
   }, [token]);
 
   const today = new Date().toLocaleDateString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
+    day: "2-digit", month: "2-digit", year: "numeric",
   });
 
   if (loading) {

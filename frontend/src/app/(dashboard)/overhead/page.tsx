@@ -369,7 +369,7 @@ export default function OverheadPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Due: {new Date(exp.due_date).toLocaleDateString()}
+                      Due: {new Date(exp.due_date).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}
                       {exp.paid_from_account_name && ` · Paid via ${exp.paid_from_account_name}`}
                     </p>
                   </div>
@@ -426,7 +426,7 @@ export default function OverheadPage() {
                 <tbody className="divide-y divide-gray-100">
                   {entries.map((e) => (
                     <tr key={e.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-500">{new Date(e.entry_date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-gray-500">{new Date(e.entry_date).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })}</td>
                       <td className="px-4 py-3 text-gray-800">{e.description}</td>
                       <td className="px-4 py-3 text-right text-emerald-600 font-medium">{e.entry_type === "credit" ? formatCurrency(e.amount) : "—"}</td>
                       <td className="px-4 py-3 text-right text-red-500 font-medium">{e.entry_type === "debit" ? formatCurrency(e.amount) : "—"}</td>

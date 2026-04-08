@@ -58,7 +58,7 @@ function BillPreview({
     win.print();
   };
 
-  const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -395,10 +395,10 @@ export default function PartyLedgerPage() {
     const rows = filteredRows.slice(-MAX_TX);
 
     const periodFrom = dateFrom
-      ? new Date(dateFrom).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+      ? new Date(dateFrom).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
       : "All time";
     const periodTo = dateTo
-      ? new Date(dateTo).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+      ? new Date(dateTo).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
       : "Present";
 
     const balanceLabel =
@@ -409,7 +409,7 @@ export default function PartyLedgerPage() {
     const txLines = rows.map((tx) => {
       const date = new Date(tx.transaction_date).toLocaleDateString("en-GB", {
         day: "2-digit",
-        month: "short",
+        month: "2-digit",
         year: "numeric",
       });
       const type = tx.transaction_type.charAt(0).toUpperCase() + tx.transaction_type.slice(1);
@@ -456,7 +456,7 @@ export default function PartyLedgerPage() {
 
   const today = new Date().toLocaleDateString("en-GB", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   });
 

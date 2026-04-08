@@ -114,7 +114,7 @@ export default function JobCardPage() {
   const packHours    = packSessions.reduce((s, r) => s + Number(r.duration_hours ?? 0), 0);
 
   const today = new Date().toLocaleDateString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
+    day: "2-digit", month: "2-digit", year: "numeric",
   });
 
   const Row = ({ label, value, sub, bold }: { label: string; value: string; sub?: string; bold?: boolean }) => (

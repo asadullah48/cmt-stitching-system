@@ -160,7 +160,7 @@ export default function LedgerPage() {
   const hasFilters = !!(filters.party_id || filters.date_from || filters.date_to || filters.transaction_type);
 
   const today = new Date().toLocaleDateString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
+    day: "2-digit", month: "2-digit", year: "numeric",
   });
 
   const colSpan = reconcileMode ? 9 : 8;

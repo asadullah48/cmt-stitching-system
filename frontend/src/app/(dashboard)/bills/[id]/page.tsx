@@ -430,10 +430,10 @@ export default function BillDetailPage() {
             <p className="text-xl font-bold text-blue-600 mt-1">#{bill.bill_number}</p>
             <p className="text-sm text-gray-500 mt-1">
               Date:{" "}
-              {new Date(bill.bill_date).toLocaleDateString("en-PK", {
+              {new Date(bill.bill_date).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
                 year: "numeric",
-                month: "long",
-                day: "numeric",
               })}
             </p>
             <span
