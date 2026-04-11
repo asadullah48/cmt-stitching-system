@@ -77,5 +77,5 @@ class FinancialService:
             q = q.filter(FinancialTransaction.transaction_type == transaction_type)
 
         total = q.count()
-        txns = q.order_by(FinancialTransaction.transaction_date.desc()).offset((page - 1) * size).limit(size).all()
+        txns = q.order_by(FinancialTransaction.transaction_date.asc(), FinancialTransaction.created_at.asc()).offset((page - 1) * size).limit(size).all()
         return txns, total
