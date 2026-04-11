@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.orm import joinedload
 
 from app.core.deps import CurrentUser, DbDep
 from app.models.financial import FinancialTransaction
@@ -78,6 +79,16 @@ def list_transactions(
     return TransactionListResponse(data=[_to_out(t) for t in txns], total=total, page=page, size=size)
 
 
+def _fetch_txn(db, txn_id):
+    """Re-fetch a transaction with relationships eagerly loaded."""
+    return (
+        db.query(FinancialTransaction)
+        .options(joinedload(FinancialTransaction.party), joinedload(FinancialTransaction.order))
+        .filter(FinancialTransaction.id == txn_id)
+        .first()
+    )
+
+
 @router.post("/", response_model=TransactionOut, status_code=201)
 def create_transaction(data: TransactionCreate, db: DbDep, current_user: CurrentUser):
     txn = FinancialService.create_transaction(db, data, current_user.id)
@@ -87,7 +98,8 @@ def create_transaction(data: TransactionCreate, db: DbDep, current_user: Current
         if bill:
             BillService._recompute_amount_paid(db, bill)
             db.commit()
-            db.refresh(txn)
+    # Re-fetch with relationships so _to_out never hits expired lazy-load attributes
+    txn = _fetch_txn(db, txn.id)
     return _to_out(txn)
 
 
