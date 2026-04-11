@@ -15,11 +15,10 @@ export function formatCurrency(amount: number | null | undefined): string {
 
 export function formatDate(date: string | null | undefined): string {
   if (!date) return "—";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(date));
+  const parts = date.split("T")[0].split("-");
+  if (parts.length !== 3) return date;
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
 }
 
 export function toInputDate(date: string | null | undefined): string {
