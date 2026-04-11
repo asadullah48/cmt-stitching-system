@@ -34,10 +34,10 @@ const TYPE_BADGE: Record<string, string> = {
 
 export default function LedgerPage() {
   const [result, setResult] = useState<PaginatedResponse<FinancialTransaction>>({
-    data: [], total: 0, page: 1, size: 30,
+    data: [], total: 0, page: 1, size: 100,
   });
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<TransactionFilters>({ page: 1, size: 30 });
+  const [filters, setFilters] = useState<TransactionFilters>({ page: 1, size: 100 });
   const [parties, setParties] = useState<Party[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editTx, setEditTx] = useState<FinancialTransaction | null>(null);
