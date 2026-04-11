@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import case
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.financial import FinancialTransaction
@@ -77,5 +78,15 @@ class FinancialService:
             q = q.filter(FinancialTransaction.transaction_type == transaction_type)
 
         total = q.count()
-        txns = q.order_by(FinancialTransaction.transaction_date.asc(), FinancialTransaction.created_at.asc()).offset((page - 1) * size).limit(size).all()
+        type_order = case(
+            (FinancialTransaction.transaction_type == "income", 1),
+            (FinancialTransaction.transaction_type == "expense", 2),
+            (FinancialTransaction.transaction_type == "purchase", 2),
+            else_=3,
+        )
+        txns = q.order_by(
+            FinancialTransaction.transaction_date.asc(),
+            type_order,
+            FinancialTransaction.created_at.asc(),
+        ).offset((page - 1) * size).limit(size).all()
         return txns, total
