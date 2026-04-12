@@ -446,6 +446,10 @@ export interface Bill {
   subtotal: number;
   order_items: BillOrderItem[];
   notes?: string;
+  goods_description?: string;
+  order_total_quantity?: number;
+  delivery_date?: string;
+  accessories_qty?: number;
 }
 
 export interface BillCreate {

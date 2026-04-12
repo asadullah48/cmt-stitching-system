@@ -11,8 +11,10 @@ from app.services.bill_service import BillService
 router = APIRouter(prefix="/bills", tags=["bills"])
 
 
-def _to_out(bill) -> BillOut:
+def _to_out(bill, db=None) -> BillOut:
     from decimal import Decimal
+    from sqlalchemy import func as sa_func
+    from app.models.accessories import OrderAccessory
 
     # Build order items list with computed amounts
     order_items = []
@@ -39,6 +41,18 @@ def _to_out(bill) -> BillOut:
 
     discount = Decimal(str(bill.discount)) if hasattr(bill, "discount") and bill.discount is not None else Decimal("0")
     previous_balance = Decimal(str(bill.previous_balance)) if hasattr(bill, "previous_balance") and bill.previous_balance is not None else Decimal("0")
+
+    # Accessories qty sum for B-bills (one query per bill only when db passed)
+    accessories_qty = None
+    if db is not None and bill.bill_series == "B" and bill.order_id:
+        accessories_qty = (
+            db.query(sa_func.sum(OrderAccessory.total_qty))
+            .filter(
+                OrderAccessory.order_id == bill.order_id,
+                OrderAccessory.is_deleted.is_(False),
+            )
+            .scalar()
+        )
 
     return BillOut(
         id=bill.id,
@@ -68,6 +82,10 @@ def _to_out(bill) -> BillOut:
         subtotal=subtotal,
         order_items=order_items,
         notes=bill.notes,
+        goods_description=bill.order.goods_description if bill.order else None,
+        order_total_quantity=bill.order.total_quantity if bill.order else None,
+        delivery_date=bill.order.delivery_date if bill.order else None,
+        accessories_qty=accessories_qty,
     )
 
 
@@ -83,7 +101,7 @@ def list_bills(
     db: DbDep,
     _: CurrentUser,
     page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
+    size: int = Query(20, ge=1, le=500),
     series: Optional[str] = Query(None),
     party_id: Optional[UUID] = Query(None),
     order_id: Optional[UUID] = Query(None),
@@ -93,7 +111,7 @@ def list_bills(
 ):
     """List all bills with optional filtering by series, party, order, payment status, and date range."""
     bills, total = BillService.get_all(db, page, size, series, party_id, payment_status, date_from, date_to, order_id)
-    return BillListResponse(data=[_to_out(b) for b in bills], total=total, page=page, size=size)
+    return BillListResponse(data=[_to_out(b, db) for b in bills], total=total, page=page, size=size)
 
 
 @router.post("/", response_model=BillOut, status_code=201)

@@ -90,6 +90,11 @@ class BillOut(BaseModel):
     subtotal: Decimal = Decimal("0")
     order_items: list[dict] = []
     notes: Optional[str] = None
+    # Order summary fields (for list views)
+    goods_description: Optional[str] = None
+    order_total_quantity: Optional[int] = None
+    delivery_date: Optional[date] = None
+    accessories_qty: Optional[Decimal] = None  # sum of OrderAccessory.total_qty (B-bills only)
 
     model_config = {"from_attributes": True}
 
