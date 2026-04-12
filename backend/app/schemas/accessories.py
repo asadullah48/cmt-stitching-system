@@ -11,6 +11,7 @@ class AccessoryCreate(BaseModel):
     from_stock: Decimal = Decimal("0")
     purchased_qty: Decimal = Decimal("0")
     purchase_cost: Optional[Decimal] = None
+    inventory_item_id: Optional[UUID] = None
 
 
 class AccessoryUpdate(BaseModel):
@@ -20,6 +21,7 @@ class AccessoryUpdate(BaseModel):
     from_stock: Optional[Decimal] = None
     purchased_qty: Optional[Decimal] = None
     purchase_cost: Optional[Decimal] = None
+    inventory_item_id: Optional[UUID] = None
 
 
 class AccessoryOut(BaseModel):
@@ -31,6 +33,8 @@ class AccessoryOut(BaseModel):
     from_stock: Decimal
     purchased_qty: Decimal
     purchase_cost: Optional[Decimal] = None
+    inventory_item_id: Optional[UUID] = None
+    inventory_item_name: Optional[str] = None
 
     @computed_field
     @property

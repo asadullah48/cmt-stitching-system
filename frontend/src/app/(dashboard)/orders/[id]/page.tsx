@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ordersService, productionService, transactionsService, partiesService, productService, expensesService, billService, accessoryService } from "@/hooks/services";
+import { ordersService, productionService, transactionsService, partiesService, productService, expensesService, billService, accessoryService, inventoryService } from "@/hooks/services";
 import type { Bill } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
@@ -12,7 +12,7 @@ import {
 import { OrderStatusSelect, OrderItemsTable, OrderForm } from "@/components/orders";
 import { SessionForm } from "@/components/production";
 import { TransactionForm } from "@/components/financial";
-import type { Order, ProductionSession, Department, Party, OrderMaterials, MaterialRequirement, Expense, OrderAccessory, AccessoryCreate } from "@/hooks/types";
+import type { Order, ProductionSession, Department, Party, OrderMaterials, MaterialRequirement, Expense, OrderAccessory, AccessoryCreate, AccessoryUpdate, InventoryItem } from "@/hooks/types";
 
 // ─── Stage Config ─────────────────────────────────────────────────────────────
 
@@ -964,21 +964,41 @@ function RateItem({ label, value }: { label: string; value: string }) {
 
 // ─── Accessories Panel ────────────────────────────────────────────────────────
 
+const ACC_RATE_MAP: { match: RegExp; price: number }[] = [
+  { match: /castel tent bag/i, price: 50 },
+  { match: /zip/i, price: 34 },
+  { match: /bedrail/i, price: 135 },
+];
+
+function getAccRate(name: string): number | null {
+  for (const rule of ACC_RATE_MAP) {
+    if (rule.match.test(name)) return rule.price;
+  }
+  return null;
+}
+
 function AccessoriesPanel({
   orderId,
+  orderQty,
   accessories,
   onReload,
 }: {
   orderId: string;
+  orderQty: number;
   accessories: OrderAccessory[];
   onReload: () => void;
 }) {
   const { showToast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [invItems, setInvItems] = useState<InventoryItem[]>([]);
   const [form, setForm] = useState<AccessoryCreate>({
     name: "", total_qty: 0, unit_price: 0, from_stock: 0, purchased_qty: 0,
   });
+
+  useEffect(() => {
+    inventoryService.getItems({ size: 200 }).then((r) => setInvItems(r.data)).catch(() => {});
+  }, []);
 
   const totalAccessoryCharge = accessories.reduce((s, a) => s + Number(a.total_charge), 0);
 
@@ -994,6 +1014,13 @@ function AccessoriesPanel({
     } catch {
       showToast("Failed to add accessory", "error");
     } finally { setSaving(false); }
+  };
+
+  const handleLinkItem = async (accessoryId: string, invItemId: string | null) => {
+    try {
+      await accessoryService.update(orderId, accessoryId, { inventory_item_id: invItemId ?? undefined });
+      onReload();
+    } catch { showToast("Failed to link item", "error"); }
   };
 
   const handleDelete = async (accessoryId: string) => {
@@ -1027,48 +1054,70 @@ function AccessoriesPanel({
               <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 <th className="px-4 py-2.5 text-left">Item</th>
                 <th className="px-4 py-2.5 text-right">Total Qty</th>
+                <th className="px-4 py-2.5 text-right">Extras</th>
                 <th className="px-4 py-2.5 text-right">Unit Price</th>
                 <th className="px-4 py-2.5 text-right">Charge</th>
                 <th className="px-4 py-2.5 text-right">From Stock</th>
                 <th className="px-4 py-2.5 text-right">Purchased</th>
                 <th className="px-4 py-2.5 text-right">Buy Cost/u</th>
                 <th className="px-4 py-2.5 text-right">Spend</th>
+                <th className="px-4 py-2.5 text-left">Inv. Link</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {accessories.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-gray-900">{a.name}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{Number(a.total_qty).toLocaleString()}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">PKR {formatCurrency(a.unit_price)}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-blue-700">PKR {formatCurrency(a.total_charge)}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{Number(a.from_stock).toLocaleString()}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{Number(a.purchased_qty).toLocaleString()}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">
-                    {a.purchase_cost != null ? `PKR ${formatCurrency(a.purchase_cost)}` : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-orange-600">
-                    {a.total_purchase_spend != null ? `PKR ${formatCurrency(a.total_purchase_spend)}` : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <button
-                      onClick={() => handleDelete(a.id)}
-                      className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50"
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {accessories.map((a) => {
+                const extras = Number(a.total_qty) - orderQty;
+                return (
+                  <tr key={a.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 font-medium text-gray-900">{a.name}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">{Number(a.total_qty).toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums">
+                      {extras > 0
+                        ? <span className="text-green-600 font-medium">+{extras.toLocaleString()}</span>
+                        : <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">PKR {formatCurrency(a.unit_price)}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-blue-700">PKR {formatCurrency(a.total_charge)}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{Number(a.from_stock).toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">{Number(a.purchased_qty).toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-gray-500">
+                      {a.purchase_cost != null ? `PKR ${formatCurrency(a.purchase_cost)}` : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-orange-600">
+                      {a.total_purchase_spend != null ? `PKR ${formatCurrency(a.total_purchase_spend)}` : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 min-w-[160px]">
+                      <select
+                        className="text-xs border border-gray-200 rounded px-1.5 py-1 bg-white w-full"
+                        value={a.inventory_item_id ?? ""}
+                        onChange={(e) => handleLinkItem(a.id, e.target.value || null)}
+                      >
+                        <option value="">— None —</option>
+                        {invItems.map((item) => (
+                          <option key={item.id} value={item.id}>{item.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <button
+                        onClick={() => handleDelete(a.id)}
+                        className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="border-t border-gray-200 bg-blue-50">
-                <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Total accessory charge to party</td>
+                <td colSpan={4} className="px-4 py-2.5 text-xs font-semibold text-gray-600">Total accessory charge to party</td>
                 <td className="px-4 py-2.5 text-right text-sm font-bold text-blue-700 tabular-nums">
                   PKR {formatCurrency(totalAccessoryCharge)}
                 </td>
-                <td colSpan={5} />
+                <td colSpan={6} />
               </tr>
             </tfoot>
           </table>
@@ -1082,7 +1131,15 @@ function AccessoriesPanel({
             <div className="flex-1 min-w-[140px]">
               <FormField label="Item Name" required>
                 <Input placeholder="e.g. Zip" value={form.name}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const rate = getAccRate(name);
+                    setForm((p) => ({
+                      ...p,
+                      name,
+                      unit_price: rate !== null && !p.unit_price ? rate : p.unit_price,
+                    }));
+                  }} required />
               </FormField>
             </div>
             <div>
@@ -1450,6 +1507,7 @@ export default function OrderDetailPage() {
       {/* Accessories */}
       <AccessoriesPanel
         orderId={order.id}
+        orderQty={order.total_quantity}
         accessories={accessories}
         onReload={loadAccessories}
       />

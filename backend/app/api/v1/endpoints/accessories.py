@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, HTTPException
+from sqlalchemy.orm import joinedload
 from app.core.deps import CurrentUser, DbDep
 from app.models.accessories import OrderAccessory
 from app.models.orders import Order
@@ -9,7 +10,10 @@ router = APIRouter(prefix="/orders", tags=["accessories"])
 
 
 def _to_out(a: OrderAccessory) -> AccessoryOut:
-    return AccessoryOut.model_validate(a)
+    out = AccessoryOut.model_validate(a)
+    if a.inventory_item is not None:
+        out.inventory_item_name = a.inventory_item.name
+    return out
 
 
 @router.get("/{order_id}/accessories", response_model=list[AccessoryOut])
@@ -17,6 +21,7 @@ def list_accessories(order_id: uuid.UUID, db: DbDep, _: CurrentUser):
     return [
         _to_out(a)
         for a in db.query(OrderAccessory)
+        .options(joinedload(OrderAccessory.inventory_item))
         .filter(
             OrderAccessory.order_id == order_id,
             OrderAccessory.is_deleted.is_(False),
@@ -34,7 +39,9 @@ def create_accessory(order_id: uuid.UUID, body: AccessoryCreate, db: DbDep, _: C
     a = OrderAccessory(order_id=order_id, **body.model_dump())
     db.add(a)
     db.commit()
-    db.refresh(a)
+    a = db.query(OrderAccessory).options(joinedload(OrderAccessory.inventory_item)).filter(
+        OrderAccessory.id == a.id
+    ).first()
     return _to_out(a)
 
 
@@ -53,10 +60,13 @@ def update_accessory(
     ).first()
     if not a:
         raise HTTPException(status_code=404, detail="Accessory not found")
-    for field, value in body.model_dump(exclude_none=True).items():
+    for field, value in body.model_dump(exclude_unset=True).items():
         setattr(a, field, value)
     db.commit()
-    db.refresh(a)
+    # Re-fetch with inventory_item joined so _to_out can read the name
+    a = db.query(OrderAccessory).options(joinedload(OrderAccessory.inventory_item)).filter(
+        OrderAccessory.id == accessory_id
+    ).first()
     return _to_out(a)
 
 

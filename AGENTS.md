@@ -68,7 +68,7 @@ cmt-stitching-system/
 │   │   └── api/v1/
 │   │       ├── router.py       # Aggregates all endpoint routers
 │   │       └── endpoints/      # One file per domain
-│   ├── alembic/versions/       # Migration chain (20 migrations, HEAD: s9n0o1p2q3r4)
+│   ├── alembic/versions/       # Migration chain (21 migrations, HEAD: 860bf63b6a35)
 │   ├── pyproject.toml          # Python project (requires >=3.13)
 │   └── requirements.txt        # pip fallback (keep in sync with pyproject.toml)
 ├── frontend/
@@ -116,14 +116,15 @@ sub_orders = relationship("Order",
 ```
 C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\<name>.py
 ```
-Current HEAD: `s9n0o1p2q3r4` (add_lot_and_suborder)
+Current HEAD: `860bf63b6a35` (add_inventory_item_to_accessories)
 
 **Migration chain:**
 ```
 4d1e3598580f → a1b2c3d4e5f6 → b2c3d4e5f6a7 → c3d4e5f6a7b8 → d4e5f6a7b8c9
 → e5f6a7b8c9d0 → f6a7b8c9d0e1 → g7b8c9d0e1f2 → h8c9d0e1f2g3 → i9d0e1f2g3h4
 → j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9
-→ o5j6k7l8m9n0 → p6k7l8m9n0o1 → q7l8m9n0o1p2 → r8m9n0o1p2q3 → s9n0o1p2q3r4 [HEAD]
+→ o5j6k7l8m9n0 → p6k7l8m9n0o1 → q7l8m9n0o1p2 → r8m9n0o1p2q3 → s9n0o1p2q3r4
+→ 860bf63b6a35 [HEAD]
 ```
 
 ### Frontend

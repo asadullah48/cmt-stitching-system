@@ -50,6 +50,7 @@ import type {
   OverheadExpenseListResponse,
   OrderAccessory,
   AccessoryCreate,
+  AccessoryUpdate,
 } from "./types";
 
 export type { Alert, AppSettings };
@@ -594,6 +595,8 @@ export const accessoryService = {
     api.get<OrderAccessory[]>(`/orders/${orderId}/accessories`).then((r) => r.data),
   create: (orderId: string, data: AccessoryCreate) =>
     api.post<OrderAccessory>(`/orders/${orderId}/accessories`, data).then((r) => r.data),
+  update: (orderId: string, accessoryId: string, data: AccessoryUpdate) =>
+    api.put<OrderAccessory>(`/orders/${orderId}/accessories/${accessoryId}`, data).then((r) => r.data),
   delete: (orderId: string, accessoryId: string) =>
     api.delete(`/orders/${orderId}/accessories/${accessoryId}`),
 };

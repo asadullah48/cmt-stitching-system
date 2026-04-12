@@ -411,6 +411,8 @@ export interface OrderAccessory {
   purchase_cost: number | null;
   total_charge: number;
   total_purchase_spend: number | null;
+  inventory_item_id: string | null;
+  inventory_item_name: string | null;
 }
 
 export interface AccessoryCreate {
@@ -420,6 +422,17 @@ export interface AccessoryCreate {
   from_stock: number;
   purchased_qty: number;
   purchase_cost?: number;
+  inventory_item_id?: string;
+}
+
+export interface AccessoryUpdate {
+  name?: string;
+  total_qty?: number;
+  unit_price?: number;
+  from_stock?: number;
+  purchased_qty?: number;
+  purchase_cost?: number;
+  inventory_item_id?: string | null;
 }
 
 // ─── Expenses ────────────────────────────────────────────────────────────────

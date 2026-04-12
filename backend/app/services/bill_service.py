@@ -16,7 +16,9 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.accessories import OrderAccessory
 from app.models.bill import Bill
+from app.models.inventory import InventoryItem, InventoryTransaction
 from app.models.orders import Order
 from app.models.financial import FinancialTransaction
 from app.models.parties import Party
@@ -202,6 +204,10 @@ class BillService:
             if party:
                 party.balance += data.amount_due
 
+        # Return extra accessories to inventory when A-bill is created
+        if series == "A" and order:
+            BillService._return_accessory_extras(db, order, bill, user_id)
+
         AuditService.log_create(
             db,
             "cmt_bills",
@@ -213,6 +219,52 @@ class BillService:
         db.commit()
         db.refresh(bill)
         return bill
+
+    @staticmethod
+    def _return_accessory_extras(db: Session, order: Order, bill: Bill, user_id: UUID) -> None:
+        """For each accessory linked to an inventory item, return any extras to stock.
+
+        Extras = accessory.total_qty - order.total_quantity.
+        Only runs when an A-bill is created (final stitched qty is then known).
+        Skips if extras <= 0 or no inventory_item_id is set.
+        """
+        accessories = (
+            db.query(OrderAccessory)
+            .filter(
+                OrderAccessory.order_id == order.id,
+                OrderAccessory.inventory_item_id.isnot(None),
+                OrderAccessory.is_deleted.is_(False),
+            )
+            .all()
+        )
+        stitched_qty = Decimal(str(order.total_quantity or 0))
+        for acc in accessories:
+            extras = Decimal(str(acc.total_qty)) - stitched_qty
+            if extras <= Decimal("0"):
+                continue
+            inv_item = (
+                db.query(InventoryItem)
+                .filter(InventoryItem.id == acc.inventory_item_id)
+                .with_for_update()
+                .first()
+            )
+            if not inv_item:
+                continue
+            inv_txn = InventoryTransaction(
+                item_id=acc.inventory_item_id,
+                transaction_type="return",
+                quantity=extras,
+                unit_cost=acc.unit_price,
+                total_cost=extras * Decimal(str(acc.unit_price)),
+                reference_type="accessory_extra",
+                order_number=order.order_number,
+                bill_number=bill.bill_number,
+                notes=f"Extra {acc.name} returned from {order.order_number}",
+                transaction_date=bill.bill_date,
+                created_by=user_id,
+            )
+            db.add(inv_txn)
+            inv_item.current_stock += extras
 
     @staticmethod
     def record_payment(db: Session, bill_id: UUID, data: BillPaymentUpdate, user_id: UUID) -> Bill:

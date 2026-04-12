@@ -11,6 +11,23 @@ import type {
   Order, OrderCreate, OrderUpdate, OrderItemCreate, Party, OrderStatus, Product,
 } from "@/hooks/types";
 
+// ─── Rate auto-fill ──────────────────────────────────────────────────────────
+
+const RATE_MAP: { match: RegExp; stitch: number | null; pack: number | null }[] = [
+  { match: /castel tent bag/i, stitch: 50, pack: null },
+  { match: /castel tent|tent house/i, stitch: 360, pack: null },
+  { match: /bedrail packing/i, stitch: null, pack: 80 },
+  { match: /bedrail/i, stitch: 135, pack: 80 },
+  { match: /zip/i, stitch: 34, pack: null },
+];
+
+function getRatesForGoods(desc: string): { stitch: number | null; pack: number | null } {
+  for (const rule of RATE_MAP) {
+    if (rule.match.test(desc)) return { stitch: rule.stitch, pack: rule.pack };
+  }
+  return { stitch: null, pack: null };
+}
+
 // ─── OrderForm ────────────────────────────────────────────────────────────────
 
 interface OrderFormProps {
@@ -230,7 +247,13 @@ export function OrderForm({ parties, initialData, orderId, onSuccess, onCancel }
         <Textarea
           placeholder="Describe the goods (e.g. Gents Shalwar Kameez, Blue)"
           value={goods}
-          onChange={(e) => setGoods(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setGoods(val);
+            const { stitch, pack } = getRatesForGoods(val);
+            if (stitch !== null && !stitchRateParty) setStitchRateParty(String(stitch));
+            if (pack !== null && !packRateParty) setPackRateParty(String(pack));
+          }}
           error={!!errors.goods}
           rows={2}
         />

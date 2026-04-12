@@ -15,5 +15,7 @@ class OrderAccessory(BaseModel):
     from_stock = Column(Numeric(10, 2), nullable=False, default=0)
     purchased_qty = Column(Numeric(10, 2), nullable=False, default=0)
     purchase_cost = Column(Numeric(10, 2), nullable=True)
+    inventory_item_id = Column(UUID(as_uuid=True), ForeignKey("cmt_inventory_items.id"), nullable=True)
 
     order = relationship("Order", back_populates="accessories")
+    inventory_item = relationship("InventoryItem", foreign_keys=[inventory_item_id])
