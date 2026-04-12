@@ -18,6 +18,24 @@ const STATUS_LABELS: Record<string, string> = {
   paid: "Paid",
 };
 
+const BILL_TYPE_LABELS: Record<string, string> = {
+  A: "Stitching Bill",
+  B: "Accessories Bill",
+  C: "Packing Bill",
+};
+
+const BILL_TYPE_STYLES: Record<string, string> = {
+  A: "bg-blue-100 text-blue-700",
+  B: "bg-purple-100 text-purple-700",
+  C: "bg-orange-100 text-orange-700",
+};
+
+const BILL_SERVICE_DESCRIPTION: Record<string, string> = {
+  A: "Stitching Services",
+  B: "Accessories",
+  C: "Packing Services",
+};
+
 function fmt(n: number | undefined | null) {
   return (n ?? 0).toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
@@ -428,6 +446,9 @@ export default function BillDetailPage() {
           <div className="text-right">
             <p className="text-3xl font-extrabold text-gray-400 uppercase tracking-widest">Invoice</p>
             <p className="text-xl font-bold text-blue-600 mt-1">#{bill.bill_number}</p>
+            <span className={`mt-1 inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${BILL_TYPE_STYLES[bill.bill_series] ?? "bg-gray-100 text-gray-600"}`}>
+              {BILL_TYPE_LABELS[bill.bill_series] ?? `Series ${bill.bill_series}`}
+            </span>
             <p className="text-sm text-gray-500 mt-1">
               Date:{" "}
               {new Date(bill.bill_date).toLocaleDateString("en-GB", {
@@ -526,7 +547,7 @@ export default function BillDetailPage() {
                 <tr>
                   <td className="px-3 py-2.5 text-gray-400">1</td>
                   <td className="px-3 py-2.5 text-gray-800" colSpan={5}>
-                    Stitching &amp; Packing Services
+                    {BILL_SERVICE_DESCRIPTION[bill.bill_series] ?? "Stitching & Packing Services"}
                     {bill.lot_number != null && (
                       <span className="ml-1.5 text-xs text-gray-400">
                         Lot #{bill.lot_number}{bill.sub_suffix ?? ""}

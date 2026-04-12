@@ -11,6 +11,18 @@ const STATUS_STYLES: Record<string, string> = {
   paid: "bg-green-100 text-green-700",
 };
 
+const SERIES_LABELS: Record<string, string> = {
+  A: "Stitching",
+  B: "Accessories",
+  C: "Packing",
+};
+
+const SERIES_STYLES: Record<string, string> = {
+  A: "bg-blue-100 text-blue-700",
+  B: "bg-purple-100 text-purple-700",
+  C: "bg-orange-100 text-orange-700",
+};
+
 export default function BillsPage() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -65,9 +77,10 @@ export default function BillsPage() {
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm"
         >
           <option value="">All Series</option>
-          {["A", "B", "C", "D"].map(s => (
-            <option key={s} value={s}>Series {s}</option>
-          ))}
+          <option value="A">A — Stitching</option>
+          <option value="B">B — Accessories</option>
+          <option value="C">C — Packing</option>
+          <option value="D">D</option>
         </select>
         <select
           value={filterStatus}
@@ -86,7 +99,7 @@ export default function BillsPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              {["Bill #", "Order #", "Party", "Date", "Amount Due", "Paid", "Outstanding", "Status", ""].map(h => (
+              {["Bill #", "Type", "Order #", "Party", "Date", "Amount Due", "Paid", "Outstanding", "Status", ""].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   {h}
                 </th>
@@ -97,7 +110,7 @@ export default function BillsPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 9 }).map((_, j) => (
+                  {Array.from({ length: 10 }).map((_, j) => (
                     <td key={j} className="px-4 py-3">
                       <div className="h-4 bg-gray-100 rounded animate-pulse" />
                     </td>
@@ -106,11 +119,16 @@ export default function BillsPage() {
               ))
             ) : bills.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-gray-400">No bills found</td>
+                <td colSpan={10} className="px-4 py-12 text-center text-gray-400">No bills found</td>
               </tr>
             ) : bills.map(bill => (
               <tr key={bill.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/bills/${bill.id}`)}>
                 <td className="px-4 py-3 font-semibold text-blue-600">{bill.bill_number}</td>
+                <td className="px-4 py-3">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${SERIES_STYLES[bill.bill_series] ?? "bg-gray-100 text-gray-600"}`}>
+                    {SERIES_LABELS[bill.bill_series] ?? `Series ${bill.bill_series}`}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-gray-600">{bill.order_number}</td>
                 <td className="px-4 py-3 text-gray-700">{bill.party_name ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-600">{bill.bill_date}</td>
