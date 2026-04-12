@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -31,6 +31,7 @@ class TransactionOut(BaseModel):
     reference_number: Optional[str] = None
     description: Optional[str] = None
     transaction_date: date
+    created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

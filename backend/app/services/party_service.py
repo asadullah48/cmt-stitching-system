@@ -4,6 +4,8 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from sqlalchemy.orm import joinedload
+
 from app.models.parties import Party
 from app.models.financial import FinancialTransaction
 from app.schemas.parties import PartyCreate, PartyUpdate
@@ -46,6 +48,7 @@ class PartyService:
         party = PartyService.get_by_id(db, party_id)
         transactions = (
             db.query(FinancialTransaction)
+            .options(joinedload(FinancialTransaction.order))
             .filter(
                 FinancialTransaction.party_id == party_id,
                 FinancialTransaction.is_deleted.is_(False),

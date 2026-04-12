@@ -95,6 +95,7 @@ def party_ledger(party_id: UUID, db: DbDep, _: CurrentUser):
             reference_number=t.reference_number,
             description=t.description,
             transaction_date=t.transaction_date,
+            created_at=t.created_at,
         ))
     return PartyLedgerResponse(
         party_id=party.id,

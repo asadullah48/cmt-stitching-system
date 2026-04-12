@@ -60,6 +60,7 @@ def _to_out(txn) -> TransactionOut:
         reference_number=txn.reference_number,
         description=txn.description,
         transaction_date=txn.transaction_date,
+        created_at=txn.created_at,
     )
 
 
