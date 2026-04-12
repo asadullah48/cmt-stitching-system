@@ -37,6 +37,7 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
    ```
 9. **Multiple bills per order** — intentional by design. Do not add a duplicate-bill guard. First bill dispatches the order; second bill skips re-dispatch. Bill delete only reverts order status if no other active bills remain.
 10. **Boot check before every push** — `cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"` must pass
+11. **Pydantic response schemas must match frontend types** — when adding or changing a field in `app/schemas/`, check the corresponding TypeScript interface in `frontend/src/hooks/types.ts`. Any field declared as non-optional in the frontend type **must** be returned by every endpoint that uses that schema. Missing fields arrive as `undefined` at runtime and silently break frontend logic (e.g. sort comparators, string methods). Key invariant: `TransactionOut` must always include `created_at` — the party ledger sort depends on it.
 
 ### Frontend
 

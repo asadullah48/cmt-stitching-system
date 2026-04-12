@@ -120,7 +120,14 @@
       "Bash(/c/Users/Asad/cmt-stitching-system/backend/.venv/Scripts/python.exe -c ':*)",
       "Bash(/c/Users/Asad/cmt-stitching-system/backend/.venv/Scripts/python.exe -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
       "Bash(.venv/Scripts/python.exe -c ':*)",
-      "Bash(awk 'NR>=138 && NR<=180' /c/Users/Asad/cmt-stitching-system/CLAUDE.md)"
+      "Bash(awk 'NR>=138 && NR<=180' /c/Users/Asad/cmt-stitching-system/CLAUDE.md)",
+      "Bash(.venv/Scripts/python.exe migrate_split_bills.py --dry-run)",
+      "Skill(commit-commands:commit)",
+      "Bash(.venv/Scripts/python.exe migrate_split_bills.py)",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(.venv/Scripts/uvicorn.exe app.main:app:*)",
+      "Bash(/c/Users/Asad/cmt-stitching-system/backend/.venv/Scripts/uvicorn.exe app.main:app:*)",
+      "Bash(/c/Users/Asad/cmt-stitching-system/backend/.venv/Scripts/python.exe:*)"
     ]
   }
 }
