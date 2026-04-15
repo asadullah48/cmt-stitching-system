@@ -1,0 +1,25 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e6]
+      - heading "CMT System" [level=1] [ref=e8]
+      - paragraph [ref=e9]: Stitching & Packing Management
+    - generic [ref=e10]:
+      - paragraph [ref=e11]: Sign in to your account
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - generic [ref=e14]: Username
+          - textbox "Enter your username" [active] [ref=e15]
+        - generic [ref=e16]:
+          - generic [ref=e17]: Password
+          - generic [ref=e18]:
+            - textbox "Enter your password" [ref=e19]
+            - button [ref=e20]:
+              - img [ref=e21]
+        - button "Sign in" [ref=e24]
+      - paragraph [ref=e26]:
+        - text: Don't have an account?
+        - link "Sign up" [ref=e27] [cursor=pointer]:
+          - /url: /register
+    - paragraph [ref=e28]: CMT Management System · Internal Use Only
+  - alert [ref=e29]

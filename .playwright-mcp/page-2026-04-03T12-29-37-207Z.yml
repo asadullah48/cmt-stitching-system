@@ -1,0 +1,284 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e30]:
+    - generic:
+      - generic [ref=e31]:
+        - button "Hide sidebar" [expanded] [ref=e32]:
+          - img [ref=e33]
+        - generic [ref=e35]: Dashboard
+      - complementary [ref=e36]:
+        - generic [ref=e38]:
+          - img "CMT System" [ref=e39]
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: CMT System
+            - paragraph [ref=e42]: Stitching & Packing
+        - navigation [ref=e43]:
+          - list [ref=e44]:
+            - listitem [ref=e45]:
+              - link "Dashboard" [ref=e46] [cursor=pointer]:
+                - /url: /dashboard
+                - img [ref=e47]
+                - text: Dashboard
+            - listitem [ref=e49]:
+              - link "Orders" [ref=e50] [cursor=pointer]:
+                - /url: /orders
+                - img [ref=e51]
+                - text: Orders
+            - listitem [ref=e53]:
+              - link "Products" [ref=e54] [cursor=pointer]:
+                - /url: /products
+                - img [ref=e55]
+                - text: Products
+            - listitem [ref=e57]:
+              - link "Parties" [ref=e58] [cursor=pointer]:
+                - /url: /parties
+                - img [ref=e59]
+                - text: Parties
+            - listitem [ref=e61]:
+              - link "Production" [ref=e62] [cursor=pointer]:
+                - /url: /production
+                - img [ref=e63]
+                - text: Production
+            - listitem [ref=e65]:
+              - link "Quality" [ref=e66] [cursor=pointer]:
+                - /url: /quality
+                - img [ref=e67]
+                - text: Quality
+            - listitem [ref=e69]:
+              - link "Dispatch" [ref=e70] [cursor=pointer]:
+                - /url: /dispatch
+                - img [ref=e71]
+                - text: Dispatch
+            - listitem [ref=e73]:
+              - link "Inventory" [ref=e74] [cursor=pointer]:
+                - /url: /inventory
+                - img [ref=e75]
+                - text: Inventory
+            - listitem [ref=e77]:
+              - link "Reports" [ref=e78] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e79]
+                - text: Reports
+            - listitem [ref=e81]:
+              - link "Ledger" [ref=e82] [cursor=pointer]:
+                - /url: /ledger
+                - img [ref=e83]
+                - text: Ledger
+            - listitem [ref=e85]:
+              - link "Bills" [ref=e86] [cursor=pointer]:
+                - /url: /bills
+                - img [ref=e87]
+                - text: Bills
+            - listitem [ref=e89]:
+              - link "Todos" [ref=e90] [cursor=pointer]:
+                - /url: /todos
+                - img [ref=e91]
+                - text: Todos
+            - listitem [ref=e93]:
+              - link "Overhead" [ref=e94] [cursor=pointer]:
+                - /url: /overhead
+                - img [ref=e95]
+                - text: Overhead
+            - listitem [ref=e97]:
+              - link "Settings" [ref=e98] [cursor=pointer]:
+                - /url: /settings
+                - img [ref=e99]
+                - text: Settings
+        - generic [ref=e103]:
+          - generic [ref=e105]: A
+          - generic [ref=e106]:
+            - paragraph [ref=e107]: admin
+            - paragraph [ref=e108]: admin
+          - button "Sign out" [ref=e109]:
+            - img [ref=e110]
+    - main [ref=e112]:
+      - generic [ref=e114]:
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - heading "CMT Stitching & Packing" [level=1] [ref=e118]
+            - paragraph [ref=e119]: Good evening!
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - generic [ref=e122]: "0"
+              - generic [ref=e123]: Orders this month
+            - generic [ref=e124]:
+              - generic [ref=e125]: PKR 0.00
+              - generic [ref=e126]: Billed this month
+            - generic [ref=e127]:
+              - generic [ref=e128]: PKR 0.00
+              - generic [ref=e129]: Collected
+            - generic [ref=e130]:
+              - generic [ref=e131]: PKR 57,645.00
+              - generic [ref=e132]: Outstanding
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - img [ref=e136]
+            - generic [ref=e138]:
+              - paragraph [ref=e139]: "0"
+              - paragraph [ref=e140]: Active Orders
+          - generic [ref=e141]:
+            - img [ref=e143]
+            - generic [ref=e145]:
+              - paragraph [ref=e146]: "0"
+              - paragraph [ref=e147]: Pending
+          - generic [ref=e148]:
+            - img [ref=e150]
+            - generic [ref=e152]:
+              - paragraph [ref=e153]: "10"
+              - paragraph [ref=e154]: Dispatched
+          - generic [ref=e155]:
+            - img [ref=e157]
+            - generic [ref=e159]:
+              - paragraph [ref=e160]: "9"
+              - paragraph [ref=e161]: Completed Today
+        - generic [ref=e162]:
+          - heading "Cash Position" [level=3] [ref=e163]
+          - generic [ref=e164]:
+            - generic [ref=e165]:
+              - paragraph [ref=e166]: Cash In Hand
+              - paragraph [ref=e167]: "0.00"
+            - generic [ref=e168]:
+              - paragraph [ref=e169]: Bank
+              - paragraph [ref=e170]: "0.00"
+        - generic [ref=e171]:
+          - generic [ref=e172]:
+            - heading "Production Progress" [level=2] [ref=e173]
+            - generic [ref=e175]:
+              - generic [ref=e176]: Stitching Progress
+              - generic [ref=e177]: 0%
+            - generic [ref=e180]:
+              - generic [ref=e181]: Packing Progress
+              - generic [ref=e182]: 0%
+          - generic [ref=e184]:
+            - heading "Pipeline" [level=2] [ref=e185]
+            - generic [ref=e186]:
+              - generic [ref=e187]:
+                - generic [ref=e188]: "0"
+                - generic [ref=e191]: Pending
+              - generic [ref=e192]:
+                - generic [ref=e193]: "0"
+                - generic [ref=e196]: Stitching
+              - generic [ref=e197]:
+                - generic [ref=e198]: "0"
+                - generic [ref=e201]: Packing
+              - generic [ref=e202]:
+                - generic [ref=e203]: "10"
+                - generic [ref=e206]: Dispatched
+        - generic [ref=e207]:
+          - button "New Order" [ref=e208]:
+            - img [ref=e209]
+            - text: New Order
+          - button "Start Batch" [ref=e211]:
+            - img [ref=e212]
+            - text: Start Batch
+          - button "QC Check" [ref=e215]:
+            - img [ref=e216]
+            - text: QC Check
+          - button "Export Report" [ref=e218]:
+            - img [ref=e219]
+            - text: Export Report
+        - generic [ref=e221]:
+          - generic [ref=e222]:
+            - heading "Recent Orders" [level=2] [ref=e223]
+            - button "View all →" [ref=e224]
+          - table [ref=e227]:
+            - rowgroup [ref=e228]:
+              - 'row "Order # Party Goods Qty Status Delivery" [ref=e229]':
+                - 'columnheader "Order #" [ref=e230]'
+                - columnheader "Party" [ref=e231]
+                - columnheader "Goods" [ref=e232]
+                - columnheader "Qty" [ref=e233]
+                - columnheader "Status" [ref=e234]
+                - columnheader "Delivery" [ref=e235]
+            - rowgroup [ref=e236]:
+              - row "ORD-202604-0011 Shopino's Bedrail 300 Dispatched 23 Sept 2025" [ref=e237]:
+                - cell "ORD-202604-0011" [ref=e238]
+                - cell "Shopino's" [ref=e239]
+                - cell "Bedrail" [ref=e240]:
+                  - generic [ref=e241]: Bedrail
+                - cell "300" [ref=e242]
+                - cell "Dispatched" [ref=e243]:
+                  - generic [ref=e244]: Dispatched
+                - cell "23 Sept 2025" [ref=e246]
+              - row "ORD-202604-0010 Shopino's Pink Castel Packing Bag (Malaki) 89 Dispatched 23 Sept 2025" [ref=e247]:
+                - cell "ORD-202604-0010" [ref=e248]
+                - cell "Shopino's" [ref=e249]
+                - cell "Pink Castel Packing Bag (Malaki)" [ref=e250]:
+                  - generic [ref=e251]: Pink Castel Packing Bag (Malaki)
+                - cell "89" [ref=e252]
+                - cell "Dispatched" [ref=e253]:
+                  - generic [ref=e254]: Dispatched
+                - cell "23 Sept 2025" [ref=e256]
+              - row "ORD-202604-0009 Shopino's Bedrail 289 Dispatched 29 Aug 2025" [ref=e257]:
+                - cell "ORD-202604-0009" [ref=e258]
+                - cell "Shopino's" [ref=e259]
+                - cell "Bedrail" [ref=e260]:
+                  - generic [ref=e261]: Bedrail
+                - cell "289" [ref=e262]
+                - cell "Dispatched" [ref=e263]:
+                  - generic [ref=e264]: Dispatched
+                - cell "29 Aug 2025" [ref=e266]
+              - row "ORD-202604-0008 Shopino's Castel Tent 89 Dispatched 29 Aug 2025" [ref=e267]:
+                - cell "ORD-202604-0008" [ref=e268]
+                - cell "Shopino's" [ref=e269]
+                - cell "Castel Tent" [ref=e270]:
+                  - generic [ref=e271]: Castel Tent
+                - cell "89" [ref=e272]
+                - cell "Dispatched" [ref=e273]:
+                  - generic [ref=e274]: Dispatched
+                - cell "29 Aug 2025" [ref=e276]
+              - row "ORD-202604-0006 Shopino's Bedrail 620 Dispatched 02 Aug 2025" [ref=e277]:
+                - cell "ORD-202604-0006" [ref=e278]
+                - cell "Shopino's" [ref=e279]
+                - cell "Bedrail" [ref=e280]:
+                  - generic [ref=e281]: Bedrail
+                - cell "620" [ref=e282]
+                - cell "Dispatched" [ref=e283]:
+                  - generic [ref=e284]: Dispatched
+                - cell "02 Aug 2025" [ref=e286]
+              - row "ORD-202604-0005 Shopino's Bedrail 303 Dispatched 25 Jul 2025" [ref=e287]:
+                - cell "ORD-202604-0005" [ref=e288]
+                - cell "Shopino's" [ref=e289]
+                - cell "Bedrail" [ref=e290]:
+                  - generic [ref=e291]: Bedrail
+                - cell "303" [ref=e292]
+                - cell "Dispatched" [ref=e293]:
+                  - generic [ref=e294]: Dispatched
+                - cell "25 Jul 2025" [ref=e296]
+              - row "ORD-202604-0004 Shopino's Pattern Spiderman Play tent, Foldable kid tent, Castel 5 Dispatched 17 Jun 2025" [ref=e297]:
+                - cell "ORD-202604-0004" [ref=e298]
+                - cell "Shopino's" [ref=e299]
+                - cell "Pattern Spiderman Play tent, Foldable kid tent, Castel" [ref=e300]:
+                  - generic [ref=e301]: Pattern Spiderman Play tent, Foldable kid tent, Castel
+                - cell "5" [ref=e302]
+                - cell "Dispatched" [ref=e303]:
+                  - generic [ref=e304]: Dispatched
+                - cell "17 Jun 2025" [ref=e306]
+              - row "ORD-202604-0003 Shopino's Bedrail 436 Dispatched 05 Jun 2025" [ref=e307]:
+                - cell "ORD-202604-0003" [ref=e308]
+                - cell "Shopino's" [ref=e309]
+                - cell "Bedrail" [ref=e310]:
+                  - generic [ref=e311]: Bedrail
+                - cell "436" [ref=e312]
+                - cell "Dispatched" [ref=e313]:
+                  - generic [ref=e314]: Dispatched
+                - cell "05 Jun 2025" [ref=e316]
+              - row "ORD-202604-0002 Shopino's Bedrail 600 Dispatched 24 Apr 2025" [ref=e317]:
+                - cell "ORD-202604-0002" [ref=e318]
+                - cell "Shopino's" [ref=e319]
+                - cell "Bedrail" [ref=e320]:
+                  - generic [ref=e321]: Bedrail
+                - cell "600" [ref=e322]
+                - cell "Dispatched" [ref=e323]:
+                  - generic [ref=e324]: Dispatched
+                - cell "24 Apr 2025" [ref=e326]
+              - row "ORD-202604-0001 Shopino's Bedrail 1,023 Dispatched 10 Feb 2025" [ref=e327]:
+                - cell "ORD-202604-0001" [ref=e328]
+                - cell "Shopino's" [ref=e329]
+                - cell "Bedrail" [ref=e330]:
+                  - generic [ref=e331]: Bedrail
+                - cell "1,023" [ref=e332]
+                - cell "Dispatched" [ref=e333]:
+                  - generic [ref=e334]: Dispatched
+                - cell "10 Feb 2025" [ref=e336]
+    - button "+" [ref=e337]
+  - alert [ref=e29]

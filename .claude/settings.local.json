@@ -127,7 +127,9 @@
       "Bash(.venv/Scripts/python.exe:*)",
       "Bash(.venv/Scripts/uvicorn.exe app.main:app:*)",
       "Bash(/c/Users/Asad/cmt-stitching-system/backend/.venv/Scripts/uvicorn.exe app.main:app:*)",
-      "Bash(/c/Users/Asad/cmt-stitching-system/backend/.venv/Scripts/python.exe:*)"
+      "Bash(/c/Users/Asad/cmt-stitching-system/backend/.venv/Scripts/python.exe:*)",
+      "Bash(pkill -f \"import_ledger.py\")",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }
