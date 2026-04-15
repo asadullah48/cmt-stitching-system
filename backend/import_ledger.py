@@ -345,8 +345,8 @@ LEDGER_DATA = [
     {
         "seq": 21,
         "goods_description": "Garment Rack",
-        "total_quantity": 1,
-        "stitch_rate_party": 5000,
+        "total_quantity": 100,
+        "stitch_rate_party": 50,
         "pack_rate_party": None,
         "lot_number": None,
         "entry_date": "2026-01-14",
@@ -470,8 +470,8 @@ LEDGER_DATA = [
     {
         "seq": 30,
         "goods_description": "Garment Rack (batch 2)",
-        "total_quantity": 1,
-        "stitch_rate_party": 5000,
+        "total_quantity": 100,
+        "stitch_rate_party": 50,
         "pack_rate_party": None,
         "lot_number": None,
         "entry_date": "2026-04-08",
