@@ -14,7 +14,7 @@ function isDebit(tx: FinancialTransaction) {
   return tx.transaction_type === "payment" || tx.transaction_type === "expense";
 }
 function isCredit(tx: FinancialTransaction) {
-  return tx.transaction_type === "income";
+  return tx.transaction_type === "income" || tx.transaction_type === "accessories";
 }
 
 // ─── Bill Preview Modal ───────────────────────────────────────────────────────
@@ -160,10 +160,11 @@ function BillPreview({
 }
 
 const TYPE_BADGE: Record<string, string> = {
-  income:     "bg-green-100 text-green-700",
-  payment:    "bg-red-100 text-red-700",
-  expense:    "bg-orange-100 text-orange-700",
-  adjustment: "bg-purple-100 text-purple-700",
+  income:      "bg-green-100 text-green-700",
+  accessories: "bg-teal-100 text-teal-700",
+  payment:     "bg-red-100 text-red-700",
+  expense:     "bg-orange-100 text-orange-700",
+  adjustment:  "bg-purple-100 text-purple-700",
 };
 
 // ─── Main Page ───────────────────────────────────────────────────────────────

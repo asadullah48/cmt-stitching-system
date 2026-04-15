@@ -13,7 +13,7 @@ import type {
 
 // Debit = invoices/bills raised (party owes us) + expenses we incurred
 // Credit = cash/bank payments received from party
-const DEBIT_TYPES = new Set(["income", "expense", "purchase", "stock_consumption"]);
+const DEBIT_TYPES = new Set(["income", "accessories", "expense", "purchase", "stock_consumption"]);
 const CREDIT_TYPES = new Set(["payment", "adjustment"]);
 
 function isDebit(tx: FinancialTransaction) {
@@ -25,6 +25,7 @@ function isCredit(tx: FinancialTransaction) {
 
 const TYPE_BADGE: Record<string, string> = {
   income:            "bg-green-100 text-green-700",
+  accessories:       "bg-teal-100 text-teal-700",
   payment:           "bg-red-100 text-red-700",
   expense:           "bg-orange-100 text-orange-700",
   purchase:          "bg-blue-100 text-blue-700",
@@ -264,6 +265,7 @@ export default function LedgerPage() {
           >
             <option value="">All types</option>
             <option value="income">Income</option>
+            <option value="accessories">Accessories</option>
             <option value="payment">Payment</option>
             <option value="expense">Expense</option>
             <option value="adjustment">Adjustment</option>
