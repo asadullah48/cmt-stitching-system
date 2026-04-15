@@ -159,7 +159,7 @@ export interface ProductionSessionCreate {
 
 // ─── Financial ──────────────────────────────────────────────────────────────
 
-export type TransactionType = "income" | "payment" | "expense" | "purchase" | "stock_consumption" | "adjustment";
+export type TransactionType = "income" | "payment" | "expense" | "purchase" | "stock_consumption" | "adjustment" | "accessories";
 export type PaymentMethod = "cash" | "bank_transfer" | "cheque" | "other";
 
 export interface FinancialTransaction {

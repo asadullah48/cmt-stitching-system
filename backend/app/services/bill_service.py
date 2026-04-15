@@ -175,17 +175,18 @@ class BillService:
             order.dispatch_date = data.bill_date
             order.actual_completion = data.bill_date
 
-        # Post income ledger entry
+        # Post income ledger entry (B-series bills are accessories charges, not generic income)
         if party_id:
             desc = data.description or (
                 f"Bill #{bill_number} — {order.goods_description}" if order
                 else f"Bill #{bill_number}"
             )
+            ledger_type = "accessories" if series == "B" else "income"
             txn = FinancialTransaction(
                 party_id=party_id,
                 order_id=data.order_id,
                 bill_id=bill.id,
-                transaction_type="income",
+                transaction_type=ledger_type,
                 amount=data.amount_due,
                 reference_number=bill_number,
                 description=desc,
@@ -350,12 +351,12 @@ class BillService:
         if not bill:
             raise ValueError("Bill not found")
 
-        # Reverse the auto-posted income transaction (matched by reference_number = bill_number)
+        # Reverse the auto-posted ledger entry (income or accessories for B-series)
         income_txn = (
             db.query(FinancialTransaction)
             .filter(
                 FinancialTransaction.bill_id == bill.id,
-                FinancialTransaction.transaction_type == "income",
+                FinancialTransaction.transaction_type.in_(["income", "accessories"]),
                 FinancialTransaction.is_deleted.is_(False),
             )
             .first()
