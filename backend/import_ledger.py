@@ -459,7 +459,7 @@ LEDGER_DATA = [
         "total_quantity": 150,
         "stitch_rate_party": 135,
         "pack_rate_party": None,
-        "lot_number": 37,
+        "lot_number": None,  # Central Plaza sub-delivery; lot 37 belongs to ORD-0032
         "entry_date": "2026-03-16",
         "bills": [
             {"number": "A27", "series": "A", "date": "2026-03-16", "amount": 20250},
@@ -493,6 +493,49 @@ LEDGER_DATA = [
         ],
         "payments": [],
     },
+    {
+        "seq": 32,
+        "goods_description": "Bedrail Lot # 37",
+        "total_quantity": 300,
+        "stitch_rate_party": 135,
+        "pack_rate_party": 80,
+        "lot_number": 37,
+        "entry_date": "2026-04-15",
+        "bills": [
+            {"number": "A30", "series": "A", "date": "2026-04-15", "amount": 40500},
+            {"number": "B30", "series": "B", "date": "2026-04-15", "amount": 10200},
+            {"number": "C30", "series": "C", "date": "2026-04-20", "amount": 24000},
+        ],
+        "payments": [],
+    },
+    {
+        "seq": 33,
+        "goods_description": "Castel Tent Lot # 11",
+        "total_quantity": 129,
+        "stitch_rate_party": 360,
+        "pack_rate_party": 30,
+        "lot_number": 11,
+        "entry_date": "2026-04-17",
+        "bills": [
+            {"number": "A31", "series": "A", "date": "2026-04-17", "amount": 46440},
+            {"number": "C31", "series": "C", "date": "2026-04-17", "amount": 3870},
+        ],
+        "payments": [],
+    },
+    {
+        "seq": 34,
+        "goods_description": "Bedrail Lot # 38",
+        "total_quantity": 300,
+        "stitch_rate_party": 135,
+        "pack_rate_party": None,
+        "lot_number": 38,
+        "entry_date": "2026-04-20",
+        "bills": [
+            {"number": "A32", "series": "A", "date": "2026-04-20", "amount": 40500},
+            {"number": "B32", "series": "B", "date": "2026-04-20", "amount": 10200},
+        ],
+        "payments": [],
+    },
 ]
 
 # Payments that span multiple bills — applied to party balance only (no bill_id link)
@@ -509,6 +552,13 @@ STANDALONE_PAYMENTS = [
     # Easypaisa (no bill ref)
     {"date": "2026-03-07", "amount": 20000, "ref": "EASYPAISA-20260307",
      "method": "easypaisa", "desc": "Easypaisa transfer"},
+    # April 2026 payments — no specific bill reference in ledger
+    {"date": "2026-04-04", "amount": 35000, "ref": "STAN-771291",
+     "method": "bank_transfer", "desc": "Payment — Abdul Samad XXXX1241"},
+    {"date": "2026-04-10", "amount": 50000, "ref": "STAN-776357",
+     "method": "bank_transfer", "desc": "Payment — Shoppers Pakistan A/C 0126"},
+    {"date": "2026-04-13", "amount": 15000, "ref": "STAN-955115",
+     "method": "bank_transfer", "desc": "Payment — Shoppers Pakistan A/C 0126"},
 ]
 
 # D-bills with NO order reference -> expense transactions
@@ -554,6 +604,7 @@ EXPENSE_TRANSACTIONS = [
     {"ref": "D38", "date": "2026-03-16", "amount": 3510,  "desc": "Expense Polybag for Bedrail Cloth (4.5 x 780)"},
     {"ref": "Rent-20260316", "date": "2026-03-16", "amount": 25000, "desc": "Rent for scooty"},
     {"ref": "D39", "date": "2026-04-06", "amount": 350,   "desc": "Bykea garment rack material delivery"},
+    {"ref": "D40", "date": "2026-04-15", "amount": 2550,  "desc": "Expense Polybag for Bedrail Cloth (3 x 850)"},
 ]
 
 
@@ -564,7 +615,7 @@ EXPENSE_TRANSACTIONS = [
 def paginated_get(s, url, params=None):
     """Fetch all pages and return flat list of items from 'data' key."""
     params = dict(params or {})
-    params.setdefault("size", 500)
+    params.setdefault("size", 100)
     params["page"] = 1
     items = []
     while True:
@@ -861,6 +912,23 @@ def main():
             existing_refs.add(ref)
         print(f"  EXP   {exp['amount']:,}  {exp['desc']}  ({exp['date']})")
         expenses_created += 1
+
+    # -- Step 7: Corrections — patch wrong lot numbers in existing orders -----
+    print("\n-- CORRECTIONS -----------------------------------------------------")
+    # ORD-202604-0029 (Central Plaza) was incorrectly assigned lot_number=37.
+    # lot_number 37 belongs exclusively to ORD-202604-0032.
+    ord_0029 = f"ORD-202604-{29:04d}"
+    if ord_0029 in order_map:
+        if args.dry_run:
+            print(f"  [DRY]  Would PATCH {ord_0029}: lot_number -> null")
+        else:
+            r = s.patch(f"{base}/orders/{order_map[ord_0029]}", json={"lot_number": None})
+            if r.ok:
+                print(f"  PATCH {ord_0029}: lot_number cleared (was 37)")
+            else:
+                print(f"  ERROR patching {ord_0029}: {r.status_code}  {r.text[:200]}")
+    else:
+        print(f"  SKIP  {ord_0029} not found in DB (nothing to patch)")
 
     # -- Summary ---------------------------------------------------------------
     print("\n" + "=" * 68)
