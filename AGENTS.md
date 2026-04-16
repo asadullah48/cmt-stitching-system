@@ -71,6 +71,7 @@ cmt-stitching-system/
 │   │       ├── router.py       # Aggregates all endpoint routers
 │   │       └── endpoints/      # One file per domain
 │   ├── alembic/versions/       # Migration chain (23 migrations, HEAD: 750a1916cced)
+│   ├── scripts/                # One-time and operational scripts (see scripts/README.md)
 │   ├── pyproject.toml          # Python project (requires >=3.13)
 │   └── requirements.txt        # pip fallback (keep in sync with pyproject.toml)
 ├── frontend/
