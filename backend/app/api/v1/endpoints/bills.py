@@ -16,30 +16,40 @@ def _to_out(bill, db=None) -> BillOut:
     from sqlalchemy import func as sa_func
     from app.models.accessories import OrderAccessory
 
-    # Build order items list with computed amounts
+    # Build order items list with computed amounts — series-specific rates
+    # A = stitching only, C = packing only, B/D/E = no order-item rows (accessor/manual)
     order_items = []
     subtotal = Decimal("0")
-    if bill.order and hasattr(bill.order, "items") and bill.order.items:
+    series = bill.bill_series.upper()
+    discount_val = Decimal(str(bill.discount)) if bill.discount else Decimal("0")
+
+    if bill.order and hasattr(bill.order, "items") and bill.order.items and series in ("A", "C"):
         stitch_rate = Decimal(str(bill.order.stitch_rate_party or 0))
         pack_rate = Decimal(str(bill.order.pack_rate_party or 0))
+        if series == "A":
+            item_rate = stitch_rate
+            show_stitch = float(stitch_rate)
+            show_pack = 0.0
+        else:  # C
+            item_rate = pack_rate
+            show_stitch = 0.0
+            show_pack = float(pack_rate)
         for item in bill.order.items:
             qty = item.quantity or 0
-            amount = qty * (stitch_rate + pack_rate)
+            amount = qty * item_rate
             subtotal += amount
             order_items.append({
                 "size": item.size,
                 "quantity": qty,
-                "stitch_rate": float(stitch_rate),
-                "pack_rate": float(pack_rate),
+                "stitch_rate": show_stitch,
+                "pack_rate": show_pack,
                 "amount": float(amount),
                 "description": bill.order.goods_description,
             })
     else:
-        # Fallback: subtotal from amount_due + discount
-        discount = Decimal(str(bill.discount)) if bill.discount else Decimal("0")
-        subtotal = Decimal(str(bill.amount_due)) + discount
+        # B/D/E series or no order items: fall back to stored amount_due
+        subtotal = Decimal(str(bill.amount_due)) + discount_val
 
-    discount = Decimal(str(bill.discount)) if hasattr(bill, "discount") and bill.discount is not None else Decimal("0")
     previous_balance = Decimal(str(bill.previous_balance)) if hasattr(bill, "previous_balance") and bill.previous_balance is not None else Decimal("0")
 
     # Accessories qty sum for B-bills (one query per bill only when db passed)
@@ -77,7 +87,7 @@ def _to_out(bill, db=None) -> BillOut:
         amount_due=bill.amount_due,
         amount_paid=bill.amount_paid,
         amount_outstanding=bill.amount_due - bill.amount_paid,
-        discount=discount,
+        discount=discount_val,
         previous_balance=previous_balance,
         subtotal=subtotal,
         order_items=order_items,
