@@ -185,6 +185,8 @@ class BillService:
                 ledger_type = "accessories"
             elif series == "C":
                 ledger_type = "packing"
+            elif series in ("D", "E"):
+                ledger_type = "misc"
             else:
                 ledger_type = "income"
             txn = FinancialTransaction(
@@ -361,7 +363,7 @@ class BillService:
             db.query(FinancialTransaction)
             .filter(
                 FinancialTransaction.bill_id == bill.id,
-                FinancialTransaction.transaction_type.in_(["income", "accessories", "packing"]),
+                FinancialTransaction.transaction_type.in_(["income", "accessories", "packing", "misc"]),
                 FinancialTransaction.is_deleted.is_(False),
             )
             .first()

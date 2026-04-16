@@ -14,7 +14,7 @@ import type {
 
 // Debit = invoices/bills raised (party owes us) + expenses we incurred
 // Credit = cash/bank payments received from party
-const DEBIT_TYPES = new Set(["income", "accessories", "packing", "expense_material", "expense_transport", "expense_misc", "expense", "purchase", "stock_consumption"]);
+const DEBIT_TYPES = new Set(["income", "accessories", "packing", "misc", "expense_material", "expense_transport", "expense_misc", "expense", "purchase", "stock_consumption"]);
 const CREDIT_TYPES = new Set(["payment", "adjustment"]);
 
 function isDebit(tx: FinancialTransaction) {
@@ -28,6 +28,7 @@ const TYPE_BADGE: Record<string, string> = {
   income:            "bg-green-100 text-green-700",
   accessories:       "bg-teal-100 text-teal-700",
   packing:           "bg-blue-100 text-blue-700",
+  misc:              "bg-gray-100 text-gray-700",
   expense_material:  "bg-orange-100 text-orange-700",
   expense_transport: "bg-orange-100 text-orange-700",
   expense_misc:      "bg-orange-100 text-orange-700",
@@ -42,6 +43,7 @@ const TYPE_LABEL: Record<string, string> = {
   income:            "Income",
   accessories:       "Accessories",
   packing:           "Packing",
+  misc:              "Misc",
   expense_material:  "Exp. Material",
   expense_transport: "Exp. Transport",
   expense_misc:      "Exp. Misc",
@@ -96,7 +98,23 @@ export default function LedgerPage() {
   const load = useCallback(async (f: TransactionFilters) => {
     setLoading(true);
     try {
-      setResult(await transactionsService.getTransactions(f));
+      if (f.party_id) {
+        // Load ALL pages for a party so running balance is correct across pagination
+        const first = await transactionsService.getTransactions({ ...f, page: 1, size: 100 });
+        let allData = first.data;
+        const totalPages = Math.ceil(first.total / 100);
+        if (totalPages > 1) {
+          const rest = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, i) =>
+              transactionsService.getTransactions({ ...f, page: i + 2, size: 100 })
+            )
+          );
+          allData = [...allData, ...rest.flatMap((r) => r.data)];
+        }
+        setResult({ ...first, data: allData, total: allData.length });
+      } else {
+        setResult(await transactionsService.getTransactions(f));
+      }
     } catch {
       // silently keep existing data on error
     } finally {
@@ -299,9 +317,10 @@ export default function LedgerPage() {
             }
           >
             <option value="">All types</option>
-            <option value="income">Income</option>
-            <option value="packing">Packing</option>
-            <option value="accessories">Accessories</option>
+            <option value="income">Income (A-series)</option>
+            <option value="accessories">Accessories (B-series)</option>
+            <option value="packing">Packing (C-series)</option>
+            <option value="misc">Misc (D-series)</option>
             <option value="payment">Payment</option>
             <option value="expense_material">Expense Material</option>
             <option value="expense_transport">Expense Transport</option>

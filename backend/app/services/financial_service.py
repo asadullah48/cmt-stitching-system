@@ -79,13 +79,19 @@ class FinancialService:
 
         total = q.count()
         type_order = case(
-            (FinancialTransaction.transaction_type == "income", 1),
-            (FinancialTransaction.transaction_type == "expense_material", 2),
-            (FinancialTransaction.transaction_type == "expense_transport", 2),
-            (FinancialTransaction.transaction_type == "expense_misc", 2),
-            (FinancialTransaction.transaction_type == "expense", 2),
-            (FinancialTransaction.transaction_type == "purchase", 2),
-            else_=3,
+            (FinancialTransaction.transaction_type == "income", 1),   # A-series stitching
+            (FinancialTransaction.transaction_type == "accessories", 2),  # B-series
+            (FinancialTransaction.transaction_type == "packing", 3),  # C-series
+            (FinancialTransaction.transaction_type == "misc", 4),     # D-series
+            (FinancialTransaction.transaction_type == "expense_material", 5),
+            (FinancialTransaction.transaction_type == "expense_transport", 5),
+            (FinancialTransaction.transaction_type == "expense_misc", 5),
+            (FinancialTransaction.transaction_type == "expense", 5),
+            (FinancialTransaction.transaction_type == "purchase", 5),
+            (FinancialTransaction.transaction_type == "stock_consumption", 5),
+            (FinancialTransaction.transaction_type == "payment", 6),
+            (FinancialTransaction.transaction_type == "adjustment", 7),
+            else_=8,
         )
         txns = q.order_by(
             FinancialTransaction.transaction_date.asc(),
