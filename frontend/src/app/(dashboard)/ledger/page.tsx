@@ -13,7 +13,7 @@ import type {
 
 // Debit = invoices/bills raised (party owes us) + expenses we incurred
 // Credit = cash/bank payments received from party
-const DEBIT_TYPES = new Set(["income", "accessories", "expense", "purchase", "stock_consumption"]);
+const DEBIT_TYPES = new Set(["income", "accessories", "packing", "expense_material", "expense_transport", "expense_misc", "expense", "purchase", "stock_consumption"]);
 const CREDIT_TYPES = new Set(["payment", "adjustment"]);
 
 function isDebit(tx: FinancialTransaction) {
@@ -26,11 +26,29 @@ function isCredit(tx: FinancialTransaction) {
 const TYPE_BADGE: Record<string, string> = {
   income:            "bg-green-100 text-green-700",
   accessories:       "bg-teal-100 text-teal-700",
-  payment:           "bg-red-100 text-red-700",
+  packing:           "bg-blue-100 text-blue-700",
+  expense_material:  "bg-orange-100 text-orange-700",
+  expense_transport: "bg-orange-100 text-orange-700",
+  expense_misc:      "bg-orange-100 text-orange-700",
   expense:           "bg-orange-100 text-orange-700",
-  purchase:          "bg-blue-100 text-blue-700",
+  payment:           "bg-red-100 text-red-700",
+  purchase:          "bg-indigo-100 text-indigo-700",
   stock_consumption: "bg-amber-100 text-amber-700",
   adjustment:        "bg-purple-100 text-purple-700",
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  income:            "Income",
+  accessories:       "Accessories",
+  packing:           "Packing",
+  expense_material:  "Exp. Material",
+  expense_transport: "Exp. Transport",
+  expense_misc:      "Exp. Misc",
+  expense:           "Expense",
+  payment:           "Payment",
+  purchase:          "Purchase",
+  stock_consumption: "Stock Consumption",
+  adjustment:        "Adjustment",
 };
 
 export default function LedgerPage() {
@@ -265,9 +283,12 @@ export default function LedgerPage() {
           >
             <option value="">All types</option>
             <option value="income">Income</option>
+            <option value="packing">Packing</option>
             <option value="accessories">Accessories</option>
             <option value="payment">Payment</option>
-            <option value="expense">Expense</option>
+            <option value="expense_material">Expense Material</option>
+            <option value="expense_transport">Expense Transport</option>
+            <option value="expense_misc">Expense Miscellaneous</option>
             <option value="adjustment">Adjustment</option>
           </Select>
 
@@ -412,8 +433,8 @@ export default function LedgerPage() {
                             </svg>
                           </span>
                         )}
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${TYPE_BADGE[tx.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
-                          {tx.transaction_type}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${TYPE_BADGE[tx.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
+                          {TYPE_LABEL[tx.transaction_type] ?? tx.transaction_type}
                         </span>
                       </div>
                     </td>

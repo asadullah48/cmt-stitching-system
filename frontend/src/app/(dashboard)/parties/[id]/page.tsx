@@ -11,10 +11,10 @@ import type { Party, PartyLedgerResponse, FinancialTransaction } from "@/hooks/t
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function isDebit(tx: FinancialTransaction) {
-  return tx.transaction_type === "payment" || tx.transaction_type === "expense";
+  return tx.transaction_type === "payment" || tx.transaction_type === "expense" || tx.transaction_type === "expense_material" || tx.transaction_type === "expense_transport" || tx.transaction_type === "expense_misc";
 }
 function isCredit(tx: FinancialTransaction) {
-  return tx.transaction_type === "income" || tx.transaction_type === "accessories";
+  return tx.transaction_type === "income" || tx.transaction_type === "accessories" || tx.transaction_type === "packing";
 }
 
 // ─── Bill Preview Modal ───────────────────────────────────────────────────────
@@ -122,8 +122,8 @@ function BillPreview({
               <tr className="border-b border-gray-100">
                 <td className="px-4 py-3 text-gray-800">{tx.description}</td>
                 <td className="px-4 py-3 text-right">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 capitalize">
-                    {tx.transaction_type}
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
+                    {TYPE_LABEL[tx.transaction_type] ?? tx.transaction_type}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right font-bold text-green-600">
@@ -160,11 +160,27 @@ function BillPreview({
 }
 
 const TYPE_BADGE: Record<string, string> = {
-  income:      "bg-green-100 text-green-700",
-  accessories: "bg-teal-100 text-teal-700",
-  payment:     "bg-red-100 text-red-700",
-  expense:     "bg-orange-100 text-orange-700",
-  adjustment:  "bg-purple-100 text-purple-700",
+  income:            "bg-green-100 text-green-700",
+  accessories:       "bg-teal-100 text-teal-700",
+  packing:           "bg-blue-100 text-blue-700",
+  expense_material:  "bg-orange-100 text-orange-700",
+  expense_transport: "bg-orange-100 text-orange-700",
+  expense_misc:      "bg-orange-100 text-orange-700",
+  expense:           "bg-orange-100 text-orange-700",
+  payment:           "bg-red-100 text-red-700",
+  adjustment:        "bg-purple-100 text-purple-700",
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  income:            "Income",
+  accessories:       "Accessories",
+  packing:           "Packing",
+  expense_material:  "Exp. Material",
+  expense_transport: "Exp. Transport",
+  expense_misc:      "Exp. Misc",
+  expense:           "Expense",
+  payment:           "Payment",
+  adjustment:        "Adjustment",
 };
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -413,7 +429,7 @@ export default function PartyLedgerPage() {
         month: "2-digit",
         year: "numeric",
       });
-      const type = tx.transaction_type.charAt(0).toUpperCase() + tx.transaction_type.slice(1);
+      const type = TYPE_LABEL[tx.transaction_type] ?? tx.transaction_type;
       const desc = tx.description ?? "—";
       const amount = isDebit(tx)
         ? `Dr PKR ${formatCurrency(tx.amount)}`
@@ -647,8 +663,8 @@ export default function PartyLedgerPage() {
                       {formatDate(tx.transaction_date)}
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${TYPE_BADGE[tx.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
-                        {tx.transaction_type}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${TYPE_BADGE[tx.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
+                        {TYPE_LABEL[tx.transaction_type] ?? tx.transaction_type}
                       </span>
                     </td>
                     <td className="px-4 py-2.5 text-gray-800 max-w-[240px]">

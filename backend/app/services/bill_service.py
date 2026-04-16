@@ -175,13 +175,18 @@ class BillService:
             order.dispatch_date = data.bill_date
             order.actual_completion = data.bill_date
 
-        # Post income ledger entry (B-series bills are accessories charges, not generic income)
+        # Post income ledger entry (B-series=accessories, C-series=packing, others=income)
         if party_id:
             desc = data.description or (
                 f"Bill #{bill_number} — {order.goods_description}" if order
                 else f"Bill #{bill_number}"
             )
-            ledger_type = "accessories" if series == "B" else "income"
+            if series == "B":
+                ledger_type = "accessories"
+            elif series == "C":
+                ledger_type = "packing"
+            else:
+                ledger_type = "income"
             txn = FinancialTransaction(
                 party_id=party_id,
                 order_id=data.order_id,
@@ -356,7 +361,7 @@ class BillService:
             db.query(FinancialTransaction)
             .filter(
                 FinancialTransaction.bill_id == bill.id,
-                FinancialTransaction.transaction_type.in_(["income", "accessories"]),
+                FinancialTransaction.transaction_type.in_(["income", "accessories", "packing"]),
                 FinancialTransaction.is_deleted.is_(False),
             )
             .first()

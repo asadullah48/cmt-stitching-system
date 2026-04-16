@@ -24,7 +24,9 @@ interface TransactionFormProps {
 const TX_TYPES: { value: TransactionType; label: string }[] = [
   { value: "income", label: "Income (receivable)" },
   { value: "payment", label: "Payment (payable)" },
-  { value: "expense", label: "Expense" },
+  { value: "expense_material", label: "Expense Material" },
+  { value: "expense_transport", label: "Expense Transport" },
+  { value: "expense_misc", label: "Expense Miscellaneous" },
   { value: "purchase", label: "Purchase (material/supply)" },
   { value: "stock_consumption", label: "Stock Consumption" },
   { value: "adjustment", label: "Adjustment" },
@@ -364,7 +366,7 @@ export function LedgerTable({ transactions }: LedgerTableProps) {
     .sort((a, b) => a.transaction_date.localeCompare(b.transaction_date))
     .map((tx) => {
       if (tx.transaction_type === "income") running += Number(tx.amount);
-      else if (["payment", "expense", "purchase", "stock_consumption"].includes(tx.transaction_type)) running -= Number(tx.amount);
+      else if (["payment", "expense_material", "expense_transport", "expense_misc", "expense", "purchase", "stock_consumption"].includes(tx.transaction_type)) running -= Number(tx.amount);
       return { ...tx, running };
     });
 

@@ -80,6 +80,9 @@ class FinancialService:
         total = q.count()
         type_order = case(
             (FinancialTransaction.transaction_type == "income", 1),
+            (FinancialTransaction.transaction_type == "expense_material", 2),
+            (FinancialTransaction.transaction_type == "expense_transport", 2),
+            (FinancialTransaction.transaction_type == "expense_misc", 2),
             (FinancialTransaction.transaction_type == "expense", 2),
             (FinancialTransaction.transaction_type == "purchase", 2),
             else_=3,
