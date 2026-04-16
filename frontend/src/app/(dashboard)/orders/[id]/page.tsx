@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ordersService, productionService, transactionsService, partiesService, productService, expensesService, billService, accessoryService, inventoryService } from "@/hooks/services";
+import { ordersService, productionService, transactionsService, partiesService, productService, expensesService, billService, accessoryService, inventoryService, dispatchAndBillService } from "@/hooks/services";
 import type { Bill } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
@@ -761,15 +761,34 @@ function DispatchCard({
   bBill,
   cBill,
   router,
+  onDispatched,
 }: {
   order: Order;
   bill: Bill | null;
   bBill: Bill | null;
   cBill: Bill | null;
   router: ReturnType<typeof useRouter>;
+  onDispatched: () => void;
 }) {
+  const [autoBilling, setAutoBilling] = useState(false);
   const isReady      = ["stitching_complete", "packing_complete", "dispatched"].includes(order.status);
   const isDispatched = order.status === "dispatched";
+  const canAutoBill  = ["packing_complete", "stitching_complete"].includes(order.status) && !bill;
+
+  const handleAutoBill = async () => {
+    if (!confirm("Auto-generate all bills from rate templates and mark order dispatched?")) return;
+    setAutoBilling(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const result = await dispatchAndBillService.dispatch(order.id, today);
+      alert(`${result.bills_created} bill(s) created. Order is now ${result.order_status}.`);
+      onDispatched();
+    } catch {
+      alert("Failed to auto-generate bills. Check that rate templates exist for this product type.");
+    } finally {
+      setAutoBilling(false);
+    }
+  };
 
   if (!isReady) {
     return (
@@ -815,6 +834,23 @@ function DispatchCard({
       </div>
 
       <div className="p-5 space-y-5">
+        {/* ── Auto Dispatch & Bill ── */}
+        {canAutoBill && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-blue-900">Auto-Generate Bills</p>
+              <p className="text-xs text-blue-600 mt-0.5">Creates A, B, C bills from rate templates in one click</p>
+            </div>
+            <button
+              onClick={handleAutoBill}
+              disabled={autoBilling}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {autoBilling ? "Generating…" : "Dispatch & Bill"}
+            </button>
+          </div>
+        )}
+
         {/* ── A-Bill: Stitching ── */}
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
@@ -1489,7 +1525,7 @@ export default function OrderDetailPage() {
         onDeleteExpense={handleDeleteExpense}
       />
 
-      <DispatchCard order={order} bill={bill} bBill={bBill} cBill={cBill} router={router} />
+      <DispatchCard order={order} bill={bill} bBill={bBill} cBill={cBill} router={router} onDispatched={loadOrder} />
 
       {/* Colour Breakdown */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">

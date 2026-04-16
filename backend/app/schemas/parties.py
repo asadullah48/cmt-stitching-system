@@ -26,6 +26,7 @@ class PartyUpdate(BaseModel):
 class PartyOut(BaseModel):
     id: UUID
     name: str
+    party_type: str = "customer"
     contact_person: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None

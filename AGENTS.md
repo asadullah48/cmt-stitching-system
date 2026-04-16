@@ -68,7 +68,7 @@ cmt-stitching-system/
 │   │   └── api/v1/
 │   │       ├── router.py       # Aggregates all endpoint routers
 │   │       └── endpoints/      # One file per domain
-│   ├── alembic/versions/       # Migration chain (22 migrations, HEAD: 6372e9df1d35)
+│   ├── alembic/versions/       # Migration chain (23 migrations, HEAD: 750a1916cced)
 │   ├── pyproject.toml          # Python project (requires >=3.13)
 │   └── requirements.txt        # pip fallback (keep in sync with pyproject.toml)
 ├── frontend/
@@ -116,7 +116,7 @@ sub_orders = relationship("Order",
 ```
 C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\<name>.py
 ```
-Current HEAD: `6372e9df1d35` (add_reserve_amount_to_cash_accounts)
+Current HEAD: `750a1916cced` (add_party_type_and_bill_rate_templates)
 
 **Migration chain:**
 ```
@@ -124,7 +124,7 @@ Current HEAD: `6372e9df1d35` (add_reserve_amount_to_cash_accounts)
 → e5f6a7b8c9d0 → f6a7b8c9d0e1 → g7b8c9d0e1f2 → h8c9d0e1f2g3 → i9d0e1f2g3h4
 → j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9
 → o5j6k7l8m9n0 → p6k7l8m9n0o1 → q7l8m9n0o1p2 → r8m9n0o1p2q3 → s9n0o1p2q3r4
-→ 860bf63b6a35 → 6372e9df1d35 [HEAD]
+→ 860bf63b6a35 → 6372e9df1d35 → 750a1916cced [HEAD]
 ```
 
 ### Frontend

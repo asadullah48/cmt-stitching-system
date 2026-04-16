@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { settingsService } from "@/hooks/services";
+import { settingsService, billRateTemplatesService } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
 import { useAuth } from "@/hooks/store";
-import type { AppSettings } from "@/hooks/types";
+import type { AppSettings, BillRateTemplate } from "@/hooks/types";
 
 export default function SettingsPage() {
   const { showToast } = useToast();
@@ -19,13 +19,19 @@ export default function SettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [templates, setTemplates] = useState<BillRateTemplate[]>([]);
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
+  const [templateEdits, setTemplateEdits] = useState<Record<string, Partial<BillRateTemplate>>>({});
+  const [savingTemplate, setSavingTemplate] = useState<string | null>(null);
 
   const isAdmin = role === "admin";
 
   useEffect(() => {
-    settingsService
-      .get()
-      .then(setForm)
+    Promise.all([
+      settingsService.get(),
+      billRateTemplatesService.getAll(),
+    ])
+      .then(([s, t]) => { setForm(s); setTemplates(t); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -46,6 +52,39 @@ export default function SettingsPage() {
 
   const setField = (key: keyof AppSettings, value: string | number) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  const startEditTemplate = (t: BillRateTemplate) => {
+    setEditingTemplate(t.id);
+    setTemplateEdits((prev) => ({
+      ...prev,
+      [t.id]: {
+        customer_rate: t.customer_rate,
+        labour_rate: t.labour_rate,
+        vendor_rate: t.vendor_rate,
+        description: t.description ?? "",
+      },
+    }));
+  };
+
+  const setTemplateField = (id: string, key: keyof BillRateTemplate, value: string | number) => {
+    setTemplateEdits((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
+  };
+
+  const saveTemplate = async (id: string) => {
+    setSavingTemplate(id);
+    try {
+      await billRateTemplatesService.update(id, templateEdits[id]);
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...templateEdits[id] } : t))
+      );
+      setEditingTemplate(null);
+      showToast("Rate updated", "success");
+    } catch {
+      showToast("Failed to update rate", "error");
+    } finally {
+      setSavingTemplate(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -217,6 +256,132 @@ export default function SettingsPage() {
           </div>
         )}
       </form>
+
+      {/* Rate Templates */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Bill Rate Templates</h2>
+        </div>
+        <p className="text-xs text-gray-400">
+          Auto-bill rates used when dispatching orders. Customer rate is charged to the party; Labour and Vendor rates are posted as payable entries.
+        </p>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Type</th>
+                <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Series</th>
+                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Customer</th>
+                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Labour</th>
+                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2">Vendor</th>
+                {isAdmin && <th className="pb-2" />}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {templates.map((t) => {
+                const isEditing = editingTemplate === t.id;
+                const edits = templateEdits[t.id] ?? {};
+                return (
+                  <tr key={t.id} className="group">
+                    <td className="py-2.5 pr-4">
+                      <span className="font-medium text-gray-800 capitalize">{t.goods_type}</span>
+                      {t.description && (
+                        <span className="ml-2 text-xs text-gray-400">{t.description}</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${
+                        t.bill_series === "A" ? "bg-blue-50 text-blue-700" :
+                        t.bill_series === "B" ? "bg-purple-50 text-purple-700" :
+                        t.bill_series === "C" ? "bg-green-50 text-green-700" :
+                        "bg-gray-100 text-gray-600"
+                      }`}>
+                        {t.bill_series}
+                      </span>
+                    </td>
+                    {isEditing ? (
+                      <>
+                        <td className="py-1.5 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            value={edits.customer_rate ?? t.customer_rate}
+                            onChange={(e) => setTemplateField(t.id, "customer_rate", parseFloat(e.target.value) || 0)}
+                            className="w-20 border border-blue-300 rounded px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="py-1.5 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            value={edits.labour_rate ?? t.labour_rate}
+                            onChange={(e) => setTemplateField(t.id, "labour_rate", parseFloat(e.target.value) || 0)}
+                            className="w-20 border border-blue-300 rounded px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="py-1.5 text-right">
+                          <input
+                            type="number"
+                            min="0"
+                            value={edits.vendor_rate ?? t.vendor_rate}
+                            onChange={(e) => setTemplateField(t.id, "vendor_rate", parseFloat(e.target.value) || 0)}
+                            className="w-20 border border-blue-300 rounded px-2 py-1 text-right text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="py-1.5 pl-3 text-right">
+                          <div className="flex items-center gap-2 justify-end">
+                            <button
+                              onClick={() => saveTemplate(t.id)}
+                              disabled={savingTemplate === t.id}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              {savingTemplate === t.id ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                              onClick={() => setEditingTemplate(null)}
+                              className="text-xs text-gray-400 hover:text-gray-600 font-medium"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="py-2.5 text-right tabular-nums text-gray-700">{t.customer_rate}</td>
+                        <td className="py-2.5 text-right tabular-nums text-gray-700">{t.labour_rate}</td>
+                        <td className="py-2.5 text-right tabular-nums text-gray-700">{t.vendor_rate}</td>
+                        {isAdmin && (
+                          <td className="py-2.5 pl-3 text-right">
+                            <button
+                              onClick={() => startEditTemplate(t)}
+                              className="text-xs text-gray-400 hover:text-gray-700 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        )}
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
+              {templates.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-sm text-gray-400">
+                    No rate templates configured.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

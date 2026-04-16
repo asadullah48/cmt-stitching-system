@@ -248,6 +248,11 @@ class OrderService:
             _consume_bom(db, order, "stitching")
         elif new_status == "packing_in_progress":
             _consume_bom(db, order, "packing")
+        elif new_status == "packing_complete":
+            # Auto-generate bills when packing is complete
+            from app.services.auto_bill_service import auto_generate_bills
+            from datetime import date
+            auto_generate_bills(db, order, user_id, date.today())
         db.commit()
         db.refresh(order)
         return order

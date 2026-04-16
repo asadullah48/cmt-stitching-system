@@ -6,6 +6,7 @@ class Party(BaseModel):
     __tablename__ = "cmt_parties"
 
     name = Column(String(100), nullable=False)
+    party_type = Column(String(10), nullable=False, default="customer")  # customer | labour | vendor
     contact_person = Column(String(100))
     phone = Column(String(20))
     email = Column(String(100))

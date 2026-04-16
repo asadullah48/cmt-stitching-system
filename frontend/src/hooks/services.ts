@@ -51,6 +51,8 @@ import type {
   OrderAccessory,
   AccessoryCreate,
   AccessoryUpdate,
+  BillRateTemplate,
+  BillRateTemplateUpdate,
 } from "./types";
 
 export type { Alert, AppSettings };
@@ -730,6 +732,24 @@ export const shareLinksService = {
 
   getPublicStatement: async (token: string): Promise<PublicStatementOut> => {
     const { data } = await api.get<PublicStatementOut>(`/public/statement/${token}`);
+    return data;
+  },
+};
+
+export const billRateTemplatesService = {
+  getAll: async (): Promise<BillRateTemplate[]> => {
+    const { data } = await api.get<BillRateTemplate[]>("/bill-rate-templates/");
+    return data;
+  },
+  update: async (id: string, payload: BillRateTemplateUpdate): Promise<BillRateTemplate> => {
+    const { data } = await api.patch<BillRateTemplate>(`/bill-rate-templates/${id}`, payload);
+    return data;
+  },
+};
+
+export const dispatchAndBillService = {
+  dispatch: async (orderId: string, billDate: string): Promise<{ bills_created: number; order_status: string }> => {
+    const { data } = await api.post(`/orders/${orderId}/dispatch-and-bill`, { bill_date: billDate });
     return data;
   },
 };

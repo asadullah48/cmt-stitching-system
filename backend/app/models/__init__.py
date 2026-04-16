@@ -14,6 +14,7 @@ from .bill import Bill
 from .todos import Todo
 from .overhead import CashAccount, CashEntry, OverheadExpense
 from .accessories import OrderAccessory
+from .bill_rate_templates import BillRateTemplate
 
 __all__ = [
     "Base",
@@ -41,4 +42,5 @@ __all__ = [
     "CashEntry",
     "OverheadExpense",
     "OrderAccessory",
+    "BillRateTemplate",
 ]

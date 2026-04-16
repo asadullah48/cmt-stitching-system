@@ -396,6 +396,32 @@ def update_status(order_id: UUID, data: OrderStatusUpdate, db: DbDep, current_us
     return _to_out(OrderService.update_status(db, order_id, data.status.value, current_user.id))
 
 
+class DispatchAndBillRequest(BaseModel):
+    bill_date: date
+
+
+class DispatchAndBillOut(BaseModel):
+    bills_created: int
+    order_status: str
+
+
+@router.post("/{order_id}/dispatch-and-bill", response_model=DispatchAndBillOut)
+def dispatch_and_bill(order_id: UUID, data: DispatchAndBillRequest, db: DbDep, current_user: CurrentUser):
+    """Dispatch an order and auto-generate all bills from rate templates."""
+    from app.services.auto_bill_service import auto_generate_bills
+    order = (
+        db.query(Order)
+        .options(joinedload(Order.party))
+        .filter(Order.id == order_id, Order.is_deleted.is_(False))
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    bills = auto_generate_bills(db, order, current_user.id, data.bill_date)
+    db.refresh(order)
+    return DispatchAndBillOut(bills_created=len(bills), order_status=order.status)
+
+
 @router.patch("/{order_id}/advance-stage", response_model=OrderOut)
 def advance_sub_order_stage(
     order_id: UUID,

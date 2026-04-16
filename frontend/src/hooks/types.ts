@@ -20,6 +20,7 @@ export interface TokenResponse {
 export interface Party {
   id: string;
   name: string;
+  party_type: "customer" | "labour" | "vendor";
   contact_person: string | null;
   phone: string | null;
   email: string | null;
@@ -28,6 +29,25 @@ export interface Party {
   balance: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface BillRateTemplate {
+  id: string;
+  goods_type: string;
+  bill_series: string;
+  description: string | null;
+  customer_rate: number;
+  labour_rate: number;
+  vendor_rate: number;
+  is_active: boolean;
+}
+
+export interface BillRateTemplateUpdate {
+  description?: string;
+  customer_rate?: number;
+  labour_rate?: number;
+  vendor_rate?: number;
+  is_active?: boolean;
 }
 
 export interface PartyCreate {

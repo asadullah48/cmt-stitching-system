@@ -23,6 +23,7 @@ export default function PartiesPage() {
   const [deleteParty, setDeleteParty] = useState<Party | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "customer" | "labour" | "vendor">("all");
 
   const load = useCallback(async (p: number) => {
     setLoading(true);
@@ -109,6 +110,23 @@ export default function PartiesPage() {
     },
   ];
 
+  const TYPE_TABS = [
+    { key: "all" as const, label: "All" },
+    { key: "customer" as const, label: "Customers" },
+    { key: "labour" as const, label: "Labour" },
+    { key: "vendor" as const, label: "Vendors" },
+  ];
+
+  const filteredData = result.data.filter((p) => {
+    const matchesType = typeFilter === "all" || p.party_type === typeFilter;
+    const matchesSearch =
+      !search ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.contact_person ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.phone ?? "").includes(search);
+    return matchesType && matchesSearch;
+  });
+
   return (
     <div>
       <PageHeader
@@ -124,7 +142,22 @@ export default function PartiesPage() {
         }
       />
 
-      <div className="mb-4">
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
+        <div className="flex bg-gray-100 rounded-lg p-1 gap-0.5">
+          {TYPE_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setTypeFilter(tab.key)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                typeFilter === tab.key
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -135,12 +168,7 @@ export default function PartiesPage() {
 
       <DataTable
         columns={columns}
-        data={result.data.filter((p) =>
-          !search ||
-          p.name.toLowerCase().includes(search.toLowerCase()) ||
-          (p.contact_person ?? "").toLowerCase().includes(search.toLowerCase()) ||
-          (p.phone ?? "").includes(search)
-        )}
+        data={filteredData}
         loading={loading}
         keyExtractor={(row) => row.id}
         onRowClick={(row) => router.push(`/parties/${row.id}`)}
