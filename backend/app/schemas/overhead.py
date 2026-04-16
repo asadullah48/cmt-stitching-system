@@ -28,6 +28,7 @@ class EntryType(str, Enum):
 
 class CashAccountUpdate(BaseModel):
     opening_balance: Optional[Decimal] = None
+    reserve_amount: Optional[Decimal] = None
     note: Optional[str] = None
 
 
@@ -37,6 +38,7 @@ class CashAccountOut(BaseModel):
     account_type: str
     opening_balance: Decimal
     current_balance: Decimal
+    reserve_amount: Decimal
     note: Optional[str]
     updated_at: datetime
 

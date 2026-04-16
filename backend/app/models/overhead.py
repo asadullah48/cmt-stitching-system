@@ -10,6 +10,7 @@ class CashAccount(BaseModel):
     name = Column(String(100), nullable=False)          # "Cash In Hand" | "Bank"
     account_type = Column(String(10), nullable=False)   # cash | bank
     opening_balance = Column(Numeric(12, 2), default=0, nullable=False)
+    reserve_amount = Column(Numeric(12, 2), default=0, nullable=False)  # minimum to keep in account
     note = Column(String(200), nullable=True)           # e.g. bank name / account number
 
     entries = relationship("CashEntry", back_populates="account")

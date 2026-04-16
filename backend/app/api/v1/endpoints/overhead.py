@@ -39,6 +39,7 @@ def _account_out(db, account: CashAccount) -> CashAccountOut:
         account_type=account.account_type,
         opening_balance=account.opening_balance,
         current_balance=_compute_balance(db, account),
+        reserve_amount=account.reserve_amount or Decimal("0"),
         note=account.note,
         updated_at=account.updated_at,
     )

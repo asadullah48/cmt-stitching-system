@@ -27,18 +27,36 @@ function isDue(exp: OverheadExpense): boolean {
 
 function BalanceCard({ account, onAdjust }: { account: CashAccount; onAdjust: (a: CashAccount) => void }) {
   const isCash = account.account_type === "cash";
+  const reserve = Number(account.reserve_amount ?? 0);
+  const available = Number(account.current_balance) - reserve;
   return (
-    <div className={`rounded-2xl p-5 flex items-center justify-between ${isCash ? "bg-emerald-50 border border-emerald-200" : "bg-blue-50 border border-blue-200"}`}>
-      <div>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{account.name}</p>
-        <p className={`text-3xl font-extrabold mt-1 ${isCash ? "text-emerald-700" : "text-blue-700"}`}>
-          {formatCurrency(account.current_balance)}
-        </p>
-        {account.note && <p className="text-xs text-gray-400 mt-1">{account.note}</p>}
+    <div className={`rounded-2xl p-5 ${isCash ? "bg-emerald-50 border border-emerald-200" : "bg-blue-50 border border-blue-200"}`}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{account.name}</p>
+          <p className={`text-3xl font-extrabold mt-1 ${isCash ? "text-emerald-700" : "text-blue-700"}`}>
+            {formatCurrency(account.current_balance)}
+          </p>
+          {account.note && <p className="text-xs text-gray-400 mt-1">{account.note}</p>}
+        </div>
+        <button onClick={() => onAdjust(account)} className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors">
+          + Entry
+        </button>
       </div>
-      <button onClick={() => onAdjust(account)} className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors">
-        + Entry
-      </button>
+      {reserve > 0 && (
+        <div className="mt-3 pt-3 border-t border-black/10 flex items-center justify-between text-xs">
+          <span className="text-gray-500">Reserve (keep)</span>
+          <span className="font-semibold text-gray-600">PKR {formatCurrency(reserve)}</span>
+        </div>
+      )}
+      {reserve > 0 && (
+        <div className="flex items-center justify-between text-xs mt-1">
+          <span className="text-gray-500">Available</span>
+          <span className={`font-bold ${available >= 0 ? (isCash ? "text-emerald-700" : "text-blue-700") : "text-red-600"}`}>
+            PKR {formatCurrency(available)}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

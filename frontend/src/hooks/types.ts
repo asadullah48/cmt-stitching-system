@@ -532,12 +532,14 @@ export interface CashAccount {
   account_type: "cash" | "bank";
   opening_balance: number;
   current_balance: number;
+  reserve_amount: number;
   note: string | null;
   updated_at: string;
 }
 
 export interface CashAccountUpdate {
   opening_balance?: number;
+  reserve_amount?: number;
   note?: string;
 }
 
