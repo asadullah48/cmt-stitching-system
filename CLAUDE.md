@@ -24,19 +24,18 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 1. **bcrypt direct** — `import bcrypt`, not passlib (Python 3.13 incompatible)
 2. **DATABASE_URL** — always `asyncpg://` in .env; `database.py` and `alembic/env.py` normalize to `psycopg2://` — do not break this
 3. **Table prefix** — all CMT tables use `cmt_` prefix (shared Neon DB)
-4. **Migration files** — use ABSOLUTE paths: `C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\`
-5. **Migration HEAD** — currently `860bf63b6a35`; always append, never modify existing migrations
-6. **Services layer** — business logic in `app/services/`, not in route handlers
-7. **Base import** — ORM models import `Base` from `app.models.base`, never `app.core.database`
-8. **Self-referential FK** — always include `primaryjoin` with `remote()`:
+4. **Migration files** — use ABSOLUTE paths: `C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\`. Current HEAD in AGENTS.md — always append, never modify existing migrations.
+5. **Services layer** — business logic in `app/services/`, not in route handlers
+6. **Base import** — ORM models import `Base` from `app.models.base`, never `app.core.database`
+7. **Self-referential FK** — always include `primaryjoin` with `remote()`:
    ```python
    sub_orders = relationship("Order",
        primaryjoin="Order.id == remote(Order.parent_order_id)",
        foreign_keys="[Order.parent_order_id]", backref="parent_order")
    ```
-9. **Multiple bills per order** — intentional. First bill dispatches; second skips re-dispatch. Bill delete only reverts status if no other active bills remain.
-10. **Pydantic schemas must match frontend types** — check `frontend/src/hooks/types.ts` when adding/changing fields in `app/schemas/`. Missing non-optional fields silently break frontend logic. `TransactionOut` must always include `created_at` (party ledger sort depends on it).
-11. **API page size limit is 100** — the `size` query param is capped at 100. Always paginate: loop until `len(items) >= total`.
+8. **Multiple bills per order** — intentional. First bill dispatches; second skips re-dispatch. Bill delete only reverts status if no other active bills remain.
+9. **Pydantic schemas must match frontend types** — check `frontend/src/hooks/types.ts` when adding/changing fields in `app/schemas/`. Missing non-optional fields silently break frontend logic. `TransactionOut` must always include `created_at` (party ledger sort depends on it).
+10. **API page size limit is 100** — the `size` query param is capped at 100. Always paginate: loop until `len(items) >= total`.
 
 ### Frontend
 
@@ -44,11 +43,12 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
    - `services.ts` + `services.tsx`
    - `types.ts` + `tpes.tsx` (typo in `.tsx` intentional — do not rename)
    - `utils.ts` + `utils.tsx`
-2. **useSearchParams** — always wrap in `<Suspense>` (Next.js 15)
-3. **Dashboard route** — home is `/dashboard`, not `/`
-4. **Forms** — slide-in sheet pattern, not full-page navigation
-5. **No Redux** — React Context + useReducer only
-6. **Bill accessories** — show only on B-series bills (`bill.bill_series === "B"`). A and C bills never show accessories.
+2. **TypeScript check before pushing** — run `npx tsc --noEmit` in `frontend/` before every push. Catches missing imports that only surface at Vercel build time and not locally.
+3. **useSearchParams** — always wrap in `<Suspense>` (Next.js 15)
+4. **Dashboard route** — home is `/dashboard`, not `/`
+5. **Forms** — slide-in sheet pattern, not full-page navigation
+6. **No Redux** — React Context + useReducer only
+7. **Bill accessories** — show only on B-series bills (`bill.bill_series === "B"`). A and C bills never show accessories.
 
 ---
 
@@ -59,7 +59,7 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 | **A** | Stitching (`stitch_rate_party × qty`) |
 | **B** | Accessories / materials / misc charges |
 | **C** | Packing (`pack_rate_party × qty`) |
-| **D** | R&D, expenses, one-off charges |
+| D–E   | Reserved |
 
 One order can have up to 3 bills (A + B + C), all linked to the same order, appearing separately in the party ledger.
 

@@ -1,6 +1,6 @@
 # docs/plans — Navigation Index
 
-19 planning documents organized by domain. Each document is prefixed with its creation date.
+20 planning documents organized by domain. Each document is prefixed with its creation date.
 Status: `Implemented` | `Partially implemented` | `Design only`
 
 ---
@@ -47,6 +47,7 @@ Status: `Implemented` | `Partially implemented` | `Design only`
 | 2026-04-02 | [Multiple Bills Per Order](./2026-04-02-multiple-bills-per-order.md) | Implemented — removed 1-bill guard; A-bill + B-bill per order |
 | 2026-04-02 | [Party Statement Share Links](./2026-04-02-party-statement-share-links.md) | Implemented — token-based read-only bill/statement URLs |
 | 2026-04-02 | [Lot Numbers & Sub-Orders](./2026-04-02-lot-numbers-and-sub-orders.md) | Implemented — per-party lot sequencing, B sub-order packing stages |
+| 2026-04-16 | [Auto-Bill Generation](./2026-04-16-auto-bill-generation.md) | Implemented — rate templates, three-ledger system, Dispatch & Bill button |
 
 ---
 

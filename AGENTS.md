@@ -40,12 +40,13 @@ cmt-stitching-system/
 │   │   │   ├── base.py         # BaseModel with UUID PK, timestamps, soft delete
 │   │   │   ├── orders.py       # Order, OrderItem (parent_order_id for sub-orders)
 │   │   │   ├── bill.py         # Bill, BillItem, BillPayment
+│   │   │   ├── bill_rate_templates.py  # BillRateTemplate (goods_type keyword → rates)
 │   │   │   ├── accessories.py  # OrderAccessory
-│   │   │   ├── parties.py      # Party
+│   │   │   ├── parties.py      # Party (party_type: customer|labour|vendor)
 │   │   │   ├── financial.py    # FinancialTransaction
 │   │   │   ├── production.py   # ProductionSession
 │   │   │   ├── inventory.py    # InventoryCategory, InventoryItem, InventoryTransaction
-│   │   │   ├── overhead.py     # Overhead, CashAccount, CashTransaction
+│   │   │   ├── overhead.py     # Overhead, CashAccount (reserve_amount), CashTransaction
 │   │   │   ├── expenses.py     # Expense, ExpenseCategory
 │   │   │   ├── products.py     # Product, ProductCategory, BOM
 │   │   │   ├── quality.py      # QualityCheckpoint, DefectLog
@@ -58,6 +59,7 @@ cmt-stitching-system/
 │   │   ├── services/           # Business logic layer
 │   │   │   ├── auth_service.py
 │   │   │   ├── bill_service.py
+│   │   │   ├── auto_bill_service.py  # auto_generate_bills() — fires on dispatch
 │   │   │   ├── order_service.py
 │   │   │   ├── party_service.py
 │   │   │   ├── financial_service.py
@@ -197,6 +199,7 @@ Orders can have sub-orders (`parent_order_id`). Sub-orders track a lot within th
 Auth:          POST /auth/login  GET /auth/me  POST /auth/register
 Orders:        CRUD /orders/  PATCH /orders/{id}/status
                GET /orders/{id}/accessories  POST /orders/{id}/accessories
+               POST /orders/{id}/dispatch-and-bill
 Parties:       CRUD /parties/  GET /parties/{id}/ledger
 Production:    POST /production/  GET /production/{order_id}
 Transactions:  CRUD /transactions/
@@ -213,6 +216,7 @@ Products:      CRUD /products/  CRUD /products/categories
 Insights:      GET /insights/
 Settings:      GET/PUT /settings/
 Share Links:   GET /share-links/{token}  POST /share-links/  DELETE /share-links/{id}
+Bill Rate Templates: GET /bill-rate-templates/  PATCH /bill-rate-templates/{id}
 ```
 
 ---
