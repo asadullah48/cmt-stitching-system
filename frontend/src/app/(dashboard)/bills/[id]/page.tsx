@@ -515,7 +515,7 @@ export default function BillDetailPage() {
                 <th className="text-center px-3 py-2.5 font-semibold text-gray-600 w-16">Size</th>
                 <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-20">Qty</th>
                 <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">
-                  {bill.bill_series === "B" ? "Unit Price" : "Stitch Rate"}
+                  {bill.bill_series === "B" ? "Unit Price" : bill.bill_series === "C" ? "" : "Stitch Rate"}
                 </th>
                 <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">
                   {bill.bill_series === "B" ? "" : "Pack Rate"}
@@ -571,19 +571,9 @@ export default function BillDetailPage() {
             </tbody>
             {accessories.length > 0 && (
               <tbody>
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-200"
-                  >
-                    Accessories
-                  </td>
-                </tr>
                 {accessories.map((a, idx) => (
                   <tr key={a.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2.5 text-gray-400">
-                      {(bill.order_items?.length ?? 0) + idx + 1}
-                    </td>
+                    <td className="px-3 py-2.5 text-gray-400">{idx + 1}</td>
                     <td className="px-3 py-2.5 text-gray-800">{a.name}</td>
                     <td className="px-3 py-2.5 text-center text-gray-500">—</td>
                     <td className="px-3 py-2.5 text-right text-gray-700">
@@ -592,7 +582,7 @@ export default function BillDetailPage() {
                     <td className="px-3 py-2.5 text-right text-gray-700">
                       PKR {fmt(a.unit_price)}
                     </td>
-                    <td className="px-3 py-2.5 text-right text-gray-400">—</td>
+                    <td className="px-3 py-2.5 text-right text-gray-400"></td>
                     <td className="px-3 py-2.5 text-right font-medium text-gray-900">
                       PKR {fmt(a.total_charge)}
                     </td>
