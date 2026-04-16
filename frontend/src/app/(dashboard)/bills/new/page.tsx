@@ -94,6 +94,10 @@ function NewBillForm() {
     const isASeries = seriesUpper === "A";
     const isBSeries = seriesUpper === "B";
     const isCSeries = seriesUpper === "C";
+    const isDSeries = seriesUpper === "D" || seriesUpper === "E";
+
+    // D/E series: manual amount — skip auto-calc entirely
+    if (isDSeries) return;
 
     // A-series: stitching only
     // B-series: accessories only
@@ -132,6 +136,12 @@ function NewBillForm() {
       setForm((f) => ({ ...f, amount_due: 0, discount: 0 }));
     }
   }, [billType]);
+
+  // D/E series are misc/one-off — auto-switch to standalone
+  useEffect(() => {
+    const s = (form.bill_series ?? "A").toUpperCase();
+    if (s === "D" || s === "E") setBillType("standalone");
+  }, [form.bill_series]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,7 +319,7 @@ function NewBillForm() {
                   { value: "A", label: "Series A — Stitching" },
                   { value: "B", label: "Series B — Accessories" },
                   { value: "C", label: "Series C — Packing" },
-                  { value: "D", label: "Series D" },
+                  { value: "D", label: "Series D — Misc / One-off" },
                   { value: "E", label: "Series E" },
                 ].map((s) => (
                   <option key={s.value} value={s.value}>

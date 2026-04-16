@@ -15,12 +15,14 @@ const SERIES_LABELS: Record<string, string> = {
   A: "Stitching",
   B: "Accessories",
   C: "Packing",
+  D: "Misc",
 };
 
 const SERIES_STYLES: Record<string, string> = {
   A: "bg-blue-100 text-blue-700",
   B: "bg-purple-100 text-purple-700",
   C: "bg-orange-100 text-orange-700",
+  D: "bg-gray-100 text-gray-700",
 };
 
 export default function BillsPage() {
@@ -80,7 +82,7 @@ export default function BillsPage() {
           <option value="A">A — Stitching</option>
           <option value="B">B — Accessories</option>
           <option value="C">C — Packing</option>
-          <option value="D">D</option>
+          <option value="D">D — Misc</option>
         </select>
         <select
           value={filterStatus}
