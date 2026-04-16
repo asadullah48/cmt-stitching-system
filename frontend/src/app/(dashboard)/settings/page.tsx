@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [templates, setTemplates] = useState<BillRateTemplate[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
-  const [templateEdits, setTemplateEdits] = useState<Record<string, Partial<BillRateTemplate>>>({});
+  const [templateEdits, setTemplateEdits] = useState<Record<string, BillRateTemplateUpdate>>({});
   const [savingTemplate, setSavingTemplate] = useState<string | null>(null);
 
   const isAdmin = role === "admin";
@@ -61,12 +61,12 @@ export default function SettingsPage() {
         customer_rate: t.customer_rate,
         labour_rate: t.labour_rate,
         vendor_rate: t.vendor_rate,
-        description: t.description ?? "",
+        description: t.description ?? undefined,
       },
     }));
   };
 
-  const setTemplateField = (id: string, key: keyof BillRateTemplate, value: string | number) => {
+  const setTemplateField = (id: string, key: keyof BillRateTemplateUpdate, value: string | number) => {
     setTemplateEdits((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
   };
 
