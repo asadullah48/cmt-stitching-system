@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { settingsService, billRateTemplatesService } from "@/hooks/services";
 import { useToast } from "@/hooks/toast";
 import { useAuth } from "@/hooks/store";
-import type { AppSettings, BillRateTemplate } from "@/hooks/types";
+import type { AppSettings, BillRateTemplate, BillRateTemplateUpdate } from "@/hooks/types";
 
 export default function SettingsPage() {
   const { showToast } = useToast();
