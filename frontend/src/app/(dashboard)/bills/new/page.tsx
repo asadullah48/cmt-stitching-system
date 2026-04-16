@@ -17,15 +17,18 @@ function NewBillForm() {
   const [nextNumber, setNextNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
-  const [billType, setBillType] = useState<"order" | "standalone">("order");
+  const initSeries = params.get("series")?.toUpperCase() || "A";
+  const initBillType = (initSeries === "D" || initSeries === "E" || params.get("party")) ? "standalone" : "order";
+  const [billType, setBillType] = useState<"order" | "standalone">(initBillType as "order" | "standalone");
   const [parties, setParties] = useState<Party[]>([]);
 
   const urlOrderId = params.get("order") || "";
   const urlSeries = params.get("series")?.toUpperCase() || "A";
+  const urlPartyId = params.get("party") || "";
 
   const [form, setForm] = useState<BillCreate & { discount: number }>({
     order_id: urlOrderId,
-    party_id: "",
+    party_id: urlPartyId,
     description: "",
     bill_number: "",
     bill_series: urlSeries,
@@ -124,10 +127,12 @@ function NewBillForm() {
     }
   }, [form.order_id, form.bill_series, orders]);
 
-  // Recalculate amount_due when discount changes
+  // Recalculate amount_due when discount changes — only for order-linked bills
+  // Standalone/D-series: user enters amount_due directly; discount field is informational only
   useEffect(() => {
+    if (billType !== "order") return;
     setForm((f) => ({ ...f, amount_due: Math.max(0, subtotal - f.discount) }));
-  }, [form.discount, subtotal]);
+  }, [form.discount, subtotal, billType]);
 
   // Reset amounts when switching to standalone mode (no auto-calc applies)
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { transactionsService, partiesService, shareLinksService, ShareLink, ShareLinkCreate } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
 import {
@@ -52,6 +53,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default function LedgerPage() {
+  const router = useRouter();
   const [result, setResult] = useState<PaginatedResponse<FinancialTransaction>>({
     data: [], total: 0, page: 1, size: 100,
   });
@@ -236,6 +238,21 @@ export default function LedgerPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
             Share
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const params = new URLSearchParams({ series: "D" });
+              if (filters.party_id) params.set("party", filters.party_id);
+              router.push(`/bills/new?${params}`);
+            }}
+            className="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            New Bill
           </Button>
           <Button onClick={() => setSheetOpen(true)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
