@@ -92,6 +92,18 @@ One order can have up to 3 bills (A + B + C), all linked to the same order, appe
 
 ---
 
+## Before Starting Any Task
+
+State the verification plan first — one sentence saying what you will run or check to confirm the work is correct. Examples:
+
+- *"I'll boot-check and curl the new endpoint to confirm the response shape."*
+- *"I'll run `npx tsc --noEmit` and check the Vercel build output."*
+- *"I'll dry-run the script and compare record counts before and after."*
+
+Do not start writing code until the verification method is clear. If the task has no obvious way to verify, flag it explicitly rather than proceeding silently.
+
+---
+
 ## Verification — Required Before Declaring Done
 
 Use the **`cmt-verify`** skill. It covers every change type.
