@@ -49,6 +49,7 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
 5. **Forms** — slide-in sheet pattern, not full-page navigation
 6. **No Redux** — React Context + useReducer only
 7. **Bill accessories** — show only on B-series bills (`bill.bill_series === "B"`). A and C bills never show accessories.
+8. **B-series bills require accessory records** — creating a B-series bill with a manual amount does NOT auto-create `OrderAccessory` rows. The bill PDF needs accessories in the `cmt_order_accessories` table to display qty/rate/size. Always verify accessories exist on the order before or immediately after creating a B-series bill. Without them, the PDF falls back to a single summary line with no breakdown.
 
 ---
 
