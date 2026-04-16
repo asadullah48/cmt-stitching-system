@@ -350,14 +350,24 @@ cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App 
 
 ## Custom Skills
 
-Five CMT-specific skills are installed in Claude Code. Invoke them with the Skill tool — e.g. `skill: "cmt-verify"`. Each skill contains the detailed steps, invariants, and checklists that are not repeated here.
+All skills are installed globally in Claude Code. Invoke with the Skill tool — e.g. `skill: "cmt-verify"`. Each skill contains steps, invariants, and checklists not repeated here. When a skill conflicts with a general rule in this file, follow the skill.
+
+### CMT-specific skills
 
 | Skill | Invoke when... |
 |-------|---------------|
-| **cmt-bill** | Reading or writing any bill-related code — contains invariants for series A/B/C logic, multi-bill dispatch, accessories guard (B-bills only), standalone bills, and party ledger impact |
-| **cmt-feature** | Adding any new feature end-to-end — enforces the model→migration→schema→service→endpoint build order and the dual-file hook requirement |
+| **cmt-bill** | Reading or writing any bill-related code — series A/B/C logic, multi-bill dispatch, accessories guard, standalone bills, party ledger impact |
+| **cmt-auto-bill** | Touching `auto_bill_service.py`, rate templates, or dispatch flow — keyword matching, idempotency, three-ledger posting |
+| **cmt-feature** | Adding any new feature end-to-end — enforces model→migration→schema→service→endpoint build order and dual-file hook requirement |
 | **cmt-hooks-sync** | Editing any file in `frontend/src/hooks/` — ensures `.ts` and `.tsx` counterparts stay identical |
-| **cmt-migration** | Adding or modifying any database migration — handles absolute path, `cmt_` prefix validation, chain tracking, and doc updates |
-| **cmt-verify** | Before declaring any change complete — runs boot check, curl verification, and optional Playwright UI snapshot before push |
+| **cmt-migration** | Adding or modifying any database migration — absolute path, `cmt_` prefix, chain tracking, doc updates |
+| **cmt-verify** | Before declaring any change complete — boot check, curl verification, Playwright UI snapshot |
 
-When a skill's instructions conflict with a general rule in this file, follow the skill.
+### General skills (work across any project)
+
+| Skill | Invoke when... |
+|-------|---------------|
+| **playwright-verify** | Verifying any frontend UI change — login flow, navigate, interact, snapshot, screenshot |
+| **financial-ledger** | Writing any ledger, transaction, or balance code — debit/credit rules, running balance, multi-ledger posting |
+| **financial-report** | Building any report, P&L, or export — income vs expense classification, billed vs collected, CSV conventions |
+| **order-lifecycle** | Modifying order status transitions, hooks, sub-orders, or BOM consumption — state machine patterns, transition guards |
