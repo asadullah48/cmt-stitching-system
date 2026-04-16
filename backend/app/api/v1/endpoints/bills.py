@@ -47,8 +47,9 @@ def _to_out(bill, db=None) -> BillOut:
                 "description": bill.order.goods_description,
             })
     else:
-        # B/D/E series or no order items: fall back to stored amount_due
-        subtotal = Decimal(str(bill.amount_due)) + discount_val
+        # B/D/E series: accessories or manual entries handle amounts; subtotal=0
+        # (frontened uses bill.amount_due directly for totals, not subtotal)
+        subtotal = Decimal("0")
 
     previous_balance = Decimal(str(bill.previous_balance)) if hasattr(bill, "previous_balance") and bill.previous_balance is not None else Decimal("0")
 

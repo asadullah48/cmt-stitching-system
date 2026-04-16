@@ -514,8 +514,12 @@ export default function BillDetailPage() {
                 <th className="text-left px-3 py-2.5 font-semibold text-gray-600">Description</th>
                 <th className="text-center px-3 py-2.5 font-semibold text-gray-600 w-16">Size</th>
                 <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-20">Qty</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Stitch Rate</th>
-                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Pack Rate</th>
+                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">
+                  {bill.bill_series === "B" ? "Unit Price" : "Stitch Rate"}
+                </th>
+                <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">
+                  {bill.bill_series === "B" ? "" : "Pack Rate"}
+                </th>
                 <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-28">Amount</th>
               </tr>
             </thead>
@@ -545,11 +549,14 @@ export default function BillDetailPage() {
                     </td>
                   </tr>
                 ))
-              ) : (
+              ) : bill.bill_series === "B" && accessories.length > 0 ? null : (
+                // Fallback single-line row — used for D/E/standalone bills (no order items, no accessories)
                 <tr>
                   <td className="px-3 py-2.5 text-gray-400">1</td>
                   <td className="px-3 py-2.5 text-gray-800" colSpan={5}>
-                    {BILL_SERVICE_DESCRIPTION[bill.bill_series] ?? "Stitching & Packing Services"}
+                    {bill.notes
+                      ? bill.notes
+                      : (BILL_SERVICE_DESCRIPTION[bill.bill_series] ?? "Misc / One-off Charge")}
                     {bill.lot_number != null && (
                       <span className="ml-1.5 text-xs text-gray-400">
                         Lot #{bill.lot_number}{bill.sub_suffix ?? ""}
@@ -557,7 +564,7 @@ export default function BillDetailPage() {
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-right font-medium text-gray-900">
-                    PKR {fmt(subtotal)}
+                    PKR {fmt(amountDue)}
                   </td>
                 </tr>
               )}
@@ -605,9 +612,10 @@ export default function BillDetailPage() {
                 <span>- PKR {fmt(discount)}</span>
               </div>
             )}
+            {/* Always use stored bill.amount_due — it is the authoritative net amount */}
             <div className="flex justify-between text-base font-bold border-t border-gray-300 pt-2 mt-2 text-gray-900">
               <span>Amount Due</span>
-              <span>PKR {fmt(grandSubtotal - discount)}</span>
+              <span>PKR {fmt(amountDue)}</span>
             </div>
             <div className="flex justify-between text-sm text-green-700">
               <span>Amount Paid</span>
@@ -615,17 +623,17 @@ export default function BillDetailPage() {
             </div>
             <div
               className={`flex justify-between text-base font-bold border-t border-gray-300 pt-2 mt-1 ${
-                (grandSubtotal - discount - amountPaid) > 0 ? "text-red-600" : "text-green-600"
+                (amountDue - amountPaid) > 0 ? "text-red-600" : "text-green-600"
               }`}
             >
               <span>Balance Due</span>
-              <span>PKR {fmt(grandSubtotal - discount - amountPaid)}</span>
+              <span>PKR {fmt(amountDue - amountPaid)}</span>
             </div>
           </div>
         </div>
 
-        {/* Notes */}
-        {bill.notes && (
+        {/* Notes — only show when there are proper order items (otherwise notes are used as line description) */}
+        {bill.notes && bill.order_items && bill.order_items.length > 0 && (
           <div className="mt-6 text-sm text-gray-500 italic border-t border-gray-100 pt-4">
             Note: {bill.notes}
           </div>
