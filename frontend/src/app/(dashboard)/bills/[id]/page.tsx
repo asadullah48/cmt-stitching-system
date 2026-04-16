@@ -575,7 +575,7 @@ export default function BillDetailPage() {
                   <tr key={a.id} className="hover:bg-gray-50">
                     <td className="px-3 py-2.5 text-gray-400">{idx + 1}</td>
                     <td className="px-3 py-2.5 text-gray-800">{a.name}</td>
-                    <td className="px-3 py-2.5 text-center text-gray-500">—</td>
+                    <td className="px-3 py-2.5 text-center text-gray-500">{a.size ?? "—"}</td>
                     <td className="px-3 py-2.5 text-right text-gray-700">
                       {Number(a.total_qty).toLocaleString()}
                     </td>

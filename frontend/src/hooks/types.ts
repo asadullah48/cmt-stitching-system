@@ -424,6 +424,7 @@ export interface OrderAccessory {
   id: string;
   order_id: string;
   name: string;
+  size?: string | null;
   total_qty: number;
   unit_price: number;
   from_stock: number;
@@ -437,6 +438,7 @@ export interface OrderAccessory {
 
 export interface AccessoryCreate {
   name: string;
+  size?: string;
   total_qty: number;
   unit_price: number;
   from_stock: number;
@@ -447,6 +449,7 @@ export interface AccessoryCreate {
 
 export interface AccessoryUpdate {
   name?: string;
+  size?: string | null;
   total_qty?: number;
   unit_price?: number;
   from_stock?: number;

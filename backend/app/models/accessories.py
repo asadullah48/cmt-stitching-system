@@ -10,6 +10,7 @@ class OrderAccessory(BaseModel):
 
     order_id = Column(UUID(as_uuid=True), ForeignKey("cmt_orders.id"), nullable=False)
     name = Column(String(100), nullable=False)
+    size = Column(String(50), nullable=True)
     total_qty = Column(Numeric(10, 2), nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)
     from_stock = Column(Numeric(10, 2), nullable=False, default=0)

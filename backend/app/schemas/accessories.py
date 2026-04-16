@@ -6,6 +6,7 @@ from pydantic import BaseModel, computed_field
 
 class AccessoryCreate(BaseModel):
     name: str
+    size: Optional[str] = None
     total_qty: Decimal
     unit_price: Decimal
     from_stock: Decimal = Decimal("0")
@@ -16,6 +17,7 @@ class AccessoryCreate(BaseModel):
 
 class AccessoryUpdate(BaseModel):
     name: Optional[str] = None
+    size: Optional[str] = None
     total_qty: Optional[Decimal] = None
     unit_price: Optional[Decimal] = None
     from_stock: Optional[Decimal] = None
@@ -28,6 +30,7 @@ class AccessoryOut(BaseModel):
     id: UUID
     order_id: UUID
     name: str
+    size: Optional[str] = None
     total_qty: Decimal
     unit_price: Decimal
     from_stock: Decimal
