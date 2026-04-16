@@ -43,7 +43,7 @@ See `AGENTS.md` for full architecture, file layout, endpoints, and conventions.
    - `services.ts` + `services.tsx`
    - `types.ts` + `tpes.tsx` (typo in `.tsx` intentional — do not rename)
    - `utils.ts` + `utils.tsx`
-2. **TypeScript check before pushing** — run `npx tsc --noEmit` in `frontend/` before every push. Catches missing imports that only surface at Vercel build time and not locally.
+2. **TypeScript check before pushing** — run `npx tsc --noEmit` in `frontend/` before every push. Catches missing imports that only surface at Vercel build time.
 3. **useSearchParams** — always wrap in `<Suspense>` (Next.js 15)
 4. **Dashboard route** — home is `/dashboard`, not `/`
 5. **Forms** — slide-in sheet pattern, not full-page navigation
@@ -92,49 +92,50 @@ One order can have up to 3 bills (A + B + C), all linked to the same order, appe
 
 ---
 
-## Before Starting Any Task
+## Verification
 
-State the verification plan first — one sentence saying what you will run or check to confirm the work is correct. Examples:
+**State the verification method before writing any code.** No exceptions. "The code looks correct" is not evidence.
 
-- *"I'll boot-check and curl the new endpoint to confirm the response shape."*
-- *"I'll run `npx tsc --noEmit` and check the Vercel build output."*
-- *"I'll dry-run the script and compare record counts before and after."*
+### Tools available
 
-Do not start writing code until the verification method is clear. If the task has no obvious way to verify, flag it explicitly rather than proceeding silently.
-
----
-
-## Verification — Required Before Declaring Done
-
-Use the **`cmt-verify`** skill. It covers every change type.
-
-**Always run the boot check first:**
+**Backend — start the dev server:**
 ```bash
-cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"
+cd backend && .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000
 ```
-
-**Feedback loop — verify what you just did:**
-
-After any backend change, hit the affected endpoint and confirm the response shape:
+Then curl the affected endpoint to confirm the response shape:
 ```bash
 curl -s http://localhost:8000/api/v1/<endpoint> -H "Authorization: Bearer <token>" | python -m json.tool
 ```
 
-After any data operation (import/seed script), query the API to confirm records exist and counts match expectations:
-```python
-# Example: verify 3 new orders exist
-orders = paginated_get(session, f"{base}/orders/", {"party_id": party_id})
-for num in ["ORD-202604-0032", "ORD-202604-0033", "ORD-202604-0034"]:
-    assert any(o["order_number"] == num for o in orders), f"MISSING: {num}"
+**Boot check (always run before pushing):**
+```bash
+cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"
 ```
 
-Never declare complete without evidence. "The code looks correct" is not evidence.
+**Frontend — start the dev server:**
+```bash
+cd frontend && npm run dev   # runs on http://localhost:3000
+```
+Then use the **Playwright MCP tool** (`browser_navigate`, `browser_snapshot`, `browser_click`) to open the page, interact with the feature, and confirm the UI renders correctly. Use Playwright for any visible UI change — don't ship without seeing it.
 
----
+**TypeScript — catch missing imports before Vercel does:**
+```bash
+cd frontend && npx tsc --noEmit
+```
 
-## One-Time Scripts (import_ledger.py etc.)
+### What to verify per change type
+
+| Change type | Minimum verification |
+|-------------|---------------------|
+| New/changed endpoint | Boot check + curl response shape |
+| Frontend UI change | `npm run dev` → Playwright navigate + snapshot |
+| New types or imports | `npx tsc --noEmit` passes clean |
+| Data script | `--dry-run` first, then record count matches expectation |
+| Migration | `alembic upgrade head` succeeds + boot check passes |
+| Deploy | Vercel build output shows `✓ Compiled successfully` |
+
+### One-time scripts (`backend/scripts/`)
 
 - Always `--dry-run` first to confirm what will be created/skipped
-- Never run the same script twice concurrently (background + foreground = duplicate records)
-- Idempotency depends on reference_number uniqueness — snapshot ALL transaction pages before checking, not just page 1
-- After running, query the API to verify record counts and no duplicates
+- Never run the same script twice concurrently — duplicate records result
+- After running, curl the API and verify record counts, not just page 1
