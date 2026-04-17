@@ -12,6 +12,7 @@ from app.models.financial import FinancialTransaction
 from app.models.bill import Bill
 from app.models.parties import Party
 from app.schemas.financial import TransactionCreate, TransactionOut, TransactionListResponse
+from app.services.allocation_service import AllocationService
 from app.services.financial_service import FinancialService
 from app.services.bill_service import BillService
 
@@ -99,6 +100,9 @@ def create_transaction(data: TransactionCreate, db: DbDep, current_user: Current
         if bill:
             BillService._recompute_amount_paid(db, bill)
             db.commit()
+    # FIFO reconcile so advance payments sweep into outstanding bills
+    if txn.party_id:
+        AllocationService.reconcile(db, txn.party_id)
     # Re-fetch with relationships so _to_out never hits expired lazy-load attributes
     txn = _fetch_txn(db, txn.id)
     return _to_out(txn)
@@ -130,6 +134,8 @@ def update_transaction(transaction_id: UUID, data: TransactionCreate, db: DbDep,
     _adjust_party_balance(db, txn.party_id, _balance_delta(txn.transaction_type, txn.amount))
 
     db.commit()
+    if txn.party_id:
+        AllocationService.reconcile(db, txn.party_id)
     db.refresh(txn)
     return _to_out(txn)
 
@@ -177,6 +183,7 @@ def delete_transaction(transaction_id: UUID, db: DbDep, _: CurrentUser):
     _adjust_party_balance(db, txn.party_id, -_balance_delta(txn.transaction_type, txn.amount))
 
     old_bill_id = txn.bill_id
+    old_party_id = txn.party_id
     txn.is_deleted = True
     db.flush()
     # Recompute bill if this transaction was linked to one
@@ -185,6 +192,8 @@ def delete_transaction(transaction_id: UUID, db: DbDep, _: CurrentUser):
         if bill:
             BillService._recompute_amount_paid(db, bill)
     db.commit()
+    if old_party_id:
+        AllocationService.reconcile(db, old_party_id)
 
 
 @router.patch("/{transaction_id}/link-bill", response_model=TransactionOut)
@@ -230,5 +239,7 @@ def link_transaction_to_bill(
         BillService._recompute_amount_paid(db, new_bill)
 
     db.commit()
+    if txn.party_id:
+        AllocationService.reconcile(db, txn.party_id)
     db.refresh(txn)
     return _to_out(txn)

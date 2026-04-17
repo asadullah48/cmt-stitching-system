@@ -122,3 +122,35 @@ class AllocationService:
             "advance_balance": advance_balance,
             "bills": items,
         }
+
+    @staticmethod
+    def reconcile(db: Session, party_id: UUID, commit: bool = True) -> dict:
+        """Persist FIFO allocation results back to each Bill row.
+
+        Writes `effective_paid` → `bill.amount_paid` and `effective_status`
+        → `bill.payment_status` so the Bills list reflects advance sweeps.
+
+        Does NOT mutate ledger transactions or party.balance.
+        Safe to call repeatedly — idempotent against current payment data.
+        """
+        result = AllocationService.compute(db, party_id)
+        bill_ids = [info["bill_id"] for info in result["bills"]]
+        if not bill_ids:
+            return result
+
+        bill_map = {
+            b.id: b
+            for b in db.query(Bill).filter(Bill.id.in_(bill_ids)).all()
+        }
+        for info in result["bills"]:
+            bill = bill_map.get(info["bill_id"])
+            if not bill:
+                continue
+            bill.amount_paid = info["effective_paid"]
+            bill.payment_status = info["effective_status"]
+
+        if commit:
+            db.commit()
+        else:
+            db.flush()
+        return result

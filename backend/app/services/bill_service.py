@@ -23,6 +23,7 @@ from app.models.orders import Order
 from app.models.financial import FinancialTransaction
 from app.models.parties import Party
 from app.schemas.bill import BillCreate, BillPaymentUpdate
+from app.services.allocation_service import AllocationService
 from app.services.audit_service import AuditService
 
 
@@ -226,6 +227,12 @@ class BillService:
 
         db.commit()
         db.refresh(bill)
+
+        # Sweep any prior advance against this new bill so payment_status
+        # reflects FIFO allocation immediately.
+        if party_id:
+            AllocationService.reconcile(db, party_id)
+            db.refresh(bill)
         return bill
 
     @staticmethod
@@ -361,6 +368,10 @@ class BillService:
         BillService._recompute_amount_paid(db, bill)
 
         db.commit()
+
+        # FIFO reconcile so any excess advance sweeps into other outstanding bills
+        if bill.party_id:
+            AllocationService.reconcile(db, bill.party_id)
         db.refresh(bill)
         return bill
 
@@ -425,6 +436,10 @@ class BillService:
         bill.is_deleted = True
         AuditService.log_delete(db, "cmt_bills", bill.id, user_id)
         db.commit()
+
+        # Reallocate remaining bills/payments for the party
+        if bill.party_id:
+            AllocationService.reconcile(db, bill.party_id)
 
     @staticmethod
     def get_all(
