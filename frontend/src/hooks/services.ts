@@ -11,6 +11,7 @@ import type {
   PartyCreate,
   PartyUpdate,
   PartyLedgerResponse,
+  BillAllocationResponse,
   ProductionSession,
   ProductionSessionCreate,
   FinancialTransaction,
@@ -247,6 +248,13 @@ export const partiesService = {
   getPartyLedger: async (id: string): Promise<PartyLedgerResponse> => {
     const { data } = await api.get<PartyLedgerResponse>(
       `/parties/${id}/ledger`
+    );
+    return data;
+  },
+
+  getBillAllocation: async (id: string): Promise<BillAllocationResponse> => {
+    const { data } = await api.get<BillAllocationResponse>(
+      `/parties/${id}/bill-allocation`
     );
     return data;
   },

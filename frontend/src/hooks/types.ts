@@ -216,6 +216,29 @@ export interface PartyLedgerResponse {
   transactions: FinancialTransaction[];
 }
 
+export interface BillAllocationItem {
+  bill_id: string;
+  bill_number: string;
+  bill_series: string;
+  bill_date: string;
+  amount_due: number;
+  explicit_paid: number;
+  advance_applied: number;
+  effective_paid: number;
+  outstanding: number;
+  effective_status: "paid" | "partial" | "unpaid";
+}
+
+export interface BillAllocationResponse {
+  party_id: string;
+  party_name: string;
+  total_billed: number;
+  total_paid: number;
+  total_outstanding: number;
+  advance_balance: number;
+  bills: BillAllocationItem[];
+}
+
 // ─── Dashboard ──────────────────────────────────────────────────────────────
 
 export interface DashboardSummary {

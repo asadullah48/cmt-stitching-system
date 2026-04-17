@@ -7,8 +7,10 @@ from sqlalchemy import func
 from app.core.deps import CurrentUser, DbDep
 from app.models.financial import FinancialTransaction
 from app.models.parties import Party
+from app.schemas.allocation import BillAllocationResponse
 from app.schemas.parties import PartyCreate, PartyUpdate, PartyOut, PartyListResponse
 from app.schemas.financial import PartyLedgerResponse, TransactionOut
+from app.services.allocation_service import AllocationService
 from app.services.party_service import PartyService
 
 DEBIT_TYPES = ("income", "expense", "purchase", "stock_consumption")
@@ -76,6 +78,20 @@ def recalculate_balance(party_id: UUID, db: DbDep, _: CurrentUser):
     db.commit()
     db.refresh(party)
     return party
+
+
+@router.get("/{party_id}/bill-allocation", response_model=BillAllocationResponse)
+def party_bill_allocation(party_id: UUID, db: DbDep, _: CurrentUser):
+    """Read-only FIFO allocation of party payments against bills.
+
+    Applies explicit bill_id-linked payments first, then sweeps any
+    unlinked payments oldest-first across outstanding bills. Leftover
+    credit shows up as advance_balance. Does not mutate the ledger.
+    """
+    try:
+        return AllocationService.compute(db, party_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/{party_id}/ledger", response_model=PartyLedgerResponse)

@@ -6,7 +6,7 @@ import { partiesService, transactionsService } from "@/hooks/services";
 import { formatDate, formatCurrency, balanceColor, todayInputDate } from "@/hooks/utils";
 import { Button, Sheet, Spinner, Input } from "@/components/common";
 import { TransactionForm } from "@/components/financial";
-import type { Party, PartyLedgerResponse, FinancialTransaction } from "@/hooks/types";
+import type { Party, PartyLedgerResponse, FinancialTransaction, BillAllocationResponse } from "@/hooks/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -191,6 +191,7 @@ export default function PartyLedgerPage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const [ledger, setLedger] = useState<PartyLedgerResponse | null>(null);
+  const [allocation, setAllocation] = useState<BillAllocationResponse | null>(null);
   const [party, setParty] = useState<Party | null>(null);
   const [loading, setLoading] = useState(true);
   const [txSheet, setTxSheet] = useState(false);
@@ -205,12 +206,14 @@ export default function PartyLedgerPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ledgerData, partyData] = await Promise.all([
+      const [ledgerData, partyData, allocationData] = await Promise.all([
         partiesService.getPartyLedger(id),
         partiesService.getParty(id),
+        partiesService.getBillAllocation(id).catch(() => null),
       ]);
       setLedger(ledgerData);
       setParty(partyData);
+      setAllocation(allocationData);
     } catch {
       router.push("/parties");
     } finally {
@@ -773,6 +776,96 @@ export default function PartyLedgerPage() {
           <span>Printed on {today}</span>
         </div>
       </div>
+
+      {/* ═══════ Bill Reconciliation (hidden on print) ═══════ */}
+      {allocation && allocation.bills.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden print:hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Bill Reconciliation</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Payments allocated to bills (oldest first). Unlinked payments are swept as advance.
+              </p>
+            </div>
+            {allocation.advance_balance > 0 && (
+              <div className="text-right shrink-0">
+                <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold">Advance Balance</p>
+                <p className="text-xl font-bold mt-0.5 tabular-nums text-blue-600">
+                  PKR {formatCurrency(allocation.advance_balance)}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">Available for next bill</p>
+              </div>
+            )}
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bill</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Paid (direct)</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Advance Used</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Outstanding</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {allocation.bills.map((b) => {
+                  const badge =
+                    b.effective_status === "paid"
+                      ? "bg-green-100 text-green-700"
+                      : b.effective_status === "partial"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-red-100 text-red-700";
+                  return (
+                    <tr key={b.bill_id} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <button
+                          onClick={() => router.push(`/bills/${b.bill_id}`)}
+                          className="text-blue-600 hover:underline font-semibold"
+                        >
+                          {b.bill_number}
+                        </button>
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{formatDate(b.bill_date)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-gray-900 font-medium">{formatCurrency(b.amount_due)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-gray-700">
+                        {b.explicit_paid > 0 ? formatCurrency(b.explicit_paid) : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-blue-700">
+                        {b.advance_applied > 0 ? formatCurrency(b.advance_applied) : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${b.outstanding > 0 ? "text-red-600" : "text-gray-400"}`}>
+                        {b.outstanding > 0 ? formatCurrency(b.outstanding) : "0"}
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${badge}`}>
+                          {b.effective_status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold">
+                  <td className="px-4 py-3 text-gray-700" colSpan={2}>Totals</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-900">{formatCurrency(allocation.total_billed)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-700" colSpan={2}>
+                    Paid: {formatCurrency(allocation.total_paid)}
+                  </td>
+                  <td className={`px-4 py-3 text-right tabular-nums ${allocation.total_outstanding > 0 ? "text-red-700" : "text-gray-500"}`}>
+                    {formatCurrency(allocation.total_outstanding)}
+                  </td>
+                  <td className="px-4 py-3" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ═══════ Quick Stats (hidden on print) ═══════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 print:hidden">

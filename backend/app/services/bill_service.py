@@ -278,10 +278,13 @@ class BillService:
     def record_payment(db: Session, bill_id: UUID, data: BillPaymentUpdate, user_id: UUID) -> Bill:
         """Record a (partial or full) payment against an existing Bill.
 
-        - Caps the applied amount at the outstanding balance so the bill
-          can never be over-paid.
-        - Creates a 'payment' FinancialTransaction.
-        - Decrements the party balance by the applied amount.
+        If `data.amount` exceeds the bill's outstanding balance, the excess
+        is posted as a SECOND unlinked `payment` transaction (no bill_id).
+        That excess shows up as an advance for the party and is swept into
+        future bills automatically by AllocationService (FIFO).
+
+        - Creates 1 or 2 `payment` FinancialTransactions.
+        - Decrements the party balance by the TOTAL amount recorded.
         - Advances payment_status to 'partial' or 'paid' as appropriate.
         """
         bill = (
@@ -292,33 +295,58 @@ class BillService:
         )
         if not bill:
             raise ValueError("Bill not found")
-        if bill.payment_status == "paid":
-            raise ValueError("Bill is already fully paid")
 
-        # Recompute amount_paid from linked transactions before capping
+        # Recompute amount_paid from linked transactions before splitting
         BillService._recompute_amount_paid(db, bill)
 
-        # Cap payment at the remaining outstanding amount
-        outstanding = bill.amount_due - bill.amount_paid
-        amount = min(data.amount, outstanding)
+        total = Decimal(str(data.amount))
+        outstanding = Decimal(str(bill.amount_due)) - Decimal(str(bill.amount_paid))
+        if outstanding < Decimal("0"):
+            outstanding = Decimal("0")
 
-        # Post payment transaction to the ledger, linked to this bill
-        txn = FinancialTransaction(
-            party_id=bill.party_id,
-            order_id=bill.order_id,
-            bill_id=bill.id,
-            transaction_type="payment",
-            amount=amount,
-            payment_method=data.payment_method,
-            reference_number=bill.bill_number,
-            description=data.notes or f"Payment for Bill #{bill.bill_number}",
-            transaction_date=date_type.today(),
-            created_by=user_id,
-        )
-        db.add(txn)
+        # Split: apply up to `outstanding` against the bill, remainder becomes advance
+        linked_amount = min(total, outstanding)
+        excess_amount = total - linked_amount
+
+        if linked_amount <= Decimal("0") and excess_amount <= Decimal("0"):
+            raise ValueError("Payment amount must be greater than zero")
+
+        today = date_type.today()
+        description = data.notes or f"Payment for Bill #{bill.bill_number}"
+
+        if linked_amount > Decimal("0"):
+            linked_txn = FinancialTransaction(
+                party_id=bill.party_id,
+                order_id=bill.order_id,
+                bill_id=bill.id,
+                transaction_type="payment",
+                amount=linked_amount,
+                payment_method=data.payment_method,
+                reference_number=bill.bill_number,
+                description=description,
+                transaction_date=today,
+                created_by=user_id,
+            )
+            db.add(linked_txn)
+
+        if excess_amount > Decimal("0"):
+            advance_txn = FinancialTransaction(
+                party_id=bill.party_id,
+                order_id=None,
+                bill_id=None,
+                transaction_type="payment",
+                amount=excess_amount,
+                payment_method=data.payment_method,
+                reference_number=None,
+                description=f"Advance payment (excess over Bill #{bill.bill_number})",
+                transaction_date=today,
+                created_by=user_id,
+            )
+            db.add(advance_txn)
+
         db.flush()
 
-        # Decrement party balance (lock row to avoid races)
+        # Decrement party balance by TOTAL recorded (lock row to avoid races)
         if bill.party_id:
             party = (
                 db.query(Party)
@@ -327,9 +355,9 @@ class BillService:
                 .first()
             )
             if party:
-                party.balance -= amount
+                party.balance -= total
 
-        # Recompute bill totals and status from all linked transactions
+        # Recompute bill totals and status from linked transactions only
         BillService._recompute_amount_paid(db, bill)
 
         db.commit()
