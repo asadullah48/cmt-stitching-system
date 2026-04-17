@@ -3,18 +3,44 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { partiesService, transactionsService } from "@/hooks/services";
-import { formatDate, formatCurrency, balanceColor, todayInputDate } from "@/hooks/utils";
+import { formatDate, formatCurrency, todayInputDate } from "@/hooks/utils";
 import { Button, Sheet, Spinner, Input } from "@/components/common";
 import { TransactionForm } from "@/components/financial";
 import type { Party, PartyLedgerResponse, FinancialTransaction, BillAllocationResponse } from "@/hooks/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+// Party-account convention (matches the user's spreadsheet):
+//   DEBIT / RECEIVABLE  ← bills, expenses, invoiced items  (party owes us more)
+//   CREDIT / ADVANCE    ← payments, adjustments              (party paid us)
+// Running balance displayed: positive = advance with us, negative = receivable from party.
 
-function isDebit(tx: FinancialTransaction) {
-  return tx.transaction_type === "payment" || tx.transaction_type === "expense" || tx.transaction_type === "expense_material" || tx.transaction_type === "expense_transport" || tx.transaction_type === "expense_misc";
+const RECEIVABLE_TYPES = new Set([
+  "income",
+  "accessories",
+  "packing",
+  "misc",
+  "expense",
+  "expense_material",
+  "expense_transport",
+  "expense_misc",
+  "purchase",
+  "stock_consumption",
+]);
+const ADVANCE_TYPES = new Set(["payment", "adjustment"]);
+
+function isReceivable(tx: FinancialTransaction) {
+  return RECEIVABLE_TYPES.has(tx.transaction_type);
 }
-function isCredit(tx: FinancialTransaction) {
-  return tx.transaction_type === "income" || tx.transaction_type === "accessories" || tx.transaction_type === "packing";
+function isAdvance(tx: FinancialTransaction) {
+  return ADVANCE_TYPES.has(tx.transaction_type);
+}
+
+// Format a signed amount using the sheet's convention:
+//   positive → "1,234"     negative → "(1,234)"     zero → "—"
+function fmtSigned(n: number): string {
+  if (n === 0) return "—";
+  if (n < 0) return `(${formatCurrency(-n)})`;
+  return formatCurrency(n);
 }
 
 // ─── Bill Preview Modal ───────────────────────────────────────────────────────
@@ -160,27 +186,48 @@ function BillPreview({
 }
 
 const TYPE_BADGE: Record<string, string> = {
-  income:            "bg-green-100 text-green-700",
+  payment:           "bg-green-100 text-green-700",
+  adjustment:        "bg-purple-100 text-purple-700",
+  income:            "bg-blue-100 text-blue-700",
   accessories:       "bg-teal-100 text-teal-700",
-  packing:           "bg-blue-100 text-blue-700",
+  packing:           "bg-indigo-100 text-indigo-700",
+  misc:              "bg-slate-100 text-slate-700",
   expense_material:  "bg-orange-100 text-orange-700",
   expense_transport: "bg-orange-100 text-orange-700",
   expense_misc:      "bg-orange-100 text-orange-700",
   expense:           "bg-orange-100 text-orange-700",
-  payment:           "bg-red-100 text-red-700",
-  adjustment:        "bg-purple-100 text-purple-700",
+  purchase:          "bg-orange-100 text-orange-700",
+  stock_consumption: "bg-orange-100 text-orange-700",
 };
 
 const TYPE_LABEL: Record<string, string> = {
+  payment:           "Payment",
+  adjustment:        "Adjustment",
   income:            "Income",
   accessories:       "Accessories",
   packing:           "Packing",
-  expense_material:  "Exp. Material",
-  expense_transport: "Exp. Transport",
-  expense_misc:      "Exp. Misc",
+  misc:              "Misc",
+  expense_material:  "Exp-Material",
+  expense_transport: "Exp-Transport",
+  expense_misc:      "Exp-Miscellance",
   expense:           "Expense",
-  payment:           "Payment",
-  adjustment:        "Adjustment",
+  purchase:          "Purchase",
+  stock_consumption: "Stock Consumption",
+};
+
+const TYPE_MEANING: Record<string, string> = {
+  payment:           "Cash advance / payments received from party",
+  adjustment:        "Balance adjustment",
+  income:            "Work/order income invoiced to party",
+  accessories:       "Accessories purchased for the order",
+  packing:           "Packing materials & labour",
+  misc:              "Miscellaneous billed items",
+  expense_material:  "Material cost (thread, fabric, etc.)",
+  expense_transport: "Transport / freight charges",
+  expense_misc:      "Miscellaneous expenses",
+  expense:           "Expense",
+  purchase:          "Purchase",
+  stock_consumption: "Stock consumption",
 };
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -225,21 +272,31 @@ export default function PartyLedgerPage() {
 
   // ─── Filtered & computed ledger rows ────────────────────────────────────────
 
-  const { openingBalance, filteredRows, totalDebit, totalCredit, closingBalance } =
+  const { openingBalance, filteredRows, totalDebit, totalCredit, closingBalance, typeSummary } =
     useMemo(() => {
-      if (!ledger) return { openingBalance: 0, filteredRows: [] as (FinancialTransaction & { running: number })[], totalDebit: 0, totalCredit: 0, closingBalance: 0 };
+      if (!ledger) return {
+        openingBalance: 0,
+        filteredRows: [] as (FinancialTransaction & { running: number })[],
+        totalDebit: 0,
+        totalCredit: 0,
+        closingBalance: 0,
+        typeSummary: [] as { type: string; count: number; debit: number; credit: number }[],
+      };
 
       // Sort all transactions ASC by date
       const sorted = [...ledger.transactions].sort(
         (a, b) => a.transaction_date.localeCompare(b.transaction_date) || a.created_at.localeCompare(b.created_at)
       );
 
-      // Compute opening balance = sum of all transactions BEFORE dateFrom
+      // Opening balance = Σ(advance) − Σ(receivable) for everything BEFORE dateFrom.
+      // Positive = advance with us, negative = receivable from party.
       let opening = 0;
       if (dateFrom) {
         for (const tx of sorted) {
           if (tx.transaction_date < dateFrom) {
-            opening += isCredit(tx) ? Number(tx.amount) : -Number(tx.amount);
+            const n = Number(tx.amount);
+            if (isAdvance(tx)) opening += n;
+            else if (isReceivable(tx)) opening -= n;
           }
         }
       }
@@ -251,21 +308,35 @@ export default function PartyLedgerPage() {
         return true;
       });
 
-      // Build running balance from opening
       let running = opening;
-      let debit = 0;
-      let credit = 0;
+      let debit = 0;   // total receivable (bills + expenses)
+      let credit = 0;  // total advance (payments)
 
       const rows = inRange.map((tx) => {
-        if (isCredit(tx)) {
-          credit += Number(tx.amount);
-          running += Number(tx.amount);
-        } else {
-          debit += Number(tx.amount);
-          running -= Number(tx.amount);
+        const n = Number(tx.amount);
+        if (isAdvance(tx)) {
+          credit += n;
+          running += n;
+        } else if (isReceivable(tx)) {
+          debit += n;
+          running -= n;
         }
         return { ...tx, running };
       });
+
+      // Group filtered rows by transaction_type for the summary card
+      const grouped: Record<string, { type: string; count: number; debit: number; credit: number }> = {};
+      for (const tx of inRange) {
+        const key = tx.transaction_type;
+        if (!grouped[key]) grouped[key] = { type: key, count: 0, debit: 0, credit: 0 };
+        grouped[key].count += 1;
+        const n = Number(tx.amount);
+        if (isAdvance(tx)) grouped[key].credit += n;
+        else if (isReceivable(tx)) grouped[key].debit += n;
+      }
+      const typeSummary = Object.values(grouped).sort((a, b) =>
+        (b.credit + b.debit) - (a.credit + a.debit)
+      );
 
       return {
         openingBalance: opening,
@@ -273,6 +344,7 @@ export default function PartyLedgerPage() {
         totalDebit: debit,
         totalCredit: credit,
         closingBalance: running,
+        typeSummary,
       };
     }, [ledger, dateFrom, dateTo]);
 
@@ -422,7 +494,7 @@ export default function PartyLedgerPage() {
       : "Present";
 
     const balanceLabel =
-      closingBalance > 0 ? "Receivable" : closingBalance < 0 ? "Payable" : "Settled";
+      closingBalance > 0 ? "Advance" : closingBalance < 0 ? "Receivable" : "Settled";
 
     const divider = "━━━━━━━━━━━━━━━━━━━";
 
@@ -434,7 +506,7 @@ export default function PartyLedgerPage() {
       });
       const type = TYPE_LABEL[tx.transaction_type] ?? tx.transaction_type;
       const desc = tx.description ?? "—";
-      const amount = isDebit(tx)
+      const amount = isReceivable(tx)
         ? `Dr PKR ${formatCurrency(tx.amount)}`
         : `Cr PKR ${formatCurrency(tx.amount)}`;
       return `${date} | ${type} | ${desc} | ${amount}`;
@@ -452,8 +524,8 @@ export default function PartyLedgerPage() {
       truncationNote +
       txLines.join("\n") +
       `\n${divider}\n` +
-      `Total Debit: PKR ${formatCurrency(totalDebit)}\n` +
-      `Total Credit: PKR ${formatCurrency(totalCredit)}\n` +
+      `Total Receivable (Dr): PKR ${formatCurrency(totalDebit)}\n` +
+      `Total Advance (Cr): PKR ${formatCurrency(totalCredit)}\n` +
       `Closing Balance: PKR ${formatCurrency(Math.abs(closingBalance))} (${balanceLabel})\n` +
       `${divider}\n` +
       `_Generated by CMT Stitching System_`;
@@ -472,7 +544,9 @@ export default function PartyLedgerPage() {
   }
 
   if (!ledger || !party) return null;
-  const { balance } = ledger;
+  // Backend `balance` uses the accountant convention: positive = party owes us.
+  // Flip to the sheet convention: positive = advance with us, negative = receivable.
+  const balance = -ledger.balance;
 
   const today = new Date().toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -571,15 +645,78 @@ export default function PartyLedgerPage() {
             </div>
             <div className="text-right">
               <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold">Current Balance</p>
-              <p className={`text-2xl font-bold mt-0.5 tabular-nums ${balanceColor(balance)}`}>
-                PKR {formatCurrency(Math.abs(balance))}
+              <p className={`text-2xl font-bold mt-0.5 tabular-nums ${balance > 0 ? "text-green-600" : balance < 0 ? "text-red-600" : "text-gray-400"}`}>
+                {balance < 0 ? `(PKR ${formatCurrency(-balance)})` : balance > 0 ? `PKR ${formatCurrency(balance)}` : "—"}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">
-                {balance > 0 ? "Receivable" : balance < 0 ? "Payable" : "Settled"}
+                {balance > 0 ? "Advance (with us)" : balance < 0 ? "Receivable (party owes)" : "Settled"}
               </p>
             </div>
           </div>
         </div>
+
+        {/* ─── Transaction Type Summary ──────────────────────────── */}
+        {typeSummary.length > 0 && (
+          <div className="border-b border-gray-100 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Transaction Type</th>
+                  <th className="px-4 py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Count</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Debit</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Credit</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Net (Cr−Dr)</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Meaning</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {typeSummary.map((s) => {
+                  const net = s.credit - s.debit;
+                  return (
+                    <tr key={s.type} className="hover:bg-blue-50/30">
+                      <td className="px-4 py-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${TYPE_BADGE[s.type] ?? "bg-gray-100 text-gray-600"}`}>
+                          {TYPE_LABEL[s.type] ?? s.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-center tabular-nums text-gray-700">{s.count}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-red-600">
+                        {s.debit > 0 ? formatCurrency(s.debit) : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums text-green-600">
+                        {s.credit > 0 ? formatCurrency(s.credit) : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className={`px-4 py-2 text-right tabular-nums font-semibold ${net > 0 ? "text-green-700" : net < 0 ? "text-red-700" : "text-gray-400"}`}>
+                        {fmtSigned(net)}
+                      </td>
+                      <td className="px-4 py-2 text-xs text-gray-500">
+                        {TYPE_MEANING[s.type] ?? ""}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50 border-t border-gray-200 font-semibold">
+                  <td className="px-4 py-2.5 text-gray-700">Grand Total</td>
+                  <td className="px-4 py-2.5 text-center tabular-nums text-gray-700">
+                    {typeSummary.reduce((a, s) => a + s.count, 0)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-red-700">
+                    {formatCurrency(totalDebit)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-green-700">
+                    {formatCurrency(totalCredit)}
+                  </td>
+                  <td className={`px-4 py-2.5 text-right tabular-nums ${(totalCredit - totalDebit) > 0 ? "text-green-700" : (totalCredit - totalDebit) < 0 ? "text-red-700" : "text-gray-400"}`}>
+                    {fmtSigned(totalCredit - totalDebit)}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
 
         {/* ─── Date Filters (hidden on print) ────────────────────── */}
         <div className="px-6 py-3 bg-gray-50/60 border-b border-gray-100 flex items-center gap-3 print:hidden">
@@ -621,8 +758,8 @@ export default function PartyLedgerPage() {
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider">Description</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider">Reference</th>
                 <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider">Method</th>
-                <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Debit</th>
-                <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Credit</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Debit / Receivable</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Credit / Advance</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider">Balance</th>
                 <th className="px-4 py-2.5 print:hidden" />
               </tr>
@@ -640,9 +777,9 @@ export default function PartyLedgerPage() {
                 <td className="px-4 py-2.5 text-right tabular-nums text-gray-400">—</td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-gray-400">—</td>
                 <td className={`px-4 py-2.5 text-right tabular-nums font-bold ${
-                  openingBalance >= 0 ? "text-gray-900" : "text-red-600"
+                  openingBalance > 0 ? "text-green-700" : openingBalance < 0 ? "text-red-600" : "text-gray-400"
                 }`}>
-                  {formatCurrency(openingBalance)}
+                  {fmtSigned(openingBalance)}
                 </td>
                 <td className="print:hidden" />
               </tr>
@@ -687,7 +824,7 @@ export default function PartyLedgerPage() {
                       {tx.payment_method?.replace("_", " ") ?? "—"}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">
-                      {isDebit(tx) ? (
+                      {isReceivable(tx) ? (
                         <span className="text-red-600 font-medium">
                           {formatCurrency(tx.amount)}
                         </span>
@@ -696,7 +833,7 @@ export default function PartyLedgerPage() {
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">
-                      {isCredit(tx) ? (
+                      {isAdvance(tx) ? (
                         <span className="text-green-600 font-medium">
                           {formatCurrency(tx.amount)}
                         </span>
@@ -705,9 +842,9 @@ export default function PartyLedgerPage() {
                       )}
                     </td>
                     <td className={`px-4 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap ${
-                      tx.running >= 0 ? "text-gray-900" : "text-red-600"
+                      tx.running > 0 ? "text-green-700" : tx.running < 0 ? "text-red-600" : "text-gray-400"
                     }`}>
-                      {formatCurrency(tx.running)}
+                      {fmtSigned(tx.running)}
                     </td>
                     <td className="px-2 py-2.5 print:hidden">
                       <div className="flex items-center gap-1">
@@ -756,14 +893,20 @@ export default function PartyLedgerPage() {
                   Closing Balance
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums" colSpan={2}>
-                  {closingBalance >= 0 ? (
-                    <span className="text-green-300">Net Receivable</span>
+                  {closingBalance > 0 ? (
+                    <span className="text-green-300">Advance (with us)</span>
+                  ) : closingBalance < 0 ? (
+                    <span className="text-red-300">Net Receivable</span>
                   ) : (
-                    <span className="text-red-300">Net Payable</span>
+                    <span className="text-gray-300">Settled</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-lg">
-                  PKR {formatCurrency(Math.abs(closingBalance))}
+                  {closingBalance < 0
+                    ? `(PKR ${formatCurrency(-closingBalance)})`
+                    : closingBalance > 0
+                    ? `PKR ${formatCurrency(closingBalance)}`
+                    : "—"}
                 </td>
               </tr>
             </tfoot>
@@ -870,13 +1013,13 @@ export default function PartyLedgerPage() {
       {/* ═══════ Quick Stats (hidden on print) ═══════ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 print:hidden">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <p className="text-xs text-gray-500 font-medium">Total Debit</p>
+          <p className="text-xs text-gray-500 font-medium">Total Receivable (Dr)</p>
           <p className="text-xl font-bold mt-1 tabular-nums text-red-600">
             PKR {formatCurrency(totalDebit)}
           </p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <p className="text-xs text-gray-500 font-medium">Total Credit</p>
+          <p className="text-xs text-gray-500 font-medium">Total Advance (Cr)</p>
           <p className="text-xl font-bold mt-1 tabular-nums text-green-600">
             PKR {formatCurrency(totalCredit)}
           </p>
