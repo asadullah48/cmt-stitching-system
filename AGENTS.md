@@ -70,8 +70,8 @@ cmt-stitching-system/
 │   │   └── api/v1/
 │   │       ├── router.py       # Aggregates all endpoint routers
 │   │       └── endpoints/      # One file per domain
-│   ├── alembic/versions/       # Migration chain (23 migrations, HEAD: 750a1916cced)
-│   ├── scripts/                # One-time and operational scripts (see scripts/README.md)
+│   ├── alembic/versions/       # Migration chain — HEAD tracked below
+│   ├── scripts/                # Operational scripts (see scripts/README.md)
 │   ├── pyproject.toml          # Python project (requires >=3.13)
 │   └── requirements.txt        # pip fallback (keep in sync with pyproject.toml)
 ├── frontend/
@@ -81,7 +81,7 @@ cmt-stitching-system/
 │   │   │   ├── (dashboard)/    # All protected routes
 │   │   │   └── share/          # Public share route (no auth — bill share links)
 │   │   ├── components/         # Reusable UI (common.tsx, dashboard.tsx, …)
-│   │   ├── hooks/              # services.ts/.tsx, store.tsx, types.ts/.tsx, utils.ts/.tsx
+│   │   ├── hooks/              # services.ts, types.ts, utils.ts, store.tsx, toast.tsx
 │   │   └── middleware.ts       # Route protection
 │   ├── .env.local              # NEXT_PUBLIC_API_URL (local dev)
 │   └── .env.production         # NEXT_PUBLIC_API_URL (production)
@@ -119,23 +119,11 @@ sub_orders = relationship("Order",
 ```
 C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\<name>.py
 ```
-Current HEAD: `750a1916cced` (add_party_type_and_bill_rate_templates)
-
-**Migration chain:**
-```
-4d1e3598580f → a1b2c3d4e5f6 → b2c3d4e5f6a7 → c3d4e5f6a7b8 → d4e5f6a7b8c9
-→ e5f6a7b8c9d0 → f6a7b8c9d0e1 → g7b8c9d0e1f2 → h8c9d0e1f2g3 → i9d0e1f2g3h4
-→ j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9
-→ o5j6k7l8m9n0 → p6k7l8m9n0o1 → q7l8m9n0o1p2 → r8m9n0o1p2q3 → s9n0o1p2q3r4
-→ 860bf63b6a35 → 6372e9df1d35 → 750a1916cced [HEAD]
-```
+Current HEAD: `040840699daa`. Run `cd backend && alembic heads` to confirm.
 
 ### Frontend
 
-**Duplicate hook files** — BOTH `.ts` and `.tsx` versions exist and must be kept in sync:
-- `src/hooks/services.ts` + `src/hooks/services.tsx`
-- `src/hooks/types.ts` + `src/hooks/tpes.tsx` (note the typo in `.tsx` — intentional, do not rename)
-- `src/hooks/utils.ts` + `src/hooks/utils.tsx`
+**Hook files** — single-source-of-truth. Only `services.ts`, `types.ts`, `utils.ts` exist (plus `store.tsx` and `toast.tsx` for React context / JSX). The old `.tsx` duplicates were removed; do not re-introduce them.
 
 **API calls** — always go through `src/hooks/services.ts` (axios client with auth interceptors).
 
@@ -282,8 +270,8 @@ npm run dev
 
 3. Frontend page needed?
    YES → Add page in src/app/(dashboard)/
-       → Add service call in src/hooks/services.ts AND services.tsx
-       → Add types in src/hooks/types.ts AND tpes.tsx (keep both in sync)
+       → Add service call in src/hooks/services.ts
+       → Add types in src/hooks/types.ts
        → Register in sidebar nav in (dashboard)/layout.tsx
 ```
 

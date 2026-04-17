@@ -25,7 +25,7 @@ function isDue(exp: OverheadExpense): boolean {
 
 // ─── Balance Card ─────────────────────────────────────────────────────────────
 
-function BalanceCard({ account, onAdjust }: { account: CashAccount; onAdjust: (a: CashAccount) => void }) {
+function BalanceCard({ account, onAdjust, onEdit }: { account: CashAccount; onAdjust: (a: CashAccount) => void; onEdit: (a: CashAccount) => void }) {
   const isCash = account.account_type === "cash";
   const reserve = Number(account.reserve_amount ?? 0);
   const available = Number(account.current_balance) - reserve;
@@ -39,9 +39,14 @@ function BalanceCard({ account, onAdjust }: { account: CashAccount; onAdjust: (a
           </p>
           {account.note && <p className="text-xs text-gray-400 mt-1">{account.note}</p>}
         </div>
-        <button onClick={() => onAdjust(account)} className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors">
-          + Entry
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => onEdit(account)} className="text-xs px-2 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors" title="Edit opening balance / reserve">
+            Edit
+          </button>
+          <button onClick={() => onAdjust(account)} className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors">
+            + Entry
+          </button>
+        </div>
       </div>
       {reserve > 0 && (
         <div className="mt-3 pt-3 border-t border-black/10 flex items-center justify-between text-xs">
@@ -57,6 +62,66 @@ function BalanceCard({ account, onAdjust }: { account: CashAccount; onAdjust: (a
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Edit Account Sheet ──────────────────────────────────────────────────────
+
+function EditAccountSheet({ account, onClose, onSaved }: { account: CashAccount; onClose: () => void; onSaved: () => void }) {
+  const [openingBalance, setOpeningBalance] = useState<number>(Number(account.opening_balance ?? 0));
+  const [reserveAmount, setReserveAmount] = useState<number>(Number(account.reserve_amount ?? 0));
+  const [note, setNote] = useState<string>(account.note ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await cashAccountService.update(account.id, {
+        opening_balance: openingBalance,
+        reserve_amount: reserveAmount,
+        note: note || undefined,
+      });
+      onSaved();
+      onClose();
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="flex-1 bg-black/40" onClick={onClose} />
+      <div className="w-full max-w-sm bg-white shadow-xl flex flex-col">
+        <div className="px-6 py-4 border-b flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900">Edit — {account.name}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+        <form onSubmit={submit} className="flex-1 px-6 py-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Opening Balance (PKR)</label>
+            <input type="number" min={0} value={openingBalance || ""}
+              onChange={(e) => setOpeningBalance(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p className="text-xs text-gray-400 mt-1">Starting cash balance before any entries were recorded.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Reserve / Minimum to Keep (PKR)</label>
+            <input type="number" min={0} value={reserveAmount || ""}
+              onChange={(e) => setReserveAmount(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p className="text-xs text-gray-400 mt-1">Safety floor — not a balance. Available = current − reserve.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Note</label>
+            <input value={note} onChange={(e) => setNote(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g. HBL 0123456" />
+          </div>
+          <button type="submit" disabled={saving} className="mt-auto w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -277,6 +342,7 @@ export default function OverheadPage() {
   const [selectedAccount, setSelectedAccount] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [entrySheet, setEntrySheet] = useState<CashAccount | null>(null);
+  const [editSheet, setEditSheet] = useState<CashAccount | null>(null);
   const [expenseSheet, setExpenseSheet] = useState<OverheadExpense | null | "new">(null);
   const [payModal, setPayModal] = useState<OverheadExpense | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
@@ -331,7 +397,7 @@ export default function OverheadPage() {
 
       {/* Balance cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {accounts.map((a) => <BalanceCard key={a.id} account={a} onAdjust={setEntrySheet} />)}
+        {accounts.map((a) => <BalanceCard key={a.id} account={a} onAdjust={setEntrySheet} onEdit={setEditSheet} />)}
       </div>
 
       {/* Tabs */}
@@ -465,6 +531,7 @@ export default function OverheadPage() {
 
       {/* Modals */}
       {entrySheet && <EntrySheet account={entrySheet} onClose={() => setEntrySheet(null)} onSaved={reload} />}
+      {editSheet && <EditAccountSheet account={editSheet} onClose={() => setEditSheet(null)} onSaved={reload} />}
       {expenseSheet !== null && <ExpenseSheet expense={expenseSheet === "new" ? null : expenseSheet} onClose={() => setExpenseSheet(null)} onSaved={reload} />}
       {payModal && <PayModal expense={payModal} accounts={accounts} onClose={() => setPayModal(null)} onPaid={reload} />}
     </div>

@@ -43,3 +43,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Playwright MCP output (local screenshots/snapshots)
+.playwright-mcp/
+.claude-dev-helper/

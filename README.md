@@ -1,103 +1,52 @@
 # CMT Stitching System
 
-Production management system for a CMT (Cut, Make, Trim) stitching and packing department. Tracks orders through the full lifecycle, manages financials, inventory, auto-billing, and dispatch.
+A simple, friendly production-management system for a CMT (Cut-Make-Trim) stitching and packing business. Track orders through the full lifecycle, manage billing and cash, run reports, and share read-only bill links — all from one dashboard.
+
+Built for small teams (1–5 users, <500 orders/month). Optimised for clarity, not scale.
 
 ## Live URLs
 
-| Service | URL |
-|---------|-----|
-| Frontend | https://cmt-stitching-asadullah-shafiques-projects.vercel.app |
-| Backend API | https://level-hazel-agenticengineer-d513213b.koyeb.app/api/v1 |
-| API Docs | https://level-hazel-agenticengineer-d513213b.koyeb.app/docs |
+| | URL |
+|--|--|
+| **App** | https://cmt-stitching-asadullah-shafiques-projects.vercel.app |
+| **API** | https://level-hazel-agenticengineer-d513213b.koyeb.app/api/v1 |
+| **API Docs** | https://level-hazel-agenticengineer-d513213b.koyeb.app/docs |
 
-> Backend runs on Koyeb (always-on, no cold start). Both services auto-deploy on push to `master`.
+Both services auto-deploy on push to `master`. Backend (Koyeb) is always-on — no cold start.
 
-## Tech Stack
+---
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS v4 |
-| Backend | FastAPI 0.116+, SQLAlchemy 2.0, Pydantic v2, Alembic |
-| Database | PostgreSQL (Neon) — shared DB, all tables prefixed `cmt_` |
-| Auth | JWT, roles: `admin` \| `operator` \| `accountant` |
-| Package manager | `uv` (backend), `npm` (frontend) |
-| Deployment | Vercel (frontend), Koyeb (backend) |
+## What you can do
 
-## Features
+- 📋 **Orders** — full lifecycle from `pending` through `dispatched`, with sub-orders and lot numbers
+- 🧵 **Production** — log stitching / packing sessions, track QC checkpoints and defects
+- 🧾 **Bills** — four series (A stitching, B accessories, C packing, D misc); auto-generated on dispatch from rate templates
+- 💰 **Cash & Overhead** — two accounts (Cash In Hand + Bank) with running balances, reserves, and overhead expense tracking
+- 📒 **Ledgers** — per-party receivable/payable history + general ledger; CSV export
+- 📦 **Inventory** — categories, items, stock moves; BOM auto-consumes inventory on production
+- 🚚 **Dispatch** — carrier + tracking + carton count; one-click *Dispatch & Bill*
+- ✅ **Todos** — priorities, categories, recurring
+- 📊 **Dashboard** — active orders, pipeline, cash position, smart alerts
+- 🔗 **Share links** — public read-only bill URLs (no login needed)
 
-### Orders & Production
-- **Orders** — Full lifecycle: `pending → stitching_in_progress → stitching_complete → packing_in_progress → packing_complete → dispatched`
-- **Production Sessions** — Log stitching and packing sessions with machine count and hours per order
-- **Lot Numbers & Sub-Orders** — Per-party sequential lot numbers; sub-orders with configurable packing stages
-- **Quality Control** — Checkpoints and defect logging per order
+---
 
-### Billing & Finance
-- **Auto-Bill Generation** — On dispatch, bills are automatically created from rate templates keyed to the product type. Customer bills (A/C series) + Labour/Vendor payable entries generated in one click
-- **Bill Rate Templates** — Editable rate table in Settings: customer rate, labour rate, vendor rate per product type and series
-- **Bill Series** — A (stitching), B (accessories/misc), C (packing); one order can carry all three, each appearing separately in the ledger
-- **Manual Bills** — Auto-numbered bills, partial/full payment tracking, bill delete with ledger reversal
-- **Standalone Bills** — Bills without a linked order for direct party charges
-- **Party Ledger** — Per-party receivable/payable history with running balance and CSV export
-- **General Ledger** — All transaction types: `income`, `packing`, `accessories`, `payment`, `expense_material`, `expense_transport`, `expense_misc`, `purchase`, `stock_consumption`, `adjustment`
-- **Three-Ledger System** — Party (receivable), CMT Labour (payable), CMT Vendors (payable); use party type filter (Customers / Labour / Vendors) on the Parties page
-
-### Inventory & Expenses
-- **Inventory** — Categories, items, stock adjustments (in/out) with full history
-- **BOM / Material Requirements** — Product templates with bill-of-materials; auto-consumes inventory on production
-- **Expense Sub-types** — Material, transport, and miscellaneous expenses tracked separately
-
-### Operations
-- **Dispatch** — Mark orders dispatched with carrier, tracking number, carton count, and weight
-- **Todos** — Task management with priority, category, due dates, and recurring schedules
-- **Overhead & Cash** — Fixed business costs (rent, wages, utilities) with unpaid/paid status. Two cash accounts (Cash In Hand + Bank) with reserve amounts and running balance ledger
-- **Share Links** — Token-based read-only bill URLs, shareable without login
-
-### Dashboard & Insights
-- **Dashboard** — Live KPIs: active orders, monthly revenue, stitching/packing progress, cash position
-- **Income Summary** — Per-order profit: gross income minus labour, transport, loading, rent, and miscellaneous
-
-## Order Status Lifecycle
-
-```
-pending → stitching_in_progress → stitching_complete
-        → packing_in_progress → packing_complete → dispatched
-```
-
-## Project Structure
-
-```
-cmt-stitching-system/
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/endpoints/   # FastAPI routers (one file per domain)
-│   │   ├── models/             # SQLAlchemy ORM models (cmt_ prefix)
-│   │   ├── schemas/            # Pydantic v2 request/response schemas
-│   │   ├── services/           # Business logic layer
-│   │   └── main.py
-│   ├── alembic/                # Database migrations
-│   └── pyproject.toml
-├── frontend/
-│   └── src/
-│       ├── app/                # Next.js App Router pages
-│       │   ├── (auth)/         # login, register
-│       │   ├── (dashboard)/    # All protected routes
-│       │   └── share/          # Public bill share route
-│       ├── components/         # Reusable UI components
-│       └── hooks/              # services, types, utils (dual .ts/.tsx)
-└── docs/
-    └── plans/                  # Architecture and feature planning docs
-```
-
-## Local Development
+## Quick start (local)
 
 ### Backend
 
 ```bash
 cd backend
-uv sync
-cp .env.example .env            # Set DATABASE_URL, SECRET_KEY
-uv run alembic upgrade head
-uv run uvicorn app.main:app --reload
+uv sync                                   # install deps (uses uv.lock)
+cp .env.example .env                      # fill DATABASE_URL + SECRET_KEY
+uv run alembic upgrade head               # migrate
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+Boot check (always run before pushing):
+
+```bash
+cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App OK')"
 ```
 
 ### Frontend
@@ -105,23 +54,84 @@ uv run uvicorn app.main:app --reload
 ```bash
 cd frontend
 npm install
-# .env.local: NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-npm run dev
+# .env.local:  NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+npm run dev                               # http://localhost:3000
 ```
 
-## Environment Variables
+TypeScript check before pushing (catches what Vercel's build would):
+
+```bash
+cd frontend && npx tsc --noEmit
+```
+
+---
+
+## Adding data (how the app actually gets used)
+
+Most day-to-day work goes through the UI — no scripts, no SQL.
+
+| Want to... | Go to |
+|-----------|-------|
+| Create a new order | **Orders → + New Order** (or dashboard *Quick Actions*) |
+| Log production work | **Production → Start Batch** |
+| Record QC / defects | **Quality** |
+| Issue a bill | Auto on *Dispatch & Bill*, or **Bills → + New Bill** for manual/standalone |
+| Add a cash entry | **Overhead → + Entry** (credit/debit per account) |
+| Set opening balance / reserve | **Overhead → Edit** on the balance card |
+| Add an overhead expense | **Overhead → + Add Expense** |
+| View a party's ledger | **Parties → open a party** (balance, CSV export, share link) |
+| Share a bill externally | **Bills → open a bill → Share** (token-based read-only URL) |
+| Manage rate templates | **Settings → Bill Rate Templates** |
+| Adjust alert thresholds | **Settings → Smart Alert Thresholds** |
+
+Bulk ledger import (Excel → API) is also available — see [`backend/scripts/`](./backend/scripts/).
+
+---
+
+## Project layout
+
+```
+cmt-stitching-system/
+├── backend/         FastAPI app — models, schemas, services, endpoints
+│   ├── app/
+│   ├── alembic/     migrations
+│   └── scripts/     operational scripts (ledger import)
+├── frontend/        Next.js 15 app (App Router)
+│   └── src/
+│       ├── app/(auth)/       login, register
+│       ├── app/(dashboard)/  all protected routes
+│       ├── app/share/        public bill share route
+│       ├── components/       reusable UI
+│       └── hooks/            services / types / utils
+└── docs/            planning + design docs (see docs/INDEX.md)
+```
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS v4 |
+| Backend | FastAPI, SQLAlchemy 2.0, Pydantic v2, Alembic |
+| Database | PostgreSQL (Neon, shared — CMT tables prefixed `cmt_`) |
+| Auth | JWT — roles `admin` / `operator` / `accountant` |
+| Package managers | `uv` (backend), `npm` (frontend) |
+| Deployment | Vercel (frontend), Koyeb (backend) |
+
+---
+
+## Environment variables
 
 ### Backend
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string (`asyncpg://` format) |
+| `DATABASE_URL` | Postgres URL (`asyncpg://` format — normalised to `psycopg2` internally) |
 | `SECRET_KEY` | JWT signing secret |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT lifetime in minutes (default: 480) |
-| `ADMIN_USERNAME` | Seeded admin account username |
-| `ADMIN_EMAIL` | Seeded admin account email |
-| `ADMIN_PASSWORD` | Seeded admin account password |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT lifetime (default 480) |
+| `ADMIN_USERNAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Seeded admin account |
 
 ### Frontend
 
@@ -129,23 +139,17 @@ npm run dev
 |----------|-------------|
 | `NEXT_PUBLIC_API_URL` | Backend API base URL |
 
-## Smoke Test
+---
 
-End-to-end test covering all API endpoints.
+## Deploying
 
-```bash
-cd backend
-PYTHONIOENCODING=utf-8 python test_smoke.py --base-url http://localhost:8000/api/v1
-# Keep test data for inspection:
-PYTHONIOENCODING=utf-8 python test_smoke.py --base-url http://localhost:8000/api/v1 --keep
-```
+- **Frontend** → push to `master`; Vercel auto-deploys. Force: `cd frontend && npx vercel --prod --yes`.
+- **Backend** → push to `master`; Koyeb auto-deploys. Start: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 
-## DB Migration Chain
+---
 
-```
-4d1e3598580f → a1b2c3d4e5f6 → b2c3d4e5f6a7 → c3d4e5f6a7b8 → d4e5f6a7b8c9
-→ e5f6a7b8c9d0 → f6a7b8c9d0e1 → g7b8c9d0e1f2 → h8c9d0e1f2g3 → i9d0e1f2g3h4
-→ j0e1f2g3h4i5 → k1f2g3h4i5j6 → l2g3h4i5j6k7 → m3h4i5j6k7l8 → n4i5j6k7l8m9
-→ o5j6k7l8m9n0 → p6k7l8m9n0o1 → q7l8m9n0o1p2 → r8m9n0o1p2q3 → s9n0o1p2q3r4
-→ 860bf63b6a35 → 6372e9df1d35 → 750a1916cced [HEAD]
-```
+## Further reading
+
+- [`CLAUDE.md`](./CLAUDE.md) — rules / conventions for the AI assistant
+- [`AGENTS.md`](./AGENTS.md) — full architecture, endpoints, migration chain
+- [`docs/INDEX.md`](./docs/INDEX.md) — design + planning docs, organised by area
