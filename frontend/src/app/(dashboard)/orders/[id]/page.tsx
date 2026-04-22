@@ -7,8 +7,17 @@ import type { Bill } from "@/hooks/services";
 import { formatDate, formatCurrency } from "@/hooks/utils";
 import { useToast } from "@/hooks/toast";
 import {
-  StatusBadge, Button, Sheet, ConfirmDialog, Spinner, FormField, Input,
+  StatusBadge, Button, ConfirmDialog, Spinner, FormField, Input,
 } from "@/components/common";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardHeader, CardTitle, CardAction, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { OrderStatusSelect, OrderItemsTable, OrderForm } from "@/components/orders";
 import { SessionForm } from "@/components/production";
 import { TransactionForm } from "@/components/financial";
@@ -245,57 +254,63 @@ function PipelineHeader({ order }: { order: Order }) {
   const isFullyDispatched = order.status === "dispatched";
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <div className="flex items-center justify-between relative">
-        {/* Gray connecting line behind steps */}
-        <div className="absolute left-0 right-0 top-5 h-0.5 bg-gray-200 mx-16 z-0" />
-        {/* Blue filled line animating to cover completed steps */}
-        <div
-          className="absolute left-0 top-5 h-0.5 bg-blue-500 z-0 transition-all duration-700"
-          style={{
-            width: `${(activeIdx / 3) * 100}%`,
-            marginLeft: "4rem",
-            marginRight: "4rem",
-          }}
-        />
+    <Card>
+      <CardContent className="pt-6 pb-6">
+        <div className="flex items-center justify-between relative">
+          {/* Muted rail behind steps */}
+          <div className="absolute left-0 right-0 top-5 h-0.5 bg-muted mx-16 z-0" />
+          {/* Primary filled line for completed steps */}
+          <div
+            className="absolute left-0 top-5 h-0.5 bg-primary z-0 transition-all duration-700"
+            style={{
+              width: `${(activeIdx / 3) * 100}%`,
+              marginLeft: "4rem",
+              marginRight: "4rem",
+            }}
+          />
 
-        {STAGES.map((stage, idx) => {
-          const done    = idx < activeIdx || isFullyDispatched;
-          const active  = idx === activeIdx && !isFullyDispatched;
-          const pending = idx > activeIdx;
+          {STAGES.map((stage, idx) => {
+            const done    = idx < activeIdx || isFullyDispatched;
+            const active  = idx === activeIdx && !isFullyDispatched;
+            const pending = idx > activeIdx;
 
-          return (
-            <div key={stage.key} className="flex flex-col items-center gap-2 z-10 flex-1">
-              {/* Circle */}
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-500
-                  ${done    ? "bg-green-500 border-green-500 text-white" : ""}
-                  ${active  ? "bg-blue-600 border-blue-600 text-white animate-pulse" : ""}
-                  ${pending ? "bg-white border-gray-300 text-gray-400" : ""}
-                `}
-              >
-                {done ? "✓" : stage.icon}
+            return (
+              <div key={stage.key} className="flex flex-col items-center gap-2 z-10 flex-1" title={stage.label}>
+                {/* Circle */}
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-500
+                    ${done    ? "bg-primary border-primary text-primary-foreground" : ""}
+                    ${active  ? "bg-primary border-primary text-primary-foreground animate-pulse" : ""}
+                    ${pending ? "bg-background border-muted text-muted-foreground" : ""}
+                  `}
+                >
+                  {done ? "✓" : stage.icon}
+                </div>
+                {/* Label */}
+                {active ? (
+                  <Badge variant="secondary">{stage.label}</Badge>
+                ) : (
+                  <span
+                    className={`text-xs font-semibold text-center ${
+                      done ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  >
+                    {stage.label}
+                  </span>
+                )}
+                {/* Date/state hint */}
+                <span className="text-xs text-muted-foreground text-center">
+                  {idx === 0 && formatDate(order.entry_date)}
+                  {idx === 1 && (active ? `${allocatedDays(order.entry_date, order.delivery_date) ?? "—"} days` : done ? "Complete" : "Pending")}
+                  {idx === 2 && (active ? "In Progress" : done ? "Complete" : "Pending")}
+                  {idx === 3 && (done ? "Dispatched" : "Pending")}
+                </span>
               </div>
-              {/* Label */}
-              <span
-                className={`text-xs font-semibold text-center ${
-                  done ? "text-green-600" : active ? "text-blue-700" : "text-gray-400"
-                }`}
-              >
-                {stage.label}
-              </span>
-              {/* Date/state hint */}
-              <span className="text-xs text-gray-400 text-center">
-                {idx === 0 && formatDate(order.entry_date)}
-                {idx === 1 && (active ? `${allocatedDays(order.entry_date, order.delivery_date) ?? "—"} days` : done ? "Complete" : "Pending")}
-                {idx === 2 && (active ? "In Progress" : done ? "Complete" : "Pending")}
-                {idx === 3 && (done ? "Dispatched" : "Pending")}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1381,81 +1396,79 @@ export default function OrderDetailPage() {
 
   return (
     <div className="space-y-5">
-      {/* Back button + order number/status + Edit/Clone/Delete buttons */}
-      <div>
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <button
           onClick={() => router.push("/orders")}
-          className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1"
+          className="hover:text-foreground transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
           Orders
         </button>
+        <span aria-hidden="true">›</span>
+        <span className="text-foreground font-medium">{order.order_number}</span>
+      </nav>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-semibold text-gray-900">{order.order_number}</h1>
-              <StatusBadge status={order.status} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => window.open(`/orders/${id}/jobcard`, "_blank")}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Job Card
-            </button>
-            <Button size="sm" onClick={() => setEditSheet(true)}>
-              Edit
-            </Button>
-            <button
-              onClick={handleClone}
-              disabled={cloning}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
-            >
-              {cloning ? (
-                <>
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Cloning…
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Clone
-                </>
-              )}
-            </button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setDeleteDialog(true)}
-            >
-              Delete
-            </Button>
-            {!order.sub_suffix && (
-              <button
-                onClick={() => setSubOrderSheetOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
-              >
-                + Sub-Order B
-              </button>
+      {/* Page title + action buttons */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold text-gray-900">{order.order_number}</h1>
+          <StatusBadge status={order.status} />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => window.open(`/orders/${id}/jobcard`, "_blank")}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Job Card
+          </button>
+          <Button size="sm" onClick={() => setEditSheet(true)}>
+            Edit
+          </Button>
+          <button
+            onClick={handleClone}
+            disabled={cloning}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+          >
+            {cloning ? (
+              <>
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Cloning…
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Clone
+              </>
             )}
-          </div>
+          </button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setDeleteDialog(true)}
+          >
+            Delete
+          </Button>
+          {!order.sub_suffix && (
+            <button
+              onClick={() => setSubOrderSheetOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+            >
+              + Sub-Order B
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Party + goods description header card */}
+      {/* Party + goods header — always visible above tabs */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -1476,8 +1489,6 @@ export default function OrderDetailPage() {
             </div>
           )}
         </div>
-
-        {/* Rates */}
         <div className="mt-4 pt-4 border-t border-gray-100">
           <div className="flex gap-8">
             <div className="space-y-1.5">
@@ -1500,135 +1511,194 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Pipeline Header */}
-      {order.sub_suffix === "B" ? (
-        <SubOrderStageTracker order={order} onStageChange={loadOrder} />
-      ) : (
-        <PipelineHeader order={order} />
-      )}
+      {/* ── Tabbed sections ── */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList variant="line" className="w-full justify-start h-10 rounded-none border-b border-border">
+          <TabsTrigger value="overview"     className="h-10 px-4">Overview</TabsTrigger>
+          <TabsTrigger value="materials"    className="h-10 px-4">Materials</TabsTrigger>
+          <TabsTrigger value="accessories"  className="h-10 px-4">Accessories</TabsTrigger>
+          <TabsTrigger value="quality"      className="h-10 px-4">Quality</TabsTrigger>
+          <TabsTrigger value="production"   className="h-10 px-4">Production</TabsTrigger>
+          <TabsTrigger value="dispatch"     className="h-10 px-4">Dispatch</TabsTrigger>
+          <TabsTrigger value="ledger"       className="h-10 px-4">Ledger</TabsTrigger>
+        </TabsList>
 
-      {/* Stage Cards */}
-      <StitchingCard
-        order={order}
-        sessions={stitchSessions}
-        onLogSession={() => setSessionSheet("stitching")}
-        onStatusChange={setOrder}
-      />
+        {/* Overview: pipeline + colour breakdown */}
+        <TabsContent value="overview" className="space-y-4 pt-4">
+          {order.sub_suffix === "B" ? (
+            <SubOrderStageTracker order={order} onStageChange={loadOrder} />
+          ) : (
+            <PipelineHeader order={order} />
+          )}
+          <Card>
+            <CardHeader className="border-b">
+              <CardTitle>Colour Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <OrderItemsTable
+                items={order.items}
+                onSave={async (items) => {
+                  const updated = await ordersService.updateItems(order.id, items);
+                  setOrder(updated);
+                  showToast("Colour breakdown saved");
+                }}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <PackingCard
-        order={order}
-        sessions={packSessions}
-        expenses={expenses}
-        onLogSession={() => setSessionSheet("packing")}
-        onStatusChange={setOrder}
-        onAddExpense={handleAddExpense}
-        onDeleteExpense={handleDeleteExpense}
-      />
+        {/* Materials */}
+        <TabsContent value="materials" className="pt-4">
+          <MaterialRequirementsPanel materials={materials} onEdit={() => setEditSheet(true)} />
+        </TabsContent>
 
-      <DispatchCard order={order} bill={bill} bBill={bBill} cBill={cBill} router={router} onDispatched={loadOrder} />
-
-      {/* Colour Breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Colour Breakdown</h2>
-        <OrderItemsTable
-          items={order.items}
-          onSave={async (items) => {
-            const updated = await ordersService.updateItems(order.id, items);
-            setOrder(updated);
-            showToast("Colour breakdown saved");
-          }}
-        />
-      </div>
-
-      {/* Accessories */}
-      <AccessoriesPanel
-        orderId={order.id}
-        orderQty={order.total_quantity}
-        accessories={accessories}
-        onReload={loadAccessories}
-      />
-
-      {/* Material Requirements */}
-      <MaterialRequirementsPanel materials={materials} onEdit={() => setEditSheet(true)} />
-
-      {/* Cost Summary */}
-      <CostSummaryPanel order={order} expenses={expenses} bill={bill} />
-
-      {/* Sheets */}
-      <Sheet
-        open={!!sessionSheet}
-        onClose={() => setSessionSheet(null)}
-        title={`Log ${sessionSheet === "stitching" ? "Stitching" : "Packing"} Session`}
-      >
-        {sessionSheet && (
-          <SessionForm
-            orderId={id}
-            department={sessionSheet}
-            onSuccess={() => { setSessionSheet(null); loadSessions(); }}
-            onCancel={() => setSessionSheet(null)}
+        {/* Accessories */}
+        <TabsContent value="accessories" className="pt-4">
+          <AccessoriesPanel
+            orderId={order.id}
+            orderQty={order.total_quantity}
+            accessories={accessories}
+            onReload={loadAccessories}
           />
-        )}
-      </Sheet>
+        </TabsContent>
 
-      <Sheet open={txSheet} onClose={() => setTxSheet(false)} title="Record Payment">
-        <TransactionForm
-          orderId={id}
-          partyId={order.party_id ?? undefined}
-          onSuccess={() => { setTxSheet(false); loadTransactions(); }}
-          onCancel={() => setTxSheet(false)}
-        />
-      </Sheet>
+        {/* Quality — placeholder */}
+        <TabsContent value="quality" className="pt-4">
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground text-sm">
+              No quality checkpoints configured for this order.
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Sheet open={editSheet} onClose={() => setEditSheet(false)} title="Edit Order" width="w-[580px]">
-        <OrderForm
-          parties={parties}
-          orderId={order.id}
-          initialData={order}
-          onSuccess={(updated) => { setEditSheet(false); setOrder(updated); showToast("Order updated"); }}
-          onCancel={() => setEditSheet(false)}
-        />
-      </Sheet>
+        {/* Production: stitching + packing */}
+        <TabsContent value="production" className="space-y-4 pt-4">
+          <StitchingCard
+            order={order}
+            sessions={stitchSessions}
+            onLogSession={() => setSessionSheet("stitching")}
+            onStatusChange={setOrder}
+          />
+          <PackingCard
+            order={order}
+            sessions={packSessions}
+            expenses={expenses}
+            onLogSession={() => setSessionSheet("packing")}
+            onStatusChange={setOrder}
+            onAddExpense={handleAddExpense}
+            onDeleteExpense={handleDeleteExpense}
+          />
+        </TabsContent>
 
-      <Sheet open={subOrderSheetOpen} onClose={() => setSubOrderSheetOpen(false)} title="Create Sub-Order B">
-        <div className="space-y-5">
-          <p className="text-sm text-gray-500">
-            Create a B sub-order for additional charges (packing, loading, etc.)
-          </p>
+        {/* Dispatch */}
+        <TabsContent value="dispatch" className="pt-4">
+          <DispatchCard order={order} bill={bill} bBill={bBill} cBill={cBill} router={router} onDispatched={loadOrder} />
+        </TabsContent>
 
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-700">Select stages to include:</p>
-            {PACKING_STAGE_OPTIONS.map((stage) => (
-              <label key={stage.key} className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedStages.includes(stage.key)}
-                  onChange={(e) => {
-                    setSelectedStages((prev) =>
-                      e.target.checked
-                        ? [...prev, stage.key]
-                        : prev.filter((s) => s !== stage.key)
-                    );
-                  }}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-800">{stage.label}</span>
-              </label>
-            ))}
+        {/* Ledger */}
+        <TabsContent value="ledger" className="pt-4">
+          <CostSummaryPanel order={order} expenses={expenses} bill={bill} />
+        </TabsContent>
+      </Tabs>
+
+      {/* ── Sheets (outside tabs so they render regardless of active tab) ── */}
+
+      <Sheet open={!!sessionSheet} onOpenChange={(open: boolean) => { if (!open) setSessionSheet(null); }}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>
+              Log {sessionSheet === "stitching" ? "Stitching" : "Packing"} Session
+            </SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4 overflow-y-auto flex-1">
+            {sessionSheet && (
+              <SessionForm
+                orderId={id}
+                department={sessionSheet}
+                onSuccess={() => { setSessionSheet(null); loadSessions(); }}
+                onCancel={() => setSessionSheet(null)}
+              />
+            )}
           </div>
+        </SheetContent>
+      </Sheet>
 
-          <div className="flex gap-2 pt-2">
-            <Button
-              onClick={handleCreateSubOrder}
-              loading={creatingSubOrder}
-              disabled={selectedStages.length === 0}
-            >
-              Create Sub-Order B
-            </Button>
-            <Button variant="secondary" onClick={() => setSubOrderSheetOpen(false)}>
-              Cancel
-            </Button>
+      <Sheet open={txSheet} onOpenChange={(open: boolean) => { if (!open) setTxSheet(false); }}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Record Payment</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4 overflow-y-auto flex-1">
+            <TransactionForm
+              orderId={id}
+              partyId={order.party_id ?? undefined}
+              onSuccess={() => { setTxSheet(false); loadTransactions(); }}
+              onCancel={() => setTxSheet(false)}
+            />
           </div>
-        </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={editSheet} onOpenChange={(open: boolean) => { if (!open) setEditSheet(false); }}>
+        <SheetContent className="sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>Edit Order</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4 overflow-y-auto flex-1">
+            <OrderForm
+              parties={parties}
+              orderId={order.id}
+              initialData={order}
+              onSuccess={(updated) => { setEditSheet(false); setOrder(updated); showToast("Order updated"); }}
+              onCancel={() => setEditSheet(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={subOrderSheetOpen} onOpenChange={(open: boolean) => { if (!open) setSubOrderSheetOpen(false); }}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Create Sub-Order B</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4 overflow-y-auto flex-1 space-y-5">
+            <p className="text-sm text-gray-500">
+              Create a B sub-order for additional charges (packing, loading, etc.)
+            </p>
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-gray-700">Select stages to include:</p>
+              {PACKING_STAGE_OPTIONS.map((stage) => (
+                <label key={stage.key} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedStages.includes(stage.key)}
+                    onChange={(e) => {
+                      setSelectedStages((prev) =>
+                        e.target.checked
+                          ? [...prev, stage.key]
+                          : prev.filter((s) => s !== stage.key)
+                      );
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-800">{stage.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={handleCreateSubOrder}
+                loading={creatingSubOrder}
+                disabled={selectedStages.length === 0}
+              >
+                Create Sub-Order B
+              </Button>
+              <Button variant="secondary" onClick={() => setSubOrderSheetOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
       </Sheet>
 
       <ConfirmDialog
