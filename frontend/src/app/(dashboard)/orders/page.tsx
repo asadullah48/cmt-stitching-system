@@ -2,16 +2,35 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Search, Plus, Upload, Download, X } from "lucide-react";
 import { ordersService, partiesService, billService } from "@/hooks/services";
 import { formatDate, ALL_STATUSES, getStatusConfig } from "@/hooks/utils";
-import {
-  PageHeader, Button, DataTable, StatusBadge,
-  Sheet, Pagination, Select, Input, SearchInput,
-} from "@/components/common";
+import { PageHeader, Sheet } from "@/components/common";
 import { OrderForm } from "@/components/orders";
 import type { Order, Party, OrderFilters, OrderStatus, PaginatedResponse } from "@/hooks/types";
-import type { Column } from "@/components/common";
 import type { Bill } from "@/hooks/services";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import { Pagination } from "@/components/ui/pagination";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 // ─── CSV Template ─────────────────────────────────────────────────────────────
 
@@ -29,19 +48,36 @@ function downloadCsvTemplate() {
   URL.revokeObjectURL(url);
 }
 
-// ─── Bulk Import Modal ────────────────────────────────────────────────────────
+// ─── Bulk Import Dialog ───────────────────────────────────────────────────────
 
 interface BulkImportResult {
   created: number;
   errors: Array<{ row: number; message: string }>;
 }
 
-function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function BulkImportDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<BulkImportResult | null>(null);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedFile(null);
+      setResult(null);
+      setDragOver(false);
+    }
+  }, [open]);
 
   const handleFileSelect = (file: File) => {
     if (!file.name.endsWith(".csv")) { alert("Please select a .csv file"); return; }
@@ -68,56 +104,91 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Bulk Import Orders</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Upload a CSV file to create multiple orders at once</p>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Bulk Import Orders</DialogTitle>
+          <DialogDescription>
+            Upload a CSV file to create multiple orders at once.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg border">
+            <p className="text-sm font-medium text-foreground">Download template first</p>
+            <Button variant="secondary" size="sm" onClick={downloadCsvTemplate}>
+              <Download /> Template
+            </Button>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="px-6 py-5 space-y-5">
-          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
-            <p className="text-sm font-medium text-blue-800">Download template first</p>
-            <button onClick={downloadCsvTemplate} className="flex-shrink-0 ml-3 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700">Template</button>
-          </div>
+
           {!result && (
             <div
-              className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${dragOver ? "border-blue-400 bg-blue-50" : selectedFile ? "border-green-400 bg-green-50" : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50"}`}
+              className={cn(
+                "relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                dragOver && "border-primary bg-primary/5",
+                !dragOver && selectedFile && "border-emerald-500 bg-emerald-50",
+                !dragOver && !selectedFile && "border-border bg-muted/30 hover:border-primary hover:bg-primary/5",
+              )}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); }}
+              />
               {selectedFile ? (
-                <p className="text-sm font-semibold text-green-700">{selectedFile.name} — Click to change</p>
+                <p className="text-sm font-semibold text-emerald-700">
+                  {selectedFile.name} — Click to change
+                </p>
               ) : (
-                <p className="text-sm font-medium text-gray-600">Drag & drop CSV or click to browse</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Drag & drop CSV or click to browse
+                </p>
               )}
             </div>
           )}
+
           {result && (
-            <div className={`rounded-xl border p-4 ${result.errors.length === 0 ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-200"}`}>
-              <p className="text-sm font-semibold text-gray-800">{result.created > 0 ? `${result.created} order(s) created` : "No orders were created"}</p>
-              {result.errors.length > 0 && result.errors.map((err, i) => <p key={i} className="text-xs text-red-600 mt-1">Row {err.row}: {err.message}</p>)}
-              <button onClick={() => { setSelectedFile(null); setResult(null); }} className="text-xs text-blue-600 underline mt-2">Import another</button>
+            <div className={cn(
+              "rounded-lg border p-4",
+              result.errors.length === 0 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200",
+            )}>
+              <p className="text-sm font-semibold text-foreground">
+                {result.created > 0 ? `${result.created} order(s) created` : "No orders were created"}
+              </p>
+              {result.errors.length > 0 && result.errors.map((err, i) => (
+                <p key={i} className="text-xs text-destructive mt-1">Row {err.row}: {err.message}</p>
+              ))}
+              <button
+                onClick={() => { setSelectedFile(null); setResult(null); }}
+                className="text-xs text-primary underline mt-2"
+              >
+                Import another
+              </button>
             </div>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 font-medium">{result?.created ? "Done" : "Cancel"}</button>
+
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>
+            {result?.created ? "Done" : "Cancel"}
+          </DialogClose>
           {!result && (
-            <button onClick={handleUpload} disabled={!selectedFile || uploading} className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+            <Button
+              onClick={handleUpload}
+              disabled={!selectedFile || uploading}
+            >
               {uploading ? "Importing…" : "Upload & Import"}
-            </button>
+            </Button>
           )}
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -275,6 +346,8 @@ function BillsTable({ bills, router, loading }: { bills: Bill[]; router: ReturnT
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const ALL_VALUE = "__all__";
+
 export default function OrdersPage() {
   const router = useRouter();
 
@@ -345,7 +418,7 @@ export default function OrdersPage() {
       key: "order_number",
       header: "Order #",
       render: (row) => (
-        <span className="font-semibold text-blue-600">
+        <span className="font-semibold text-primary">
           {row.order_number}
           {row.sub_suffix && <span className="ml-1.5 text-xs font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">{row.sub_suffix}</span>}
         </span>
@@ -354,12 +427,12 @@ export default function OrdersPage() {
     {
       key: "lot_number",
       header: "Lot #",
-      render: (row) => <span className="text-gray-500 text-xs">{row.lot_number ? `Lot #${row.lot_number}` : "—"}</span>,
+      render: (row) => <span className="text-muted-foreground text-xs">{row.lot_number ? `Lot #${row.lot_number}` : "—"}</span>,
     },
     {
       key: "party_name",
       header: "Party",
-      render: (row) => <span className="text-gray-700">{row.party_name ?? row.party_reference ?? "—"}</span>,
+      render: (row) => <span>{row.party_name ?? row.party_reference ?? "—"}</span>,
     },
     {
       key: "goods_description",
@@ -382,7 +455,7 @@ export default function OrdersPage() {
       key: "delivery_date",
       header: "Delivery",
       render: (row) => (
-        <span className={row.delivery_date && new Date(row.delivery_date) < new Date() && row.status !== "dispatched" ? "text-red-600" : "text-gray-600"}>
+        <span className={row.delivery_date && new Date(row.delivery_date) < new Date() && row.status !== "dispatched" ? "text-destructive" : "text-muted-foreground"}>
           {formatDate(row.delivery_date)}
         </span>
       ),
@@ -391,12 +464,26 @@ export default function OrdersPage() {
       key: "actions",
       header: "",
       render: (row) => (
-        <button onClick={(e) => { e.stopPropagation(); router.push(`/orders/${row.id}`); }} className="text-xs text-blue-600 hover:underline font-medium">
+        <Button
+          variant="link"
+          size="xs"
+          onClick={(e) => { e.stopPropagation(); router.push(`/orders/${row.id}`); }}
+        >
           View
-        </button>
+        </Button>
       ),
     },
   ];
+
+  const hasActiveFilters = Boolean(
+    partyFilter || searchFilter || filters.status || filters.date_from || filters.date_to || filters.search
+  );
+
+  const searchValue = view === "bills" ? searchFilter : (filters.search ?? "");
+  const onSearchChange = (v: string) => {
+    if (view === "bills") setSearchFilter(v);
+    else handleFilterChange({ search: v || undefined });
+  };
 
   return (
     <div>
@@ -406,90 +493,114 @@ export default function OrdersPage() {
         action={
           <div className="flex items-center gap-2">
             {/* View toggle */}
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm font-medium">
+            <div className="inline-flex rounded-lg border bg-background p-0.5 text-sm">
               <button
                 onClick={() => setView("bills")}
-                className={`px-3 py-1.5 transition-colors ${view === "bills" ? "bg-[#1a2744] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                className={cn(
+                  "px-3 py-1 rounded-md font-medium transition-colors",
+                  view === "bills" ? "bg-[#1a2744] text-white" : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 Bill Book
               </button>
               <button
                 onClick={() => setView("orders")}
-                className={`px-3 py-1.5 transition-colors ${view === "orders" ? "bg-[#1a2744] text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                className={cn(
+                  "px-3 py-1 rounded-md font-medium transition-colors",
+                  view === "orders" ? "bg-[#1a2744] text-white" : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 Orders
               </button>
             </div>
-            <button
-              onClick={() => setImportOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 border border-gray-200 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
-            >
-              Bulk Import
-            </button>
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload /> Import CSV
+            </Button>
             <Button onClick={() => setSheetOpen(true)}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Order
+              <Plus /> New Order
             </Button>
           </div>
         }
       />
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
-        <SearchInput
-          value={view === "bills" ? searchFilter : (filters.search ?? "")}
-          onChange={(v) => {
-            if (view === "bills") setSearchFilter(v);
-            else handleFilterChange({ search: v || undefined });
-          }}
-          placeholder="Order #, goods, party, bill…"
-          className="w-56"
-        />
+      {/* Toolbar — borderless strip, consistent gap-3 */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={searchValue}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Order #, goods, party, bill…"
+            className="pl-8"
+          />
+        </div>
 
         <Select
-          className="w-44"
-          value={partyFilter}
-          onChange={(e) => {
-            setPartyFilter(e.target.value);
-            if (view === "orders") handleFilterChange({ party_id: e.target.value || undefined });
+          value={partyFilter || ALL_VALUE}
+          onValueChange={(v: string | null) => {
+            const next = !v || v === ALL_VALUE ? "" : v;
+            setPartyFilter(next);
+            if (view === "orders") handleFilterChange({ party_id: next || undefined });
             setBillsPage(1);
           }}
         >
-          <option value="">All parties</option>
-          {parties.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All parties" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_VALUE}>All parties</SelectItem>
+            {parties.map((p) => (
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
         </Select>
 
         {view === "orders" && (
           <>
             <Select
-              className="w-44"
-              value={filters.status ?? ""}
-              onChange={(e) => handleFilterChange({ status: (e.target.value as OrderStatus) || undefined })}
+              value={filters.status ?? ALL_VALUE}
+              onValueChange={(v: string | null) => {
+                const next = !v || v === ALL_VALUE ? undefined : (v as OrderStatus);
+                handleFilterChange({ status: next });
+              }}
             >
-              <option value="">All statuses</option>
-              {ALL_STATUSES.map((s) => (
-                <option key={s} value={s}>{getStatusConfig(s).label}</option>
-              ))}
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_VALUE}>All statuses</SelectItem>
+                {ALL_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>{getStatusConfig(s).label}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
-              <Input type="date" className="w-36" value={filters.date_from ?? ""} onChange={(e) => handleFilterChange({ date_from: e.target.value || undefined })} />
-              <span className="text-gray-400 text-sm">–</span>
-              <Input type="date" className="w-36" value={filters.date_to ?? ""} onChange={(e) => handleFilterChange({ date_to: e.target.value || undefined })} />
+              <Input
+                type="date"
+                className="w-36"
+                value={filters.date_from ?? ""}
+                onChange={(e) => handleFilterChange({ date_from: e.target.value || undefined })}
+              />
+              <span className="text-muted-foreground text-sm">–</span>
+              <Input
+                type="date"
+                className="w-36"
+                value={filters.date_to ?? ""}
+                onChange={(e) => handleFilterChange({ date_to: e.target.value || undefined })}
+              />
             </div>
           </>
         )}
 
-        {(partyFilter || searchFilter || filters.status || filters.date_from || filters.date_to || filters.search) && (
-          <button
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
             onClick={() => { setFilters({ page: 1, size: 20 }); setPartyFilter(""); setSearchFilter(""); setBillsPage(1); }}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium ml-auto"
           >
-            Clear all
-          </button>
+            <X /> Clear all
+          </Button>
         )}
       </div>
 
@@ -531,12 +642,11 @@ export default function OrdersPage() {
         />
       </Sheet>
 
-      {importOpen && (
-        <BulkImportModal
-          onClose={() => setImportOpen(false)}
-          onSuccess={() => { loadOrders(filters); loadBills(billsPage, partyFilter); }}
-        />
-      )}
+      <BulkImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onSuccess={() => { loadOrders(filters); loadBills(billsPage, partyFilter); }}
+      />
     </div>
   );
 }
