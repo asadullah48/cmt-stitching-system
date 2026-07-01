@@ -1256,6 +1256,7 @@ export default function OrderDetailPage() {
   const [cBill, setCBill] = useState<Bill | null>(null);
   const [sessionSheet, setSessionSheet] = useState<Department | null>(null);
   const [txSheet, setTxSheet] = useState(false);
+  const [packSheet, setPackSheet] = useState(false);
   const [editSheet, setEditSheet] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1465,6 +1466,16 @@ export default function OrderDetailPage() {
               + Sub-Order B
             </button>
           )}
+          <button
+            onClick={() => setPackSheet(true)}
+            title="Post a packing (C-series) ledger entry for this order"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            Packing Entry
+          </button>
         </div>
       </div>
 
@@ -1634,6 +1645,23 @@ export default function OrderDetailPage() {
               partyId={order.party_id ?? undefined}
               onSuccess={() => { setTxSheet(false); loadTransactions(); }}
               onCancel={() => setTxSheet(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={packSheet} onOpenChange={(open: boolean) => { if (!open) setPackSheet(false); }}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Post Packing Entry</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4 overflow-y-auto flex-1">
+            <TransactionForm
+              orderId={id}
+              partyId={order.party_id ?? undefined}
+              presetType="packing"
+              onSuccess={() => { setPackSheet(false); loadTransactions(); }}
+              onCancel={() => setPackSheet(false)}
             />
           </div>
         </SheetContent>

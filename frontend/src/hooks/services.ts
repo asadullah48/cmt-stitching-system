@@ -17,6 +17,9 @@ import type {
   FinancialTransaction,
   TransactionCreate,
   TransactionFilters,
+  LedgerSummaryFilters,
+  LedgerSummaryResponse,
+  LedgerExportFilters,
   DashboardSummary,
   QualityReport,
   QualityCheckpoint,
@@ -326,6 +329,34 @@ export const transactionsService = {
       { bill_id: billId }
     );
     return data;
+  },
+
+  getSummary: async (
+    filters: LedgerSummaryFilters = {}
+  ): Promise<LedgerSummaryResponse> => {
+    const { data } = await api.get<LedgerSummaryResponse>(
+      "/transactions/summary",
+      { params: filters }
+    );
+    return data;
+  },
+
+  // Download the filtered ledger as CSV or XLSX (auth header is added by the
+  // request interceptor; responseType blob keeps the binary intact).
+  exportLedger: async (filters: LedgerExportFilters = {}): Promise<void> => {
+    const { format = "csv", ...rest } = filters;
+    const { data } = await api.get("/transactions/export", {
+      params: { format, ...rest },
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(data as Blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ledger.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
   },
 };
 

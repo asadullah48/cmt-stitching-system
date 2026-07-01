@@ -17,12 +17,16 @@ interface TransactionFormProps {
   partyId?: string;
   orderId?: string;
   initialData?: FinancialTransaction;
+  presetType?: TransactionType;
   onSuccess: (tx: FinancialTransaction) => void;
   onCancel: () => void;
 }
 
 const TX_TYPES: { value: TransactionType; label: string }[] = [
-  { value: "income", label: "Income (receivable)" },
+  { value: "income", label: "Income (A-series, receivable)" },
+  { value: "accessories", label: "Accessories (B-series)" },
+  { value: "packing", label: "Packing (C-series)" },
+  { value: "misc", label: "Misc (D-series)" },
   { value: "payment", label: "Payment (payable)" },
   { value: "expense_material", label: "Expense Material" },
   { value: "expense_transport", label: "Expense Transport" },
@@ -43,6 +47,7 @@ export function TransactionForm({
   partyId: initialPartyId,
   orderId: initialOrderId,
   initialData,
+  presetType,
   onSuccess,
   onCancel,
 }: TransactionFormProps) {
@@ -54,7 +59,7 @@ export function TransactionForm({
   const [parties, setParties] = useState<Party[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
-  const [txType, setTxType] = useState<TransactionType>(initialData?.transaction_type ?? "income");
+  const [txType, setTxType] = useState<TransactionType>(initialData?.transaction_type ?? presetType ?? "income");
   const [amount, setAmount] = useState(initialData?.amount?.toString() ?? "");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">(initialData?.payment_method ?? "");
   const [refNumber, setRefNumber] = useState(initialData?.reference_number ?? "");

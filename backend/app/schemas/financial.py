@@ -48,3 +48,18 @@ class PartyLedgerResponse(BaseModel):
     party_name: str
     balance: Decimal
     transactions: list[TransactionOut]
+
+
+class SummaryRow(BaseModel):
+    period: str                 # "2026-07-01" (day), "2026-W27" (week), or "2026-07" (month)
+    transaction_type: str
+    count: int
+    total: Decimal
+
+
+class SummaryResponse(BaseModel):
+    group_by: str               # day | week | month
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+    rows: list[SummaryRow]
+    grand_total: Decimal

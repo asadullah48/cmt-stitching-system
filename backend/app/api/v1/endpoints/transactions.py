@@ -1,9 +1,12 @@
+import csv
+import io
 from datetime import date
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import joinedload
 
@@ -11,7 +14,13 @@ from app.core.deps import CurrentUser, DbDep
 from app.models.financial import FinancialTransaction
 from app.models.bill import Bill
 from app.models.parties import Party
-from app.schemas.financial import TransactionCreate, TransactionOut, TransactionListResponse
+from app.schemas.financial import (
+    TransactionCreate,
+    TransactionOut,
+    TransactionListResponse,
+    SummaryResponse,
+    SummaryRow,
+)
 from app.services.allocation_service import AllocationService
 from app.services.financial_service import FinancialService
 from app.services.bill_service import BillService
@@ -79,6 +88,88 @@ def list_transactions(
 ):
     txns, total = FinancialService.get_all(db, page, size, party_id, date_from, date_to, transaction_type, order_id)
     return TransactionListResponse(data=[_to_out(t) for t in txns], total=total, page=page, size=size)
+
+
+@router.get("/summary", response_model=SummaryResponse)
+def ledger_summary(
+    db: DbDep,
+    _: CurrentUser,
+    group_by: str = Query("day", pattern="^(day|week|month)$"),
+    party_id: Optional[UUID] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    transaction_type: Optional[str] = Query(None),
+    order_id: Optional[UUID] = Query(None),
+):
+    """Daily/weekly/monthly ledger totals grouped by transaction type."""
+    rows = FinancialService.get_summary(db, group_by, party_id, date_from, date_to, transaction_type, order_id)
+    out = [
+        SummaryRow(period=r.period, transaction_type=r.transaction_type, count=r.count, total=r.total)
+        for r in rows
+    ]
+    grand_total = sum((r.total for r in out), Decimal("0"))
+    return SummaryResponse(
+        group_by=group_by, date_from=date_from, date_to=date_to, rows=out, grand_total=grand_total
+    )
+
+
+_EXPORT_COLUMNS = ["date", "type", "party", "order", "amount", "payment_method", "reference", "description"]
+
+
+def _export_row(t) -> list:
+    return [
+        t.transaction_date.isoformat() if t.transaction_date else "",
+        t.transaction_type,
+        t.party.name if t.party else "",
+        t.order.order_number if t.order else "",
+        str(t.amount),
+        t.payment_method or "",
+        t.reference_number or "",
+        t.description or "",
+    ]
+
+
+@router.get("/export")
+def export_ledger(
+    db: DbDep,
+    _: CurrentUser,
+    format: str = Query("csv", pattern="^(csv|xlsx)$"),
+    party_id: Optional[UUID] = Query(None),
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    transaction_type: Optional[str] = Query(None),
+    order_id: Optional[UUID] = Query(None),
+):
+    """Export the filtered ledger as CSV (default) or XLSX."""
+    txns = FinancialService.get_for_export(db, party_id, date_from, date_to, transaction_type, order_id)
+    if format == "xlsx":
+        from openpyxl import Workbook  # lazy import so the CSV path never needs the dep
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Ledger"
+        ws.append(_EXPORT_COLUMNS)
+        for t in txns:
+            ws.append(_export_row(t))
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=ledger.xlsx"},
+        )
+    # CSV (default) — zero extra dependencies
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(_EXPORT_COLUMNS)
+    for t in txns:
+        writer.writerow(_export_row(t))
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ledger.csv"},
+    )
 
 
 def _fetch_txn(db, txn_id):

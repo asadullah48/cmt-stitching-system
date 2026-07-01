@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import case
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.financial import FinancialTransaction
@@ -99,3 +99,79 @@ class FinancialService:
             FinancialTransaction.created_at.asc(),
         ).offset((page - 1) * size).limit(size).all()
         return txns, total
+
+    # ------------------------------------------------------------------ #
+    # Reporting / export helpers                                         #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def _period_expr(group_by: str):
+        """Postgres period bucket for the transaction_date column."""
+        col = FinancialTransaction.transaction_date
+        if group_by == "week":
+            return func.to_char(func.date_trunc("week", col), 'IYYY-"W"IW')  # 2026-W27
+        if group_by == "month":
+            return func.to_char(col, "YYYY-MM")                               # 2026-07
+        return func.to_char(col, "YYYY-MM-DD")                                # 2026-07-01 (day)
+
+    @staticmethod
+    def _apply_filters(q, party_id, order_id, date_from, date_to, transaction_type):
+        if party_id:
+            q = q.filter(FinancialTransaction.party_id == party_id)
+        if order_id:
+            q = q.filter(FinancialTransaction.order_id == order_id)
+        if date_from:
+            q = q.filter(FinancialTransaction.transaction_date >= date_from)
+        if date_to:
+            q = q.filter(FinancialTransaction.transaction_date <= date_to)
+        if transaction_type:
+            q = q.filter(FinancialTransaction.transaction_type == transaction_type)
+        return q
+
+    @staticmethod
+    def get_summary(
+        db: Session,
+        group_by: str = "day",
+        party_id: Optional[UUID] = None,
+        date_from: Optional[date] = None,
+        date_to: Optional[date] = None,
+        transaction_type: Optional[str] = None,
+        order_id: Optional[UUID] = None,
+    ) -> list:
+        """Aggregate amount + count by period and transaction_type."""
+        period = FinancialService._period_expr(group_by)
+        q = (
+            db.query(
+                period.label("period"),
+                FinancialTransaction.transaction_type.label("transaction_type"),
+                func.count().label("count"),
+                func.coalesce(func.sum(FinancialTransaction.amount), 0).label("total"),
+            )
+            .filter(FinancialTransaction.is_deleted.is_(False))
+        )
+        q = FinancialService._apply_filters(q, party_id, order_id, date_from, date_to, transaction_type)
+        return (
+            q.group_by(period, FinancialTransaction.transaction_type)
+            .order_by(period, FinancialTransaction.transaction_type)
+            .all()
+        )
+
+    @staticmethod
+    def get_for_export(
+        db: Session,
+        party_id: Optional[UUID] = None,
+        date_from: Optional[date] = None,
+        date_to: Optional[date] = None,
+        transaction_type: Optional[str] = None,
+        order_id: Optional[UUID] = None,
+    ) -> list[FinancialTransaction]:
+        """All matching transactions (no pagination) for CSV/XLSX export."""
+        q = (
+            db.query(FinancialTransaction)
+            .options(joinedload(FinancialTransaction.party), joinedload(FinancialTransaction.order))
+            .filter(FinancialTransaction.is_deleted.is_(False))
+        )
+        q = FinancialService._apply_filters(q, party_id, order_id, date_from, date_to, transaction_type)
+        return q.order_by(
+            FinancialTransaction.transaction_date.asc(),
+            FinancialTransaction.created_at.asc(),
+        ).all()

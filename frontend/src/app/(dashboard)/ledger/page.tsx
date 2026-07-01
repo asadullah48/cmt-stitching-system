@@ -10,6 +10,7 @@ import {
 import { TransactionForm } from "@/components/financial";
 import type {
   FinancialTransaction, Party, TransactionFilters, TransactionType, PaginatedResponse,
+  SummaryGroupBy, LedgerSummaryResponse,
 } from "@/hooks/types";
 
 // Debit = invoices/bills raised (party owes us) + expenses we incurred
@@ -72,6 +73,12 @@ export default function LedgerPage() {
   const [shareForm, setShareForm] = useState<ShareLinkCreate>({ party_id: "", date_from: "", date_to: "" });
   const [sharingLoading, setSharingLoading] = useState(false);
   const [newLink, setNewLink] = useState<ShareLink | null>(null);
+  const [exporting, setExporting] = useState<null | "csv" | "xlsx">(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryGroupBy, setSummaryGroupBy] = useState<SummaryGroupBy>("week");
+  const [summary, setSummary] = useState<LedgerSummaryResponse | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   // Load reconciliation marks from localStorage on mount
   useEffect(() => {
@@ -182,6 +189,53 @@ export default function LedgerPage() {
     }
   };
 
+  const handleExport = async (format: "csv" | "xlsx") => {
+    setExporting(format);
+    setExportMenuOpen(false);
+    try {
+      await transactionsService.exportLedger({
+        format,
+        party_id: filters.party_id,
+        transaction_type: filters.transaction_type,
+        date_from: filters.date_from,
+        date_to: filters.date_to,
+      });
+    } catch {
+      alert("Failed to export ledger.");
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const loadSummary = useCallback(async (groupBy: SummaryGroupBy) => {
+    setSummaryLoading(true);
+    try {
+      setSummary(
+        await transactionsService.getSummary({
+          group_by: groupBy,
+          party_id: filters.party_id,
+          transaction_type: filters.transaction_type,
+          date_from: filters.date_from,
+          date_to: filters.date_to,
+        })
+      );
+    } catch {
+      setSummary(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [filters.party_id, filters.transaction_type, filters.date_from, filters.date_to]);
+
+  const openSummary = () => {
+    setSummaryOpen(true);
+    loadSummary(summaryGroupBy);
+  };
+
+  const changeGroupBy = (g: SummaryGroupBy) => {
+    setSummaryGroupBy(g);
+    loadSummary(g);
+  };
+
   // Page totals + running balance per row
   // Debit (invoices raised) increases what party owes; Credit (payments received) reduces it
   const { totalDebit, totalCredit, rows } = useMemo(() => {
@@ -257,6 +311,48 @@ export default function LedgerPage() {
             </svg>
             Share
           </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={openSummary}
+            title="Daily / weekly / monthly totals"
+            className="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Summary
+          </Button>
+          <div className="relative">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!!exporting}
+              onClick={() => setExportMenuOpen((v) => !v)}
+              className="!bg-white/10 !text-white !border-white/20 hover:!bg-white/20 disabled:opacity-40"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {exporting ? "Exporting…" : "Export"}
+            </Button>
+            {exportMenuOpen && (
+              <div className="absolute right-0 mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 z-20 overflow-hidden">
+                <button
+                  onClick={() => handleExport("csv")}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  CSV (.csv)
+                </button>
+                <button
+                  onClick={() => handleExport("xlsx")}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Excel (.xlsx)
+                </button>
+              </div>
+            )}
+          </div>
           <Button
             variant="secondary"
             size="sm"
@@ -737,6 +833,77 @@ export default function LedgerPage() {
                 )}
               </div>
             </div>
+          )}
+        </div>
+      </Sheet>
+
+      <Sheet open={summaryOpen} onClose={() => setSummaryOpen(false)} title="Ledger Summary">
+        <div className="space-y-4 p-1">
+          <div className="flex gap-2">
+            {(["day", "week", "month"] as SummaryGroupBy[]).map((g) => (
+              <button
+                key={g}
+                onClick={() => changeGroupBy(g)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
+                  summaryGroupBy === g
+                    ? "bg-[#1a2744] text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
+
+          {summaryLoading ? (
+            <div className="py-10 text-center"><Spinner className="w-5 h-5 mx-auto" /></div>
+          ) : !summary || summary.rows.length === 0 ? (
+            <p className="text-sm text-gray-400 py-8 text-center">No data for the selected filters.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto border border-gray-200 rounded-xl">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Period</th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Count</th>
+                      <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {summary.rows.map((r, i) => (
+                      <tr key={`${r.period}-${r.transaction_type}`} className={i % 2 ? "bg-gray-50/40" : "bg-white"}>
+                        <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.period}</td>
+                        <td className="px-3 py-2">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${TYPE_BADGE[r.transaction_type] ?? "bg-gray-100 text-gray-600"}`}>
+                            {TYPE_LABEL[r.transaction_type] ?? r.transaction_type}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-gray-600">{r.count}</td>
+                        <td className="px-3 py-2 text-right tabular-nums font-medium text-gray-900">
+                          {formatCurrency(r.total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-[#1a2744] text-white font-bold">
+                      <td className="px-3 py-2.5" colSpan={3}>Grand Total</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">PKR {formatCurrency(summary.grand_total)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => handleExport("xlsx")}
+                disabled={!!exporting}
+                className="w-full"
+              >
+                {exporting === "xlsx" ? "Exporting…" : "Export to Excel"}
+              </Button>
+            </>
           )}
         </div>
       </Sheet>

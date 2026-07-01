@@ -216,6 +216,41 @@ export interface PartyLedgerResponse {
   transactions: FinancialTransaction[];
 }
 
+export type SummaryGroupBy = "day" | "week" | "month";
+
+export interface LedgerSummaryRow {
+  period: string;
+  transaction_type: TransactionType;
+  count: number;
+  total: number;
+}
+
+export interface LedgerSummaryResponse {
+  group_by: SummaryGroupBy;
+  date_from: string | null;
+  date_to: string | null;
+  rows: LedgerSummaryRow[];
+  grand_total: number;
+}
+
+export interface LedgerSummaryFilters {
+  group_by?: SummaryGroupBy;
+  party_id?: string;
+  order_id?: string;
+  transaction_type?: TransactionType;
+  date_from?: string;
+  date_to?: string;
+}
+
+export interface LedgerExportFilters {
+  format?: "csv" | "xlsx";
+  party_id?: string;
+  order_id?: string;
+  transaction_type?: TransactionType;
+  date_from?: string;
+  date_to?: string;
+}
+
 export interface BillAllocationItem {
   bill_id: string;
   bill_number: string;
