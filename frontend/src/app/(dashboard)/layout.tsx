@@ -7,7 +7,7 @@ import { cn } from "@/hooks/utils";
 import { useAuth } from "@/hooks/store";
 import { Spinner } from "@/components/common";
 import type { Role } from "@/hooks/types";
-import { QuickAddTodo } from "@/app/(dashboard)/todos/page";
+import { QuickAddTodo } from "@/components/quick-add-todo";
 
 // ─── Nav definition ───────────────────────────────────────────────────────────
 
