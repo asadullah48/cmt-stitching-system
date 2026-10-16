@@ -1,5 +1,11 @@
 # AGENTS.md — CMT Stitching System
 
+## Rules for AI agents
+
+1. Never push or merge to `master`: it auto-deploys to Vercel and Koyeb. Work on `codex/cmt-polish` and open a DRAFT PR only.
+2. Never connect to the production database or production API. Never run `test_smoke.py` against the Koyeb URL or run `alembic upgrade head` using a DATABASE_URL from .env. Use only a throwaway local SQLite or Postgres database created for the task, and report which was used.
+3. No new Alembic migrations in this task. If a change needs a schema change, stop that change and list the requirement in the PR description.
+
 ## Project Overview
 
 CMT (Cut-Make-Trim) stitching and packing department management system. Tracks orders through the full production lifecycle, manages financials, inventory, and dispatching. Small-scale: 1–5 users, <500 orders/month.
@@ -115,9 +121,9 @@ sub_orders = relationship("Order",
     backref="parent_order")
 ```
 
-**Migrations** — always use ABSOLUTE paths when creating new migration files:
+**Migrations** — migration files belong in this relative directory (no new migrations in this task):
 ```
-C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\<name>.py
+backend/alembic/versions/
 ```
 Current HEAD: `040840699daa`. Run `cd backend && alembic heads` to confirm.
 
@@ -286,18 +292,24 @@ alembic revision --autogenerate -m "describe_change"
 alembic upgrade head
 ```
 
-Then update the migration chain in this file and in MEMORY.md.
+Then update the migration chain in this file.
 
 ---
 
 ## Testing
 
-Smoke test covers all endpoints:
+Offline service regression tests (no network or database):
+```bash
+cd backend
+uv run python -m pytest -q
+```
+
+
+Smoke tests mutate data. Never run against production from an agent session.
+Use only a disposable local API:
 ```bash
 cd backend
 python test_smoke.py --base-url http://localhost:8000/api/v1
-# or against prod:
-python test_smoke.py --base-url https://level-hazel-agenticengineer-d513213b.koyeb.app/api/v1
 ```
 
 Boot check (run before every push):
@@ -328,7 +340,6 @@ cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App 
 | `useSearchParams()` throws on build | Wrap page in `<Suspense>` |
 | Alembic migration on shared DB creates wrong table names | Ensure all models have `__tablename__ = "cmt_..."` |
 | `asyncpg://` vs `psycopg2://` | `database.py` normalizes; don't change this |
-| Only `.ts` updated, `.tsx` broken | Always update both files in `src/hooks/` |
 | bcrypt import error | Use `import bcrypt` directly, not passlib |
 | Mapper direction error on self-referential relationship | Include `primaryjoin` with `remote()` — see convention above |
 | Second bill unexpectedly dispatching order | Intentional — first bill dispatches, second skips re-dispatch |
@@ -338,7 +349,7 @@ cd backend && .venv/Scripts/python.exe -c "from app.main import app; print('App 
 
 ## Custom Skills
 
-All skills are installed globally in Claude Code. Invoke with the Skill tool — e.g. `skill: "cmt-verify"`. Each skill contains steps, invariants, and checklists not repeated here. When a skill conflicts with a general rule in this file, follow the skill.
+These skills belong to the local Claude Code setup and may be unavailable in other agent sessions. Ignore unavailable skill references. The Rules for AI agents above take precedence.
 
 ### CMT-specific skills
 
@@ -346,9 +357,9 @@ All skills are installed globally in Claude Code. Invoke with the Skill tool —
 |-------|---------------|
 | **cmt-bill** | Reading or writing any bill-related code — series A/B/C logic, multi-bill dispatch, accessories guard, standalone bills, party ledger impact |
 | **cmt-auto-bill** | Touching `auto_bill_service.py`, rate templates, or dispatch flow — keyword matching, idempotency, three-ledger posting |
-| **cmt-feature** | Adding any new feature end-to-end — enforces model→migration→schema→service→endpoint build order and dual-file hook requirement |
-| **cmt-hooks-sync** | Editing any file in `frontend/src/hooks/` — ensures `.ts` and `.tsx` counterparts stay identical |
-| **cmt-migration** | Adding or modifying any database migration — absolute path, `cmt_` prefix, chain tracking, doc updates |
+| **cmt-feature** | Adding any new feature end-to-end — enforces model→migration→schema→service→endpoint build order and single-source hook requirement |
+| **cmt-hooks-sync** | Editing any file in `frontend/src/hooks/` — checks the single-source hook files: `services.ts`, `types.ts`, `utils.ts`, `store.tsx`, and `toast.tsx`; never create `.tsx` duplicates of the `.ts` files |
+| **cmt-migration** | Adding or modifying any database migration — relative path `backend/alembic/versions/`, `cmt_` prefix, chain tracking, doc updates |
 | **cmt-verify** | Before declaring any change complete — boot check, curl verification, Playwright UI snapshot |
 
 ### General skills (work across any project)

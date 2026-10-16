@@ -55,6 +55,38 @@ def _matching_templates(db: Session, goods_description: str) -> list[BillRateTem
     return [t for t in templates if t.goods_type.lower() in desc_lower]
 
 
+def _post_cost_once(db: Session, order: Order, party: Party, amount: Decimal,
+                    description: str, bill_date: date_type, user_id: UUID) -> None:
+    """Skip a previously posted cost on a sequential dispatch retry.
+
+    Match the existing posting format so historical costs are also recognised.
+    This is not a concurrency constraint; simultaneous dispatches still need
+    transactional locking and a persistent idempotency key in a later change.
+    """
+    existing = db.query(FinancialTransaction).filter(
+        FinancialTransaction.order_id == order.id,
+        FinancialTransaction.party_id == party.id,
+        FinancialTransaction.transaction_type == "expense_material",
+        FinancialTransaction.description == description,
+        FinancialTransaction.is_deleted.is_(False),
+    ).first()
+    if existing:
+        return
+    db.add(FinancialTransaction(
+        party_id=party.id,
+        order_id=order.id,
+        transaction_type="expense_material",
+        amount=amount,
+        reference_number=order.order_number,
+        description=description,
+        transaction_date=bill_date,
+        created_by=user_id,
+    ))
+    party.balance += amount
+    # Sessions disable autoflush; make this cost visible to subsequent templates.
+    db.flush()
+
+
 def auto_generate_bills(db: Session, order: Order, user_id: UUID, bill_date: date_type) -> list[Bill]:
     """
     Generate all applicable bills for an order on dispatch.
@@ -99,32 +131,20 @@ def auto_generate_bills(db: Session, order: Order, user_id: UUID, bill_date: dat
         # ── Labour debit transaction ──────────────────────────────────
         if labour_party and tmpl.labour_rate > 0:
             labour_amount = Decimal(str(tmpl.labour_rate)) * qty
-            db.add(FinancialTransaction(
-                party_id=labour_party.id,
-                order_id=order.id,
-                transaction_type="expense_material",
-                amount=labour_amount,
-                reference_number=order.order_number,
-                description=f"Labour — {tmpl.description or series}-series — {order.goods_description}",
-                transaction_date=bill_date,
-                created_by=user_id,
-            ))
-            labour_party.balance += labour_amount
+            _post_cost_once(
+                db, order, labour_party, labour_amount,
+                f"Labour — {tmpl.description or series}-series — {order.goods_description}",
+                bill_date, user_id,
+            )
 
         # ── Vendor debit transaction ──────────────────────────────────
         if vendor_party and tmpl.vendor_rate > 0:
             vendor_amount = Decimal(str(tmpl.vendor_rate)) * qty
-            db.add(FinancialTransaction(
-                party_id=vendor_party.id,
-                order_id=order.id,
-                transaction_type="expense_material",
-                amount=vendor_amount,
-                reference_number=order.order_number,
-                description=f"Vendor — {tmpl.description or series}-series — {order.goods_description}",
-                transaction_date=bill_date,
-                created_by=user_id,
-            ))
-            vendor_party.balance += vendor_amount
+            _post_cost_once(
+                db, order, vendor_party, vendor_amount,
+                f"Vendor — {tmpl.description or series}-series — {order.goods_description}",
+                bill_date, user_id,
+            )
 
     # Mark dispatched if not already
     if order.status != "dispatched":
