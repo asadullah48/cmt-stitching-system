@@ -9,6 +9,7 @@ Everything beyond the top-level `README.md` / `CLAUDE.md` / `AGENTS.md` lives he
 | [billing/](./billing/) | Bills, overhead & cash, share links, auto-billing |
 | [ui/](./ui/) | Polish, redesigns, sidebar, visual patterns |
 | [insights/](./insights/) | Smart insights design + implementation |
+| [worklog/](./worklog/) | Dated handoff notes between work sessions |
 
 ## Top-level references (at repo root)
 
