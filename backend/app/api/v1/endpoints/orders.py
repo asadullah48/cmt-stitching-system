@@ -360,7 +360,7 @@ def update_order(order_id: UUID, data: OrderUpdate, db: DbDep, current_user: Cur
 
 @router.patch("/{order_id}/items", response_model=OrderOut)
 def update_items(order_id: UUID, items: list[OrderItemUpdate], db: DbDep, current_user: CurrentUser):
-    """Replace the colour/size breakdown for an order. Preserves stitching/packing progress on matched items."""
+    """Replace the colour/size breakdown for an order. Preserves cutting/stitching/packing progress on matched items."""
     from app.models.orders import OrderItem as OrderItemModel
     order = OrderService.get_by_id(db, order_id)
 
@@ -380,10 +380,19 @@ def update_items(order_id: UUID, items: list[OrderItemUpdate], db: DbDep, curren
             existing.quantity = item_data.quantity
             if item_data.completed_quantity is not None:
                 existing.completed_quantity = item_data.completed_quantity
+            if item_data.cut_quantity is not None:
+                existing.cut_quantity = item_data.cut_quantity
             if item_data.packed_quantity is not None:
                 existing.packed_quantity = item_data.packed_quantity
         else:
-            db.add(OrderItemModel(order_id=order.id, size=item_data.size, quantity=item_data.quantity))
+            db.add(OrderItemModel(
+                order_id=order.id,
+                size=item_data.size,
+                quantity=item_data.quantity,
+                cut_quantity=item_data.cut_quantity or 0,
+                completed_quantity=item_data.completed_quantity or 0,
+                packed_quantity=item_data.packed_quantity or 0,
+            ))
 
     AuditService.log_update(db, "cmt_orders", order.id, {}, {"items": "updated"}, current_user.id)
     db.commit()

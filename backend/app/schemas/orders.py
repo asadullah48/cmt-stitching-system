@@ -9,6 +9,8 @@ from pydantic import BaseModel, model_validator
 
 class OrderStatus(str, Enum):
     pending = "pending"
+    cutting_in_progress = "cutting_in_progress"
+    cutting_complete = "cutting_complete"
     stitching_in_progress = "stitching_in_progress"
     stitching_complete = "stitching_complete"
     packing_in_progress = "packing_in_progress"
@@ -25,6 +27,7 @@ class OrderItemUpdate(BaseModel):
     id: Optional[UUID] = None  # existing item ID; None = new item
     size: str
     quantity: int
+    cut_quantity: Optional[int] = None
     completed_quantity: Optional[int] = None
     packed_quantity: Optional[int] = None
 
@@ -33,6 +36,7 @@ class OrderItemOut(BaseModel):
     id: UUID
     size: str
     quantity: int
+    cut_quantity: int
     completed_quantity: int
     packed_quantity: int
 
@@ -145,8 +149,16 @@ class OrderOut(BaseModel):
     sub_stages: Optional[list[str]] = None
     current_stage: Optional[str] = None
     items: list[OrderItemOut] = []
+    cut_quantity_total: int = 0
+    over_cut_warning: bool = False
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="after")
+    def calculate_cut_warning(self):
+        self.cut_quantity_total = sum(item.cut_quantity for item in self.items)
+        self.over_cut_warning = self.cut_quantity_total > self.total_quantity
+        return self
 
 
 class OrderListResponse(BaseModel):

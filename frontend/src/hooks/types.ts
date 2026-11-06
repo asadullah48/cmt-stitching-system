@@ -65,6 +65,8 @@ export type PartyUpdate = Partial<PartyCreate>;
 
 export type OrderStatus =
   | "pending"
+  | "cutting_in_progress"
+  | "cutting_complete"
   | "stitching_in_progress"
   | "stitching_complete"
   | "packing_in_progress"
@@ -75,6 +77,7 @@ export interface OrderItem {
   id: string;
   size: string;
   quantity: number;
+  cut_quantity: number;
   completed_quantity: number;
   packed_quantity: number;
 }
@@ -113,6 +116,8 @@ export interface Order {
   sub_stages: string[] | null;
   current_stage: string | null;
   items: OrderItem[];
+  cut_quantity_total: number;
+  over_cut_warning: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -150,7 +155,32 @@ export interface OrderStatusUpdate {
 
 // ─── Production ─────────────────────────────────────────────────────────────
 
-export type Department = "stitching" | "packing";
+export type Department = "cutting" | "stitching" | "packing";
+
+export interface DailyReportOrder {
+  id: string;
+  order_number: string;
+  goods_description: string;
+  total_quantity: number;
+  status: OrderStatus;
+}
+
+export interface DailyReportStage {
+  stage: string;
+  orders: DailyReportOrder[];
+  total_quantity: number;
+}
+
+export interface DailyReport {
+  date: string;
+  orders_dispatched: DailyReportOrder[];
+  ready_for_dispatch: DailyReportOrder[];
+  in_progress: DailyReportStage[];
+  open_order_todos: Array<{ id: string; title: string; priority: string; due_date: string | null; order_id: string; order_number: string }>;
+  low_stock_items: Array<{ id: string; name: string; unit: string; current_stock: number; minimum_stock: number }>;
+  overhead_due: Array<{ id: string; title: string; amount: number; due_date: string }>;
+  overhead_due_total: number;
+}
 
 export interface ProductionSession {
   id: string;
@@ -279,6 +309,8 @@ export interface BillAllocationResponse {
 export interface DashboardSummary {
   total_orders: number;
   pending_orders: number;
+  cutting_in_progress: number;
+  cutting_complete: number;
   stitching_in_progress: number;
   stitching_complete: number;
   packing_in_progress: number;
@@ -289,6 +321,7 @@ export interface DashboardSummary {
   completed_today: number;
   active_orders: number;
   on_hold_orders: number;
+  cutting_progress_pct: number;
   stitching_progress_pct: number;
   packing_progress_pct: number;
   collected_month?: number;

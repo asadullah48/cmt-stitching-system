@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
-    "axios": "^1.13.6",
+    "axios": "1.21.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
-    "next": "^15.5.12",
+    "next": "15.5.28",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "shadcn": "^4.3.0",
@@ -28,8 +28,16 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.2",
+    "eslint-config-next": "15.5.28",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.32"
+    },
+    "express-rate-limit": {
+      "ip-address": "10.7.4"
+    }
   }
 }

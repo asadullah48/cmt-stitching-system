@@ -235,6 +235,7 @@ export default function JobCardPage() {
                 <tr className="bg-gray-100">
                   <th className="px-3 py-1.5 text-left font-semibold text-gray-600">Size</th>
                   <th className="px-3 py-1.5 text-right font-semibold text-gray-600">Ordered</th>
+                  <th className="px-3 py-1.5 text-right font-semibold text-gray-600">Cut</th>
                   <th className="px-3 py-1.5 text-right font-semibold text-gray-600">Stitched</th>
                   <th className="px-3 py-1.5 text-right font-semibold text-gray-600">Packed</th>
                 </tr>
@@ -244,6 +245,7 @@ export default function JobCardPage() {
                   <tr key={item.id} className="border-t border-gray-100">
                     <td className="px-3 py-1.5 font-medium">{item.size}</td>
                     <td className="px-3 py-1.5 text-right">{item.quantity}</td>
+                    <td className="px-3 py-1.5 text-right">{item.cut_quantity}</td>
                     <td className="px-3 py-1.5 text-right">{item.completed_quantity}</td>
                     <td className="px-3 py-1.5 text-right">{item.packed_quantity}</td>
                   </tr>

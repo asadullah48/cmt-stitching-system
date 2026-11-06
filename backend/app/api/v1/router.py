@@ -14,6 +14,7 @@ from .endpoints.overhead import router as overhead_router
 from .endpoints.accessories import router as accessories_router
 from .endpoints.share_links import router as share_links_router
 from .endpoints.bill_rate_templates import router as bill_rate_templates_router
+from .endpoints.reports import router as reports_router
 
 api_router = APIRouter()
 
@@ -36,3 +37,4 @@ api_router.include_router(overhead_router)
 api_router.include_router(accessories_router)
 api_router.include_router(share_links_router)
 api_router.include_router(bill_rate_templates_router)
+api_router.include_router(reports_router)

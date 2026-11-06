@@ -48,14 +48,31 @@ class DashboardService:
             .scalar()
         ) or 0
 
-        # active_orders: in stitching or packing
+        # active_orders: in cutting, stitching or packing
         active_orders = (
+            counts.get("cutting_in_progress", 0) +
             counts.get("stitching_in_progress", 0) +
             counts.get("packing_in_progress", 0)
         )
 
         # on_hold_orders: pending
         on_hold_orders = counts.get("pending", 0)
+
+        cut_q = (
+            db.query(
+                func.coalesce(func.sum(OrderItem.cut_quantity), 0),
+                func.coalesce(func.sum(OrderItem.quantity), 1),
+            )
+            .join(Order, OrderItem.order_id == Order.id)
+            .filter(
+                Order.status.in_(["cutting_in_progress", "cutting_complete"]),
+                Order.is_deleted.is_(False),
+            )
+            .first()
+        )
+        cutting_progress_pct = round(
+            float(cut_q[0]) / float(cut_q[1]) * 100, 1
+        ) if cut_q and float(cut_q[1]) > 0 else 0.0
 
         # stitching progress %
         stitch_q = (
@@ -148,6 +165,8 @@ class DashboardService:
         return DashboardSummary(
             total_orders=sum(counts.values()),
             pending_orders=counts.get("pending", 0),
+            cutting_in_progress=counts.get("cutting_in_progress", 0),
+            cutting_complete=counts.get("cutting_complete", 0),
             stitching_in_progress=counts.get("stitching_in_progress", 0),
             stitching_complete=counts.get("stitching_complete", 0),
             packing_in_progress=counts.get("packing_in_progress", 0),
@@ -158,6 +177,7 @@ class DashboardService:
             completed_today=completed_today,
             active_orders=active_orders,
             on_hold_orders=on_hold_orders,
+            cutting_progress_pct=cutting_progress_pct,
             stitching_progress_pct=stitching_progress_pct,
             packing_progress_pct=packing_progress_pct,
             collected_month=Decimal(str(collected_month)),

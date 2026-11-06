@@ -541,13 +541,14 @@ interface EditableItem {
   id?: string;
   size: string;
   quantity: number;
+  cut_quantity: number;
   completed_quantity: number;
   packed_quantity: number;
 }
 
 interface OrderItemsTableProps {
   items: Order["items"];
-  onSave?: (items: Array<{ id?: string; size: string; quantity: number; completed_quantity?: number; packed_quantity?: number }>) => Promise<void>;
+  onSave?: (items: Array<{ id?: string; size: string; quantity: number; cut_quantity?: number; completed_quantity?: number; packed_quantity?: number }>) => Promise<void>;
 }
 
 export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
@@ -557,11 +558,12 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
   const [error, setError] = React.useState("");
 
   const total = items.reduce((s, i) => s + i.quantity, 0);
+  const cut = items.reduce((s, i) => s + i.cut_quantity, 0);
   const stitched = items.reduce((s, i) => s + i.completed_quantity, 0);
   const packed = items.reduce((s, i) => s + i.packed_quantity, 0);
 
   const startEdit = () => {
-    setRows(items.map(i => ({ id: i.id, size: i.size, quantity: i.quantity, completed_quantity: i.completed_quantity, packed_quantity: i.packed_quantity })));
+    setRows(items.map(i => ({ id: i.id, size: i.size, quantity: i.quantity, cut_quantity: i.cut_quantity, completed_quantity: i.completed_quantity, packed_quantity: i.packed_quantity })));
     setError("");
     setEditing(true);
   };
@@ -573,7 +575,7 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
     setSaving(true);
     setError("");
     try {
-      await onSave(valid.map(r => ({ id: r.id, size: r.size.trim(), quantity: r.quantity, completed_quantity: r.completed_quantity, packed_quantity: r.packed_quantity })));
+      await onSave(valid.map(r => ({ id: r.id, size: r.size.trim(), quantity: r.quantity, cut_quantity: r.cut_quantity, completed_quantity: r.completed_quantity, packed_quantity: r.packed_quantity })));
       setEditing(false);
     } catch {
       setError("Failed to save. Please try again.");
@@ -593,6 +595,7 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Colour</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Ordered</th>
+                <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Cut</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Stitched</th>
                 <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Packed</th>
                 <th className="px-2 py-2.5 w-8" />
@@ -607,6 +610,15 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
                       value={row.size}
                       onChange={e => setRows(prev => prev.map((r, i) => i === idx ? { ...r, size: e.target.value } : r))}
                       placeholder="Colour name"
+                    />
+                  </td>
+                  <td className="px-2 py-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-24 border border-gray-200 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-500 ml-auto block"
+                      value={row.cut_quantity}
+                      onChange={e => setRows(prev => prev.map((r, i) => i === idx ? { ...r, cut_quantity: parseInt(e.target.value) || 0 } : r))}
                     />
                   </td>
                   <td className="px-2 py-1.5">
@@ -657,7 +669,7 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => setRows(prev => [...prev, { size: "", quantity: 0, completed_quantity: 0, packed_quantity: 0 }])}
+            onClick={() => setRows(prev => [...prev, { size: "", quantity: 0, cut_quantity: 0, completed_quantity: 0, packed_quantity: 0 }])}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 rounded px-2 py-1"
           >+ Add colour</button>
           <div className="flex-1" />
@@ -681,6 +693,7 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
             <tr className="border-b border-gray-100 bg-gray-50">
               <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Colour</th>
               <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Ordered</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Cut</th>
               <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Stitched</th>
               <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Packed</th>
               <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Stitch %</th>
@@ -694,6 +707,7 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
                 <tr key={item.id} className="border-b border-gray-50 last:border-0">
                   <td className="px-4 py-2.5 font-medium text-gray-900">{item.size}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums">{item.quantity}</td>
+                  <td className={`px-4 py-2.5 text-right tabular-nums font-medium ${item.cut_quantity > item.quantity ? "text-amber-700" : "text-cyan-700"}`}>{item.cut_quantity}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-blue-700 font-medium">{item.completed_quantity}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-teal-700 font-medium">{item.packed_quantity}</td>
                   <td className="px-4 py-2.5 text-right">
@@ -713,6 +727,7 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
             <tr className="bg-gray-50 font-semibold">
               <td className="px-4 py-2.5 text-xs text-gray-600">Total</td>
               <td className="px-4 py-2.5 text-right tabular-nums">{total}</td>
+              <td className={`px-4 py-2.5 text-right tabular-nums ${cut > total ? "text-amber-700" : "text-cyan-700"}`}>{cut}</td>
               <td className="px-4 py-2.5 text-right tabular-nums text-blue-700">{stitched}</td>
               <td className="px-4 py-2.5 text-right tabular-nums text-teal-700">{packed}</td>
               <td className="px-4 py-2.5 text-right text-xs text-gray-500">{total > 0 ? Math.round((stitched / total) * 100) : 0}%</td>
@@ -721,6 +736,11 @@ export function OrderItemsTable({ items, onSave }: OrderItemsTableProps) {
           </tfoot>
         </table>
       </div>
+      {cut > total && (
+        <div role="alert" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Cutting warning: {cut.toLocaleString()} cut against {total.toLocaleString()} ordered ({(cut - total).toLocaleString()} extra).
+        </div>
+      )}
       {onSave && (
         <div className="mt-2 flex justify-end">
           <button onClick={startEdit} className="text-xs text-blue-600 hover:text-blue-800 font-medium">

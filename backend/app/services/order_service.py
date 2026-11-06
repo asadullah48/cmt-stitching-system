@@ -244,7 +244,9 @@ class OrderService:
         order.status = new_status
         AuditService.log_update(db, "cmt_orders", order.id, {"status": old_status}, {"status": new_status}, user_id)
         # Auto-consume BOM materials when production begins for each department
-        if new_status == "stitching_in_progress":
+        if new_status == "cutting_in_progress":
+            _consume_bom(db, order, "cutting")
+        elif new_status == "stitching_in_progress":
             _consume_bom(db, order, "stitching")
         elif new_status == "packing_in_progress":
             _consume_bom(db, order, "packing")

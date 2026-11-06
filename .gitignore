@@ -47,3 +47,6 @@ Thumbs.db
 # Playwright MCP output (local screenshots/snapshots)
 .playwright-mcp/
 .claude-dev-helper/
+
+.vercel
+.claude/settings.local.json

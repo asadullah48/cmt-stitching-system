@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 
 class Department(str, Enum):
+    cutting = "cutting"
     stitching = "stitching"
     packing = "packing"
 

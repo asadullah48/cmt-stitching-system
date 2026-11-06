@@ -126,7 +126,7 @@ def run(token):
         check("PUT /orders/{id}", r)
 
         # Status progression
-        for status in ["stitching_in_progress", "stitching_complete", "packing_in_progress", "packing_complete"]:
+        for status in ["cutting_in_progress", "cutting_complete", "stitching_in_progress", "stitching_complete", "packing_in_progress", "packing_complete"]:
             r = requests.patch(f"{BASE_URL}/orders/{oid}/status", headers=h, json={"status": status})
             check(f"PATCH /orders/status → {status}", r)
 
@@ -571,6 +571,10 @@ def run(token):
     print("\n── Dashboard ──")
     r = requests.get(f"{BASE_URL}/dashboard/summary", headers=h)
     check("GET /dashboard/summary", r)
+
+    print("\n── Reports ──")
+    r = requests.get(f"{BASE_URL}/reports/daily", headers=h, params={"date": date.today().isoformat()})
+    check("GET /reports/daily", r)
 
     # ── Bill Delete ───────────────────────────────────────────────────────────
     print("\n── Bill Delete (must revert order) ──")

@@ -36,7 +36,7 @@ def get_sessions(
     order_id: UUID,
     db: DbDep,
     _: CurrentUser,
-    department: Optional[str] = Query(None, pattern="^(stitching|packing)$"),
+    department: Optional[str] = Query(None, pattern="^(cutting|stitching|packing)$"),
 ):
     sessions = ProductionService.get_for_order(db, order_id, department)
     return [_to_out(s) for s in sessions]

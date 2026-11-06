@@ -16,7 +16,8 @@ class Order(BaseModel):
     pack_rate_party = Column(Numeric(10, 2), nullable=True)
     pack_rate_labor = Column(Numeric(10, 2), nullable=True)
     # Status lifecycle:
-    # pending | stitching_in_progress | stitching_complete
+    # pending | cutting_in_progress | cutting_complete
+    # stitching_in_progress | stitching_complete
     # packing_in_progress | packing_complete | dispatched
     status = Column(String(30), default="pending", nullable=False)
     entry_date = Column(Date, nullable=False)
@@ -67,6 +68,7 @@ class OrderItem(BaseModel):
     order_id = Column(UUID(as_uuid=True), ForeignKey("cmt_orders.id", ondelete="CASCADE"))
     size = Column(String(10), nullable=False)
     quantity = Column(Integer, nullable=False)
+    cut_quantity = Column(Integer, default=0)         # cutting progress
     completed_quantity = Column(Integer, default=0)   # stitching progress
     packed_quantity = Column(Integer, default=0)      # packing progress
 

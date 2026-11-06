@@ -46,6 +46,18 @@ const STATUS_CONFIG: Record<OrderStatus, StatusConfig> = {
     text: "text-amber-700",
     dot: "bg-amber-400",
   },
+  cutting_in_progress: {
+    label: "Cutting",
+    bg: "bg-cyan-50",
+    text: "text-cyan-700",
+    dot: "bg-cyan-500",
+  },
+  cutting_complete: {
+    label: "Cut Done",
+    bg: "bg-sky-50",
+    text: "text-sky-700",
+    dot: "bg-sky-500",
+  },
   stitching_in_progress: {
     label: "Stitching",
     bg: "bg-blue-50",
@@ -84,6 +96,8 @@ export function getStatusConfig(status: OrderStatus): StatusConfig {
 
 export const ALL_STATUSES: OrderStatus[] = [
   "pending",
+  "cutting_in_progress",
+  "cutting_complete",
   "stitching_in_progress",
   "stitching_complete",
   "packing_in_progress",

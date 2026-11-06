@@ -27,15 +27,18 @@ import type { Order, ProductionSession, Department, Party, OrderMaterials, Mater
 
 const STAGE_INDEX: Record<string, number> = {
   pending: 0,
-  stitching_in_progress: 1,
-  stitching_complete: 1,
-  packing_in_progress: 2,
-  packing_complete: 2,
-  dispatched: 3,
+  cutting_in_progress: 1,
+  cutting_complete: 1,
+  stitching_in_progress: 2,
+  stitching_complete: 2,
+  packing_in_progress: 3,
+  packing_complete: 3,
+  dispatched: 4,
 };
 
 const STAGES = [
   { key: "order",    label: "Order Placed",  icon: "📋" },
+  { key: "cutting",  label: "Cutting",       icon: "✂️" },
   { key: "stitch",   label: "Stitching",     icon: "🧵" },
   { key: "packing",  label: "Packing",       icon: "📦" },
   { key: "dispatch", label: "Dispatched",    icon: "🚚" },

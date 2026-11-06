@@ -197,6 +197,7 @@ export default function DashboardPage() {
 
   const pipelineMax = Math.max(
     summary?.pending_orders ?? 0,
+    summary?.cutting_in_progress ?? 0,
     summary?.stitching_in_progress ?? 0,
     summary?.packing_in_progress ?? 0,
     summary?.dispatched ?? 0,
@@ -405,6 +406,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="flex items-end gap-2 h-28">
               <PipelineBar label="Pending" count={summary?.pending_orders ?? 0} max={pipelineMax} color="bg-gray-300" />
+              <PipelineBar label="Cutting" count={summary?.cutting_in_progress ?? 0} max={pipelineMax} color="bg-cyan-500" />
               <PipelineBar label="Stitching" count={summary?.stitching_in_progress ?? 0} max={pipelineMax} color="bg-blue-500" />
               <PipelineBar label="Packing" count={summary?.packing_in_progress ?? 0} max={pipelineMax} color="bg-indigo-500" />
               <PipelineBar label="Dispatched" count={summary?.dispatched ?? 0} max={pipelineMax} color="bg-green-500" />

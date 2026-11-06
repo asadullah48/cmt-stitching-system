@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 class DashboardSummary(BaseModel):
     total_orders: int
     pending_orders: int
+    cutting_in_progress: int
+    cutting_complete: int
     stitching_in_progress: int
     stitching_complete: int
     packing_in_progress: int
@@ -21,6 +23,7 @@ class DashboardSummary(BaseModel):
     active_orders: int = 0
     on_hold_orders: int = 0
     stitching_progress_pct: float = 0.0
+    cutting_progress_pct: float = 0.0
     packing_progress_pct: float = 0.0
     # Enhanced fields for personal header + smart insights
     collected_month: Decimal = Decimal("0")

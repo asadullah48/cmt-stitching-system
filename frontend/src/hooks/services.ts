@@ -53,6 +53,7 @@ import type {
   MarkPaidRequest,
   OverheadExpenseListResponse,
   OrderAccessory,
+  DailyReport,
   AccessoryCreate,
   AccessoryUpdate,
   BillRateTemplate,
@@ -174,7 +175,7 @@ export const ordersService = {
     return data;
   },
 
-  updateItems: async (id: string, items: Array<{ id?: string; size: string; quantity: number; completed_quantity?: number; packed_quantity?: number }>): Promise<Order> => {
+  updateItems: async (id: string, items: Array<{ id?: string; size: string; quantity: number; cut_quantity?: number; completed_quantity?: number; packed_quantity?: number }>): Promise<Order> => {
     const { data } = await api.patch<Order>(`/orders/${id}/items`, items);
     return data;
   },
@@ -275,7 +276,7 @@ export const productionService = {
 
   getSessionsForOrder: async (
     orderId: string,
-    department?: "stitching" | "packing"
+    department?: "cutting" | "stitching" | "packing"
   ): Promise<ProductionSession[]> => {
     const { data } = await api.get<ProductionSession[]>(
       `/production/${orderId}`,
@@ -365,6 +366,13 @@ export const transactionsService = {
 export const dashboardService = {
   getSummary: async (): Promise<DashboardSummary> => {
     const { data } = await api.get<DashboardSummary>("/dashboard/summary");
+    return data;
+  },
+};
+
+export const reportsService = {
+  getDaily: async (date: string): Promise<DailyReport> => {
+    const { data } = await api.get<DailyReport>("/reports/daily", { params: { date } });
     return data;
   },
 };

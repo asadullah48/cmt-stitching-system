@@ -9,7 +9,7 @@ import type { ProductionSession, Order, Department, OrderStatus } from "@/hooks/
 import type { Column } from "@/components/common";
 
 export default function ProductionPage() {
-  const [department, setDepartment] = useState<Department>("stitching");
+  const [department, setDepartment] = useState<Department>("cutting");
   const [orderSearch, setOrderSearch] = useState("");
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState("");
@@ -20,6 +20,7 @@ export default function ProductionPage() {
   // Load active orders for selection (in-progress + complete for logging sessions retroactively)
   useEffect(() => {
     const statusMap = {
+      cutting:   ["cutting_in_progress",   "cutting_complete"],
       stitching: ["stitching_in_progress", "stitching_complete"],
       packing:   ["packing_in_progress",   "packing_complete"],
     };
@@ -99,11 +100,11 @@ export default function ProductionPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Production" subtitle="Track stitching and packing sessions" />
+      <PageHeader title="Production" subtitle="Track cutting, stitching and packing sessions" />
 
       {/* Department toggle */}
       <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
-        {(["stitching", "packing"] as Department[]).map((d) => (
+        {(["cutting", "stitching", "packing"] as Department[]).map((d) => (
           <button
             key={d}
             onClick={() => { setDepartment(d); setSelectedOrderId(""); setSessions([]); }}
@@ -200,7 +201,7 @@ export default function ProductionPage() {
       <Sheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        title={`Log ${department === "stitching" ? "Stitching" : "Packing"} Session`}
+        title={`Log ${department.charAt(0).toUpperCase() + department.slice(1)} Session`}
       >
         {selectedOrderId && (
           <SessionForm

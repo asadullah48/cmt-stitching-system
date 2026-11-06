@@ -119,7 +119,7 @@ sub_orders = relationship("Order",
 ```
 C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\<name>.py
 ```
-Current HEAD: `040840699daa`. Run `cd backend && alembic heads` to confirm.
+Current HEAD: `1c7f2a9e4b6d`. Run `cd backend && alembic heads` to confirm.
 
 ### Frontend
 
@@ -174,7 +174,8 @@ One order can have up to 3 bills (A + B + C), all linking to the same order and 
 ## Order Status Lifecycle
 
 ```
-pending → stitching_in_progress → stitching_complete
+pending → cutting_in_progress → cutting_complete
+        → stitching_in_progress → stitching_complete
         → packing_in_progress → packing_complete → dispatched
 ```
 

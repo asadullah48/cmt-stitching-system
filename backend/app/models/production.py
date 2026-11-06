@@ -8,7 +8,7 @@ class ProductionSession(BaseModel):
     __tablename__ = "cmt_production_sessions"
 
     order_id = Column(UUID(as_uuid=True), ForeignKey("cmt_orders.id"), nullable=False)
-    department = Column(String(20), nullable=False, default="stitching")  # stitching | packing
+    department = Column(String(20), nullable=False, default="stitching")  # cutting | stitching | packing
     session_date = Column(Date, nullable=False)
     machines_used = Column(Integer, nullable=False)
     start_time = Column(Time)
