@@ -22,6 +22,10 @@ def _to_out(session) -> ProductionSessionOut:
         end_time=session.end_time,
         duration_hours=session.duration_hours,
         notes=session.notes,
+        operator_name=session.operator_name,
+        pieces=session.pieces,
+        piece_rate=session.piece_rate,
+        wastage=session.wastage,
     )
 
 

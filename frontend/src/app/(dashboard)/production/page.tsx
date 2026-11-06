@@ -54,6 +54,7 @@ export default function ProductionPage() {
     (o.party_name ?? "").toLowerCase().includes(orderSearch.toLowerCase())
   );
 
+  const selectedOrder = orders.find((order) => order.id === selectedOrderId);
   const columns: Column<ProductionSession>[] = [
     {
       key: "session_date",
@@ -83,6 +84,26 @@ export default function ProductionPage() {
       render: (r) => r.duration_hours != null ? `${r.duration_hours}h` : "—",
       className: "text-right",
       headerClassName: "text-right",
+    },
+    {
+      key: "operator_name",
+      header: "Operator",
+      render: (r) => r.operator_name ?? "—",
+    },
+    {
+      key: "pieces",
+      header: "Good pieces",
+      render: (r) => r.pieces ?? "—",
+    },
+    {
+      key: "piece_rate",
+      header: "Labour rate",
+      render: (r) => r.piece_rate ?? "—",
+    },
+    {
+      key: "wastage",
+      header: "Wasted pieces",
+      render: (r) => r.wastage ?? "—",
     },
     {
       key: "notes",
@@ -207,6 +228,7 @@ export default function ProductionPage() {
           <SessionForm
             orderId={selectedOrderId}
             department={department}
+            defaultPieceRate={department === "packing" ? selectedOrder?.pack_rate_labor : selectedOrder?.stitch_rate_labor}
             onSuccess={() => { setSheetOpen(false); loadSessions(); }}
             onCancel={() => setSheetOpen(false)}
           />

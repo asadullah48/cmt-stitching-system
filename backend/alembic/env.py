@@ -20,7 +20,8 @@ _db_url = (
     .replace("postgresql+asyncpg://", "postgresql+psycopg2://")
     .replace("?ssl=require", "?sslmode=require")
 )
-config.set_main_option("sqlalchemy.url", _db_url)
+# ConfigParser requires escaped percent signs in URL-encoded credentials.
+config.set_main_option("sqlalchemy.url", _db_url.replace("%", "%%"))
 
 # Set up loggers from alembic.ini
 if config.config_file_name is not None:

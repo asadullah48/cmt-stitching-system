@@ -28,6 +28,10 @@ class ProductionService:
             duration_hours=data.duration_hours,
             supervisor_id=user_id,
             notes=data.notes,
+            operator_name=data.operator_name,
+            pieces=data.pieces,
+            piece_rate=data.piece_rate,
+            wastage=data.wastage,
         )
         db.add(session)
         db.flush()

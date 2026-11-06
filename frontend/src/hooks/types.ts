@@ -183,6 +183,10 @@ export interface DailyReport {
 }
 
 export interface ProductionSession {
+  operator_name: string | null;
+  pieces: number | null;
+  piece_rate: string | null;
+  wastage: number | null;
   id: string;
   order_id: string;
   order_number: string;
@@ -197,6 +201,10 @@ export interface ProductionSession {
 }
 
 export interface ProductionSessionCreate {
+  operator_name?: string;
+  pieces?: number;
+  piece_rate?: string;
+  wastage?: number;
   order_id: string;
   department: Department;
   session_date: string;

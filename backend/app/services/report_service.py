@@ -1,3 +1,5 @@
+import csv
+from io import StringIO
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -7,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.inventory import InventoryItem
 from app.models.orders import Order
 from app.models.overhead import OverheadExpense
+from app.models.production import ProductionSession
 from app.models.todos import Todo
 from app.schemas.reports import DailyReport, DailyStage, DailyTodo
 
@@ -17,6 +20,36 @@ class ReportService:
         "stitching_in_progress",
         "packing_in_progress",
     )
+
+    @staticmethod
+    def get_daily_piecework_csv(db: Session, report_date: date) -> str:
+        sessions = db.query(ProductionSession, Order.order_number).join(Order).filter(
+            ProductionSession.session_date == report_date,
+            ProductionSession.is_deleted.is_(False),
+            ProductionSession.operator_name.is_not(None),
+        ).order_by(Order.order_number, ProductionSession.created_at, ProductionSession.id)
+        output = StringIO(newline="")
+        writer = csv.writer(output)
+        writer.writerow(("date", "order_number", "department", "operator", "pieces",
+                         "piece_rate", "wages", "wastage"))
+        for session, order_number in sessions:
+            writer.writerow((
+                report_date.isoformat(),
+                ReportService._spreadsheet_text(order_number),
+                session.department,
+                ReportService._spreadsheet_text(session.operator_name),
+                session.pieces,
+                format(session.piece_rate, ".2f"),
+                format(session.pieces * session.piece_rate, ".2f"),
+                session.wastage,
+            ))
+        return output.getvalue()
+
+    @staticmethod
+    def _spreadsheet_text(value: str) -> str:
+        if value.startswith(("\t", "\r", "\n")) or value.lstrip().startswith(("=", "+", "-", "@")):
+            return "'" + value
+        return value
 
     @staticmethod
     def get_daily(db: Session, report_date: date) -> DailyReport:

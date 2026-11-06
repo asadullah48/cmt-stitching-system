@@ -30,6 +30,8 @@ export default function ReportsPage() {
   const [report, setReport] = useState<DailyReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -45,6 +47,18 @@ export default function ReportsPage() {
     window.setTimeout(() => setCopied(false), 1500);
   };
 
+  const exportPiecework = async () => {
+    setExportError("");
+    setExporting(true);
+    try {
+      await reportsService.exportDailyPiecework(date);
+    } catch {
+      setExportError("Could not download the piecework CSV.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return <div className="space-y-5">
     <PageHeader title="Reports" subtitle="Daily production and operations report" />
     <div className="flex items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -52,7 +66,11 @@ export default function ReportsPage() {
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 block rounded-lg border border-gray-300 px-3 py-2" />
       </label>
       <button onClick={copy} disabled={!report} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{copied ? "Copied" : "Copy as text"}</button>
+      <button onClick={exportPiecework} disabled={!date || exporting} className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 disabled:opacity-50">
+        {exporting ? "Downloading…" : "Download piecework CSV"}
+      </button>
     </div>
+    {exportError && <p role="alert" className="text-sm text-red-700">{exportError}</p>}
     {loading && <p className="text-sm text-gray-500">Loading daily report...</p>}
     {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
     {report && !loading && <div className="grid gap-4 lg:grid-cols-2">

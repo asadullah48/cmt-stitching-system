@@ -350,16 +350,20 @@ export const transactionsService = {
       params: { format, ...rest },
       responseType: "blob",
     });
-    const url = window.URL.createObjectURL(data as Blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ledger.${format}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+    downloadFile(data as Blob, `ledger.${format}`);
   },
 };
+
+function downloadFile(data: Blob, filename: string) {
+  const url = window.URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
 
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
@@ -371,6 +375,13 @@ export const dashboardService = {
 };
 
 export const reportsService = {
+  exportDailyPiecework: async (date: string): Promise<void> => {
+    const { data } = await api.get<Blob>("/reports/daily/piecework.csv", {
+      params: { date },
+      responseType: "blob",
+    });
+    downloadFile(data, `piecework-${date}.csv`);
+  },
   getDaily: async (date: string): Promise<DailyReport> => {
     const { data } = await api.get<DailyReport>("/reports/daily", { params: { date } });
     return data;

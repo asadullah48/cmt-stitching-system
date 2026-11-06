@@ -119,7 +119,7 @@ sub_orders = relationship("Order",
 ```
 C:\Users\Asad\cmt-stitching-system\backend\alembic\versions\<name>.py
 ```
-Current HEAD: `1c7f2a9e4b6d`. Run `cd backend && alembic heads` to confirm.
+Current HEAD: `2d9f4b8c1a60` (follows `1c7f2a9e4b6d`). Run `cd backend && alembic heads` to confirm.
 
 ### Frontend
 

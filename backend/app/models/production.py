@@ -16,6 +16,10 @@ class ProductionSession(BaseModel):
     duration_hours = Column(Numeric(5, 2))
     supervisor_id = Column(UUID(as_uuid=True), ForeignKey("cmt_users.id"), nullable=True)
     notes = Column(Text)
+    operator_name = Column(String(100))
+    pieces = Column(Integer)
+    piece_rate = Column(Numeric(10, 2))
+    wastage = Column(Integer)
 
     # Relationships
     order = relationship("Order", back_populates="production_sessions")

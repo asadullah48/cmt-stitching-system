@@ -12,17 +12,23 @@ import type { Department, ProductionSessionCreate, ProductionSession } from "@/h
 interface SessionFormProps {
   orderId: string;
   department: Department;
+  defaultPieceRate?: number | null;
   onSuccess: (session: ProductionSession) => void;
   onCancel: () => void;
 }
 
-export function SessionForm({ orderId, department, onSuccess, onCancel }: SessionFormProps) {
+export function SessionForm({ orderId, department, defaultPieceRate, onSuccess, onCancel }: SessionFormProps) {
   const { showToast } = useToast();
   const [sessionDate, setSessionDate] = useState(todayInputDate());
   const [machines, setMachines] = useState("1");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [durationHours, setDurationHours] = useState("");
+  const [operator, setOperator] = useState("");
+  const [pieces, setPieces] = useState("");
+  const [pieceRate, setPieceRate] = useState(defaultPieceRate?.toString() ?? "");
+  const [wastage, setWastage] = useState("0");
+  const hasOperator = Boolean(operator.trim());
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -31,6 +37,9 @@ export function SessionForm({ orderId, department, onSuccess, onCancel }: Sessio
     const e: Record<string, string> = {};
     if (!sessionDate) e.sessionDate = "Session date is required.";
     if (!machines || parseInt(machines) < 1) e.machines = "At least 1 machine required.";
+    if (hasOperator && Number(pieces) === 0 && Number(wastage) === 0) {
+      e.form = "Enter at least one good or wasted piece.";
+    }
     return e;
   };
 
@@ -50,6 +59,12 @@ export function SessionForm({ orderId, department, onSuccess, onCancel }: Sessio
       end_time: endTime || undefined,
       duration_hours: durationHours ? parseFloat(durationHours) : undefined,
       notes: notes || undefined,
+      ...(hasOperator && {
+        operator_name: operator.trim(),
+        pieces: Number(pieces),
+        piece_rate: pieceRate,
+        wastage: Number(wastage),
+      }),
     };
 
     try {
@@ -125,6 +140,27 @@ export function SessionForm({ orderId, department, onSuccess, onCancel }: Sessio
           onChange={(e) => setDurationHours(e.target.value)}
         />
       </FormField>
+
+      {department !== "cutting" && (
+        <fieldset className="space-y-3 rounded-lg border border-gray-200 p-3">
+          <legend className="px-1 text-sm font-medium">Operator piecework</legend>
+          <FormField label="Operator name or code">
+            <Input aria-label="Operator name or code" maxLength={100} value={operator} onChange={(e) => setOperator(e.target.value)} />
+          </FormField>
+          {hasOperator && <>
+            <FormField label="Good pieces" required>
+              <Input aria-label="Good pieces" type="number" min="0" max="2147483647" required value={pieces} onChange={(e) => setPieces(e.target.value)} />
+            </FormField>
+            <FormField label="Labour rate (Rs per good piece)" required>
+              <Input aria-label="Labour rate (Rs per good piece)" type="number" min="0" max="99999999.99" step="0.01" required value={pieceRate} onChange={(e) => setPieceRate(e.target.value)} />
+            </FormField>
+            <FormField label="Wasted pieces" required>
+              <Input aria-label="Wasted pieces" type="number" min="0" max="2147483647" required value={wastage} onChange={(e) => setWastage(e.target.value)} />
+            </FormField>
+          </>}
+          <p className="text-xs text-gray-600">Enter one session per operator. Wages are based on good pieces.</p>
+        </fieldset>
+      )}
 
       <FormField label="Notes">
         <Textarea

@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 
 from app.core.deps import CurrentUser, DbDep
 from app.schemas.reports import DailyReport
@@ -17,3 +17,12 @@ def daily_report(
 ):
     return ReportService.get_daily(db, report_date)
 
+
+
+@router.get("/daily/piecework.csv")
+def daily_piecework_csv(db: DbDep, _: CurrentUser, report_date: date = Query(alias="date")):
+    return Response(
+        ReportService.get_daily_piecework_csv(db, report_date),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="piecework-{report_date}.csv"'},
+    )

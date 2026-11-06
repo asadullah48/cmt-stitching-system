@@ -1,3 +1,5 @@
+import csv
+from io import StringIO
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
@@ -17,6 +19,7 @@ from app.models.inventory import InventoryCategory, InventoryItem
 from app.models.orders import Order, OrderItem
 from app.models.overhead import OverheadExpense
 from app.models.parties import Party
+from app.models.production import ProductionSession
 from app.models.products import Product
 from app.models.todos import Todo
 from app.models.users import User
@@ -73,6 +76,7 @@ def report_client():
         Product.__table__,
         Order.__table__,
         OrderItem.__table__,
+        ProductionSession.__table__,
         Todo.__table__,
         OverheadExpense.__table__,
     ])
@@ -132,3 +136,36 @@ def test_daily_report_endpoint_lists_dispatched_low_stock_and_dues_total(report_
     assert Decimal(body["overhead_due_total"]) == Decimal("20000")
     cutting_stage = next(stage for stage in body["in_progress"] if stage["stage"] == "cutting_in_progress")
     assert cutting_stage["total_quantity"] == 100
+
+
+def test_piecework_csv_uses_saved_rate_and_only_selected_date(report_client):
+    client, db = report_client
+    day = date(2026, 11, 6)
+    order = _order("SYNTHETIC-PIECEWORK", "stitching_in_progress", day)
+    db.add(order)
+    db.flush()
+    defaults = dict(order_id=order.id, department="stitching", machines_used=1)
+    piecework = dict(operator_name="=SYNTHETIC, A", pieces=25, wastage=2,
+                     piece_rate=Decimal("3.75"))
+    db.add_all([
+        ProductionSession(**defaults, **piecework, session_date=day),
+        ProductionSession(**defaults, **piecework, session_date=day - timedelta(days=1)),
+        ProductionSession(**defaults, **piecework, session_date=day, is_deleted=True),
+        ProductionSession(**defaults, session_date=day),
+    ])
+    db.commit()
+
+    response = client.get("/api/v1/reports/daily/piecework.csv", params={"date": day.isoformat()})
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert response.headers["content-disposition"] == 'attachment; filename="piecework-2026-11-06.csv"'
+    assert list(csv.DictReader(StringIO(response.text))) == [{
+        "date": day.isoformat(), "order_number": "SYNTHETIC-PIECEWORK",
+        "department": "stitching", "operator": "'=SYNTHETIC, A",
+        "pieces": "25", "piece_rate": "3.75", "wages": "93.75", "wastage": "2",
+    }]
+
+    empty = client.get("/api/v1/reports/daily/piecework.csv", params={"date": "2026-11-07"})
+    assert empty.status_code == 200
+    assert empty.text.splitlines() == ["date,order_number,department,operator,pieces,piece_rate,wages,wastage"]
