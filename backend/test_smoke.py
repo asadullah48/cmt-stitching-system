@@ -3,7 +3,7 @@ Smoke test + mock data seed for CMT Stitching System.
 Covers every endpoint, reports failures, then deletes all created data.
 
 Usage:
-  python test_smoke.py [--base-url URL] [--keep]
+  python test_smoke.py --base-url URL [--keep]
   --keep : skip cleanup (leave mock data in DB)
 """
 
@@ -21,7 +21,7 @@ except ImportError:
     import subprocess; subprocess.run([sys.executable, "-m", "pip", "install", "requests", "-q"])
     import requests
 
-BASE_URL = "https://cmt-backend-5xuu.onrender.com/api/v1"
+BASE_URL = ""  # set from the required --base-url argument in main()
 USERNAME = "qaadmin"
 PASSWORD = "qaadmin123"
 
@@ -634,7 +634,11 @@ def cleanup(token):
 def main():
     global BASE_URL
     parser = argparse.ArgumentParser()
-    parser.add_argument("--base-url", default=BASE_URL)
+    parser.add_argument(
+        "--base-url",
+        required=True,
+        help="API base URL, e.g. http://127.0.0.1:8000/api/v1 (no default, so the target is always explicit)",
+    )
     parser.add_argument("--keep", action="store_true", help="Skip cleanup")
     args = parser.parse_args()
     BASE_URL = args.base_url
